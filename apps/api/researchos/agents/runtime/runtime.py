@@ -58,7 +58,7 @@ class AgentRuntime:
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
         self.db = db
-        self.llm = llm or get_llm_provider()
+        self._llm = llm  # None means resolve from config in run()
         self.http_client = http_client
         self.settings = get_settings()
 
@@ -69,6 +69,8 @@ class AgentRuntime:
             logger.warning("agent_run_missing", run_id=str(run_id))
             return None
 
+        # Resolve the LLM provider (lazy — uses project DB config if present).
+        llm = self._llm or await get_llm_provider(run.project_id)
         emitter = EventEmitter(self.db, project_id=run.project_id, run_id=run.id)
 
         if await is_cancel_requested(run.id) or run.status == AgentRunStatus.CANCELLED:
@@ -107,7 +109,7 @@ class AgentRuntime:
         )
 
         try:
-            output_text, usage = await self._run_loop(agent, actx, tool_ctx, broker, emitter)
+            output_text, usage = await self._run_loop(agent, actx, tool_ctx, broker, emitter, llm)
         except Exception as exc:  # noqa: BLE001 - persist and report any failure
             logger.exception("agent_run_failed", run_id=str(run.id))
             await self._finalize_failed(run, emitter, str(exc))
@@ -141,6 +143,7 @@ class AgentRuntime:
         tool_ctx: ToolContext,
         broker: ToolBroker,
         emitter: EventEmitter,
+        llm: LLMProvider,
     ) -> tuple[str, dict]:
         messages = await agent.build_messages(actx)
         llm_tools = [
@@ -159,7 +162,7 @@ class AgentRuntime:
 
         while True:
             requested: list[ToolCall] = []
-            async for event in self.llm.stream(
+            async for event in llm.stream(
                 messages=messages, tools=llm_tools, response_schema=agent.response_schema
             ):
                 if isinstance(event, TextDelta):

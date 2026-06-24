@@ -26,6 +26,7 @@ from researchos.experiments.router import router as experiments_router
 from researchos.git.router import router as git_router
 from researchos.health.router import router as health_router
 from researchos.identity.router import router as auth_router
+from researchos.llm_config.router import router as llm_config_router
 from researchos.organizations.router import router as organizations_router
 from researchos.patches.router import router as patches_router
 from researchos.projects.router import router as projects_router
@@ -96,6 +97,7 @@ def create_app() -> FastAPI:
     app.include_router(experiments_router)
     app.include_router(documents_router)
     app.include_router(skills_router)
+    app.include_router(llm_config_router)
     app.include_router(websocket_router)
 
     return app

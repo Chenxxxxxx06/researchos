@@ -43,6 +43,7 @@ from researchos.common.redis import close_redis, get_redis  # noqa: E402
 from researchos.main import create_app  # noqa: E402
 
 _TABLES = [
+    "llm_provider_configs",
     "skill_installations",
     "skill_versions",
     "skills",

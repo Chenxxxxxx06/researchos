@@ -17,28 +17,19 @@ export function TopBar({ me }: { me: MeResponse }) {
 
   const logoutMutation = useMutation({
     mutationFn: logout,
-    onSuccess: () => {
-      queryClient.clear();
-      router.push('/login');
-      router.refresh();
-    },
+    onSuccess: () => { queryClient.clear(); router.push('/login'); router.refresh(); },
   });
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-neutral-200 bg-white px-4">
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-bold tracking-tight">{t('app.name')}</span>
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-neutral-200 bg-white/95 backdrop-blur px-5">
+      <div className="flex items-center gap-4">
+        <span className="text-[15px] font-bold tracking-tight text-neutral-900">{t('app.name')}</span>
         <OrgSwitcher organizations={me.organizations} />
       </div>
       <div className="flex items-center gap-3">
         <LanguageSwitcher />
-        <span className="text-sm text-neutral-600">{me.user.display_name}</span>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => logoutMutation.mutate()}
-          disabled={logoutMutation.isPending}
-        >
+        <span className="text-sm text-neutral-500">{me.user.display_name}</span>
+        <Button variant="secondary" size="sm" onClick={() => logoutMutation.mutate()} disabled={logoutMutation.isPending}>
           {t('common.signOut')}
         </Button>
       </div>

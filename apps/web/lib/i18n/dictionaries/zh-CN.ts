@@ -115,6 +115,18 @@ export const zhCN = {
   'settings.title': '设置',
   'settings.language': '界面语言',
   'settings.languageHint': '选择平台界面语言。',
+  'settings.llmTitle': 'LLM 大模型配置',
+  'settings.llmHint': '为当前项目配置大语言模型。支持 OpenAI 兼容 API、Anthropic 及任何兼容的端点。',
+  'settings.llmAdd': '添加配置',
+  'settings.llmName': '配置名称',
+  'settings.llmProviderType': '提供商类型',
+  'settings.llmBaseUrl': 'API 地址',
+  'settings.llmModel': '模型名称',
+  'settings.llmApiKey': 'API Key',
+  'settings.llmApiKeyHint': '留空则不修改',
+  'settings.llmActive': '启用',
+  'settings.llmDesc': '备注',
+  'settings.llmNoConfigs': '尚未配置 LLM。添加一个配置即可在 Research Copilot 和 AI 助手面板中使用真实的大模型。',
 } as const;
 
 export type DictKey = keyof typeof zhCN;

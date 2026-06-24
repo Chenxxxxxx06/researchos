@@ -18,6 +18,7 @@ from researchos.experiments.models import (
     ExperimentRun,
 )
 from researchos.identity.models import User
+from researchos.llm_config.models import LLMProviderConfig
 from researchos.organizations.models import Organization, OrganizationMembership
 from researchos.patches.models import PatchFile, PatchHunk, PatchProposal
 from researchos.projects.models import Project, ProjectMembership
@@ -51,4 +52,5 @@ __all__ = [
     "Skill",
     "SkillVersion",
     "SkillInstallation",
+    "LLMProviderConfig",
 ]
