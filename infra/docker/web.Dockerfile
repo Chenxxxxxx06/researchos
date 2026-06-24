@@ -1,7 +1,7 @@
 # Next.js web app (development image).
 # Build context: repository root (needs the workspace manifest and the shared
 # package alongside apps/web).
-FROM node:20-slim
+FROM node:22-slim
 
 ENV NODE_ENV=development
 WORKDIR /app

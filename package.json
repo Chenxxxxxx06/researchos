@@ -23,6 +23,6 @@
     "stack:seed":  "docker compose -f infra/docker/docker-compose.yml exec -T api python -m researchos.seed.demo"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }
