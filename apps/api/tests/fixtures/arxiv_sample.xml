@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>ArXiv Query</title>
+  <opensearch:totalResults xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">2</opensearch:totalResults>
+  <entry>
+    <id>http://arxiv.org/abs/2401.01234v2</id>
+    <updated>2024-01-05T10:00:00Z</updated>
+    <published>2024-01-02T09:00:00Z</published>
+    <title>Efficient Vision-Language Pretraining for Document Understanding</title>
+    <summary>We present an efficient pretraining method for vision-language models
+      applied to document understanding tasks.</summary>
+    <author><name>Alice Researcher</name></author>
+    <author><name>Bob Scientist</name></author>
+    <link href="http://arxiv.org/abs/2401.01234v2" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/2401.01234v2" rel="related" type="application/pdf"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2312.05678v1</id>
+    <updated>2023-12-10T12:00:00Z</updated>
+    <published>2023-12-09T08:30:00Z</published>
+    <title>A Survey of Benchmarks for Multimodal Evaluation</title>
+    <summary>This survey reviews benchmarks used to evaluate multimodal models.</summary>
+    <author><name>Carol Author</name></author>
+    <link href="http://arxiv.org/abs/2312.05678v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/2312.05678v1" rel="related" type="application/pdf"/>
+  </entry>
+</feed>

@@ -1,0 +1,118 @@
+# ResearchOS local development stack (Phase 0).
+# Run from the repository root:
+#   docker compose -f infra/docker/docker-compose.yml up -d --build
+#
+# Build contexts are the repository root so the Python and web images can see
+# the workspace manifests and shared packages.
+
+name: researchos
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: researchos
+      POSTGRES_PASSWORD: researchos
+      POSTGRES_DB: researchos
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U researchos -d researchos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: researchos
+      MINIO_ROOT_PASSWORD: researchos
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/docker/python.Dockerfile
+    environment:
+      ENVIRONMENT: local
+      POSTGRES_DSN: postgresql+asyncpg://researchos:researchos@postgres:5432/researchos
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT_URL: http://minio:9000
+      CORS_ORIGINS: http://localhost:3000
+      WORKSPACE_ROOT: /data/workspaces
+    ports:
+      - "8000:8000"
+    volumes:
+      - wsdata:/data/workspaces
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: infra/docker/python.Dockerfile
+    command:
+      - celery
+      - -A
+      - researchos_worker.app
+      - worker
+      - --loglevel=info
+      - --queues=agents,ingestion,runtime,latex,experiments,skills,default
+    working_dir: /app/apps/worker
+    environment:
+      ENVIRONMENT: local
+      POSTGRES_DSN: postgresql+asyncpg://researchos:researchos@postgres:5432/researchos
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT_URL: http://minio:9000
+      DB_USE_NULLPOOL: "true"
+      WORKSPACE_ROOT: /data/workspaces
+    volumes:
+      - wsdata:/data/workspaces
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  miniodata:
+  wsdata:

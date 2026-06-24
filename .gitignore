@@ -1,0 +1,29 @@
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.uv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Node / Next -------------------------------------------------------------
+node_modules/
+.next/
+out/
+.pnpm-store/
+*.tsbuildinfo
+
+# --- Env / secrets -----------------------------------------------------------
+.env
+.env.local
+*.local
+
+# --- Editors / OS ------------------------------------------------------------
+.DS_Store
+.idea/
+*.log
+
+# --- Docker / data volumes ---------------------------------------------------
+infra/docker/.data/

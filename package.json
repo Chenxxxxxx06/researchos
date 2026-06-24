@@ -1,0 +1,19 @@
+{
+  "name": "researchos",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ResearchOS — AI-native research operating system (monorepo).",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "build:web": "pnpm --filter web build",
+    "typecheck": "pnpm -r typecheck",
+    "lint:web": "pnpm --filter web lint",
+    "stack:up": "docker compose -f infra/docker/docker-compose.yml up -d --build",
+    "stack:down": "docker compose -f infra/docker/docker-compose.yml down",
+    "stack:logs": "docker compose -f infra/docker/docker-compose.yml logs -f"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

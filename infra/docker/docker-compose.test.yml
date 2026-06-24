@@ -1,0 +1,36 @@
+# Overlay for running the API test suite inside the compose network.
+# The host cannot always reach the Docker PostgreSQL (a local PostgreSQL may
+# occupy port 5432), so tests run against the service hostnames directly.
+#
+# Usage (from repo root):
+#   docker compose -f infra/docker/docker-compose.yml \
+#                  -f infra/docker/docker-compose.test.yml \
+#                  run --rm test
+
+name: researchos
+
+services:
+  test:
+    build:
+      context: ../..
+      dockerfile: infra/docker/python.Dockerfile
+    volumes:
+      # Mount current source so tests run against the latest code without a rebuild.
+      - ../../apps/api:/app/apps/api
+      - ../../apps/worker:/app/apps/worker
+    working_dir: /app/apps/api
+    environment:
+      ENVIRONMENT: local
+      POSTGRES_DSN: postgresql+asyncpg://researchos:researchos@postgres:5432/researchos_test
+      REDIS_URL: redis://redis:6379/15
+      SECRET_KEY: test-secret-key
+      DB_USE_NULLPOOL: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command:
+      - sh
+      - -lc
+      - "uv pip install --system -e '.[dev]' >/dev/null && pytest -q"
