@@ -9,9 +9,15 @@
     "build:web": "pnpm --filter web build",
     "typecheck": "pnpm -r typecheck",
     "lint:web": "pnpm --filter web lint",
+    "test": "echo 'Use: docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.test.yml run --rm test'",
     "stack:up": "docker compose -f infra/docker/docker-compose.yml up -d --build",
     "stack:down": "docker compose -f infra/docker/docker-compose.yml down",
-    "stack:logs": "docker compose -f infra/docker/docker-compose.yml logs -f"
+    "stack:logs": "docker compose -f infra/docker/docker-compose.yml logs -f",
+    "stack:migrate": "docker compose -f infra/docker/docker-compose.yml exec -T api alembic upgrade head",
+    "stack:seed": "docker compose -f infra/docker/docker-compose.yml exec -T api python -m researchos.seed.demo",
+    "stack:test": "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.test.yml run --rm test",
+    "smoke:api": "powershell -File scripts/smoke_api.ps1",
+    "stack:full": "pnpm stack:down && pnpm stack:up && pnpm stack:migrate && pnpm stack:seed"
   },
   "engines": {
     "node": ">=20"

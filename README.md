@@ -1,106 +1,65 @@
 # ResearchOS
 
-AI-native research operating system. Monorepo containing the web app, API,
-worker, shared packages, and infrastructure.
+AI-native research operating system — a full-stack MVP that connects research
+discovery, code editing, experiment tracking, paper writing, and reusable skills
+in one workspace.
 
-> **Status: Phase 0 — engineering infrastructure only.** No business modules
-> (no users / projects / papers / experiments). See `docs/PHASE0_DECISIONS.md`
-> for the architecture decisions and `docs/` for the full product/architecture
-> design.
+> Tech: FastAPI + Next.js + PostgreSQL (pgvector) + Redis + Celery + Docker
 
-## Repository layout
-
-```text
-researchos/
-  apps/
-    web/      Next.js (App Router, TS, Tailwind, TanStack Query, Zustand)
-    api/      FastAPI (config, logging, errors, health, Alembic)
-    worker/   Celery (queue routing + health tasks; reuses api.common.*)
-  packages/
-    shared-schemas/   Shared TS contracts (WebSocket events)
-  infra/docker/       Dockerfiles + docker-compose (postgres/redis/minio)
-  docs/               Product + architecture documentation
-  scripts/            Dev helper scripts
-```
-
-## Prerequisites
-
-- Docker (for the one-command stack)
-- For local non-Docker dev: a Python 3.13 environment, `uv`, Node 20+, and
-  `pnpm` (via `corepack`).
-
-This repo was developed against a dedicated Python environment named
-`researchos` (see `docs/PHASE0_DECISIONS.md` §4).
-
-## Quick start (Docker)
+## Quick start
 
 ```bash
-# from the repository root
-docker compose -f infra/docker/docker-compose.yml up -d --build
-# or: pnpm stack:up   |   make up   |   bash scripts/dev_up.sh
+pnpm stack:full
 ```
 
-Then open:
+This runs `down` → `up --build` → `migrate` → `seed`. Then open
+<http://localhost:3000> and log in with the demo account.
 
-- Web: <http://localhost:3000> — shows live backend health
-- API docs: <http://localhost:8000/docs>
-- API readiness: <http://localhost:8000/readyz>
-- MinIO console: <http://localhost:9001> (researchos / researchos)
+**Demo account**: `demo@researchos.dev` / `demo-password-123`
 
-Stop the stack:
+See [`docs/RUNBOOK.md`](docs/RUNBOOK.md) for step-by-step commands and
+troubleshooting.
+
+## What's inside (MVP)
+
+| Module | What it does |
+|---|---|
+| **Research Copilot** | Paper search (arXiv), library, ideas, LLM-powered chat, critic review with source-grounded citations |
+| **AI IDE Workspace** | File tree, Monaco editor, terminal shell, coding agent that proposes reviewable patches |
+| **Experiment Dashboard** | Experiments, runs, Recharts metrics curves, logs, artifacts, AI analysis |
+| **Paper Workspace** | Three-pane LaTeX editor, AI writing assistant, mock-compile preview |
+| **Skills Marketplace** | First-party skill catalog, install/enable per project, Skill Builder for custom skills |
+| **Settings** | Language (zh-CN / en-US), per-project LLM provider configuration (OpenAI-compatible / Anthropic) |
+
+## Commands
 
 ```bash
-docker compose -f infra/docker/docker-compose.yml down   # or: make down
+pnpm stack:up       # Start all services
+pnpm stack:down     # Stop
+pnpm stack:migrate  # Apply database migrations
+pnpm stack:seed     # Seed demo data (idempotent)
+pnpm stack:full     # Full reset: down → up → migrate → seed
+pnpm stack:test     # Run all backend tests
+pnpm typecheck      # TypeScript type checking
+pnpm build:web      # Next.js production build
+pnpm smoke:api      # API smoke test (PowerShell)
 ```
 
-## Local development (without Docker)
+## Stack
 
-Start PostgreSQL, Redis, and MinIO (e.g. via the compose file), then:
+- **Backend**: FastAPI, SQLAlchemy 2.0 (async), Pydantic v2, Alembic, Celery
+- **Frontend**: Next.js 15 App Router, TypeScript, TailwindCSS, TanStack Query, Zustand, Monaco Editor, Recharts
+- **Infra**: PostgreSQL (pgvector), Redis, MinIO, Docker Compose
 
-```bash
-# API
-cd apps/api
-uv pip install -e ".[dev]"          # into your researchos environment
-uvicorn researchos.main:app --reload --port 8000
+## Docs
 
-# Worker (separate shell)
-cd apps/worker
-uv pip install -e ".[dev]"
-celery -A researchos_worker.app worker --loglevel=info \
-  --queues=agents,ingestion,runtime,latex,experiments,skills,default
+- [`docs/RUNBOOK.md`](docs/RUNBOOK.md) — operations guide
+- [`docs/MVP_STATUS.md`](docs/MVP_STATUS.md) — what's real, what's mock, what's next
+- [`docs/`](docs/) — architecture, product, database, API design
+- [`docs/PHASE0_DECISIONS.md`](docs/PHASE0_DECISIONS.md) through [`docs/PHASE3_DECISIONS.md`](docs/PHASE3_DECISIONS.md) — per-phase decisions
+- [`docs/SKILL_BUILDER.md`](docs/SKILL_BUILDER.md) — skill architecture
 
-# Web (separate shell)
-pnpm install
-pnpm --filter web dev
-```
+## CI
 
-## Testing
-
-```bash
-cd apps/api    && pytest      # health endpoints, error envelope, request id
-cd apps/worker && pytest      # celery wiring + health tasks
-pnpm -r typecheck             # TypeScript typecheck across web + packages
-# or: make test
-```
-
-## Database migrations
-
-Alembic is configured (URL injected from settings). Phase 0 has an **empty
-baseline** — no business tables yet.
-
-```bash
-cd apps/api
-alembic upgrade head           # no-op in Phase 0
-alembic revision -m "message"  # used from Phase 1 onward
-```
-
-## What Phase 0 delivers
-
-- Monorepo with three runnable apps and one shared package.
-- Docker Compose stack: PostgreSQL (pgvector), Redis, MinIO, api, worker, web.
-- Typed configuration (`pydantic-settings`) shared by api + worker.
-- Structured JSON logging with request-id propagation.
-- `/healthz` liveness and `/readyz` readiness (probes PG/Redis/object storage).
-- Consistent typed error envelope.
-- Test framework for api and worker; typecheck for web.
-- Verified frontend ↔ backend connectivity (home page renders live readiness).
+GitHub Actions runs `ruff` + `mypy` + `pytest` + `typecheck` + `build` on
+push and PR.
