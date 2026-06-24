@@ -14,28 +14,20 @@ export function PaperLibrary({ projectId }: { projectId: string }) {
 
   return (
     <div>
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-        Library
-      </h3>
-      {isLoading && <Skeleton className="h-16 w-full" />}
-      {isError && <p className="text-xs text-red-600">Failed to load.</p>}
-      {data && data.items.length === 0 && (
-        <p className="text-xs text-neutral-500">No papers yet. Search to add some.</p>
-      )}
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Library</h3>
+        {data && <span className="rounded-full bg-neutral-100 px-1.5 text-[10px] font-medium text-neutral-500">{data.total}</span>}
+      </div>
+      {isLoading && <Skeleton className="h-12 w-full" />}
+      {isError && <p className="text-[11px] text-red-600">Failed to load.</p>}
+      {data?.items.length === 0 && <p className="text-[11px] text-neutral-400">No papers yet.</p>}
       <ul className="space-y-1">
         {data?.items.map((paper) => (
-          <li key={paper.id} className="rounded border border-neutral-200 p-2">
-            <a
-              href={paper.url}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs font-medium text-neutral-800 underline"
-            >
-              {paper.title}
+          <li key={paper.id}>
+            <a href={paper.url} target="_blank" rel="noreferrer" className="block rounded-md px-2 py-1.5 text-xs leading-snug text-neutral-700 hover:bg-neutral-100">
+              <span className="font-medium">{paper.title}</span>
+              <span className="ml-1.5 font-mono text-[10px] text-neutral-400">{paper.source}:{paper.external_id}</span>
             </a>
-            <p className="mt-0.5 font-mono text-[10px] text-neutral-400">
-              {paper.source}:{paper.external_id}
-            </p>
           </li>
         ))}
       </ul>

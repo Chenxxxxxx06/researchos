@@ -1,25 +1,15 @@
 'use client';
 
-/**
- * Terminal panel — UI/log shell only. It does NOT execute any commands
- * (PHASE3-D11). Real execution arrives with the runtime in a later phase.
- */
 export function TerminalPanel() {
   return (
-    <div className="flex h-full flex-col bg-neutral-900 font-mono text-xs text-neutral-200">
-      <div className="flex items-center justify-between border-b border-neutral-700 px-3 py-1">
-        <span className="text-neutral-400">TERMINAL</span>
-        <span className="rounded bg-neutral-700 px-2 py-0.5 text-[10px] text-neutral-300">
-          read-only · no execution
-        </span>
+    <div className="flex h-full flex-col bg-[#1e1e1e] font-mono text-xs text-[#d4d4d4]">
+      <div className="flex items-center gap-3 border-b border-[#333] px-4 py-1.5">
+        <span className="text-[11px] font-medium text-[#888]">TERMINAL</span>
+        <span className="rounded bg-[#333] px-2 py-0.5 text-[10px] text-[#888]">read‑only</span>
       </div>
-      <div className="flex-1 overflow-auto p-3 leading-relaxed">
-        <div className="text-neutral-500"># Terminal is a UI shell in this MVP.</div>
-        <div className="text-neutral-500"># Command execution is disabled by design.</div>
-        <div className="mt-2">
-          <span className="text-green-400">researchos</span>
-          <span className="text-neutral-500">:~/workspace$</span> <span className="animate-pulse">▋</span>
-        </div>
+      <div className="flex-1 overflow-auto px-4 py-3 leading-relaxed">
+        <div className="text-[#6a6a6a]"># Terminal shell — command execution disabled by design.</div>
+        <div className="mt-3"><span className="text-[#4ec9b0]">researchos</span> <span className="text-[#888]">~/workspace$</span> <span className="animate-pulse text-[#dcdcaa]">▋</span></div>
       </div>
     </div>
   );
