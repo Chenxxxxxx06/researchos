@@ -6,20 +6,20 @@ Last updated: 2026-06-25
 
 | Module | Status | Notes |
 |---|---|---|
-| Auth (register/login/logout/me) | ✅ | Email/password, Redis sessions, CSRF |
-| Organizations + Projects | ✅ | M:N membership, soft-delete, role ladder |
-| Research Copilot | ✅ | Paper search (arXiv provider), library, ideas, critic review, agent runtime |
-| AI IDE | ✅ | File tree, Monaco editor, patch proposals, patch apply (base_sha guard), coding agent |
-| Experiment Dashboard | ✅ | Experiments, runs, metrics (Recharts), logs, artifacts, analysis agent |
-| Paper Workspace (LaTeX) | ✅ | Three-pane, Monaco LaTeX editor, mock compile (safe text transform), writing assistant |
-| Skills Marketplace | ✅ | 5 first-party skills, install/enable/disable, detail panel |
-| Skill Builder | ✅ | Form, validate, preview manifest, save & install custom skill |
-| i18n (zh-CN / en-US) | ✅ | Full coverage, language switcher, persisted |
-| WebSocket | ✅ | Agent run streaming via Redis pub/sub, REST events fallback |
-| Celery workers | ✅ | agents.run_agent task, queue routing |
-| Settings / LLM config | ✅ | Per-project provider configs, OpenAI-compatible adapter |
-| Demo seed | ✅ | Idempotent, safe to re-run |
-| CI | ✅ | GitHub Actions: ruff, mypy, pytest, typecheck, build |
+| Auth (register/login/logout/me) | [OK] | Email/password, Redis sessions, CSRF |
+| Organizations + Projects | [OK] | M:N membership, soft-delete, role ladder |
+| Research Copilot | [OK] | Paper search (arXiv provider), library, ideas, critic review, agent runtime |
+| AI IDE | [OK] | File tree, Monaco editor, patch proposals, patch apply (base_sha guard), coding agent |
+| Experiment Dashboard | [OK] | Experiments, runs, metrics (Recharts), logs, artifacts, analysis agent |
+| Paper Workspace (LaTeX) | [OK] | Three-pane, Monaco LaTeX editor, mock compile (safe text transform), writing assistant |
+| Skills Marketplace | [OK] | 5 first-party skills, install/enable/disable, detail panel |
+| Skill Builder | [OK] | Form, validate, preview manifest, save & install custom skill |
+| i18n (zh-CN / en-US) | [OK] | Full coverage, language switcher, persisted |
+| WebSocket | [OK] | Agent run streaming via Redis pub/sub, REST events fallback |
+| Celery workers | [OK] | agents.run_agent task, queue routing |
+| Settings / LLM config | [OK] | Per-project provider configs, OpenAI-compatible adapter |
+| Demo seed | [OK] | Idempotent, safe to re-run |
+| CI | [OK] | GitHub Actions: ruff, mypy, pytest, typecheck, build |
 
 ## Modules with mock / stub components
 

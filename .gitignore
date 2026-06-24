@@ -27,3 +27,8 @@ out/
 
 # --- Docker / data volumes ---------------------------------------------------
 infra/docker/.data/
+
+# --- Artifacts / screenshots / test reports ----------------------------------
+artifacts/
+playwright-report/
+test-results/

@@ -29,7 +29,7 @@ docker compose -f infra/docker/docker-compose.yml up -d --build
 docker compose -f infra/docker/docker-compose.yml exec -T api alembic upgrade head
 # or: pnpm stack:migrate
 
-# 3. Seed demo data (idempotent — safe to re-run)
+# 3. Seed demo data (idempotent -- safe to re-run)
 docker compose -f infra/docker/docker-compose.yml exec -T api python -m researchos.seed.demo
 # or: pnpm stack:seed
 ```
