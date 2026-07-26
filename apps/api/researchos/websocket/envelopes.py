@@ -19,6 +19,8 @@ ResourceType = Literal[
     "runtime_command",
     "skill_installation",
     "project",
+    "paper",
+    "figure",
 ]
 
 # Phase 2 agent event types (subset of shared-schemas EVENT_TYPES).

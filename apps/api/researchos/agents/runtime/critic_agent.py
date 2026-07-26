@@ -71,10 +71,10 @@ class CriticAgent(Agent):
         citation_sources: dict[str, dict],
         usage: dict,
     ) -> tuple[dict, list[dict]]:
-        try:
-            parsed = json.loads(output_text)
-        except json.JSONDecodeError:
-            parsed = {}
+        # Defense in depth: the runtime's structured-output gate guarantees
+        # valid JSON here; a parse failure must fail the run, never persist an
+        # empty critique on a COMPLETED run.
+        parsed = json.loads(output_text)
 
         candidate_keys = [str(k) for k in parsed.get("citations", [])]
         kept, dropped = filter_citations(candidate_keys, whitelist)

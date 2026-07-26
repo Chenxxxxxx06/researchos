@@ -85,12 +85,26 @@ class Settings(BaseSettings):
     # a real provider. The mock provider ignores this value.
     llm_model: str = "mock-model"
     anthropic_api_key: str = ""
+    openai_api_key: str = ""
+    llm_max_output_tokens: int = 8192
+    llm_request_timeout_seconds: float = 120.0
 
     # --- Paper search provider ----------------------------------------------
+    # Comma-separated provider list, e.g. "arxiv,s2,openalex".
     paper_provider: str = "arxiv"
     arxiv_api_base: str = "http://export.arxiv.org/api/query"
     arxiv_timeout_seconds: float = 10.0
     paper_search_max_results: int = 25
+    s2_api_base: str = "https://api.semanticscholar.org/graph/v1"
+    openalex_api_base: str = "https://api.openalex.org"
+    # OpenAlex polite pool contact; empty -> mailto param omitted.
+    openalex_mailto: str = ""
+    provider_timeout_seconds: float = 8.0
+    provider_retry_attempts: int = 3
+    ar5iv_base_url: str = "https://ar5iv.labs.arxiv.org/html"
+    arxiv_html_base_url: str = "https://arxiv.org/html"
+    feed_cache_ttl_seconds: int = 900
+    paper_section_max_chars: int = 20_000
 
     # --- Workspace (IDE) -----------------------------------------------------
     # Base directory holding per-project workspaces: <workspace_root>/<project_id>.
@@ -98,6 +112,14 @@ class Settings(BaseSettings):
     workspace_max_file_bytes: int = 1_000_000
     workspace_max_tree_entries: int = 5000
     workspace_max_tree_depth: int = 12
+    workspace_read_max_lines: int = 400
+    workspace_read_budget_bytes: int = 262_144
+    workspace_grep_max_results: int = 50
+    workspace_grep_max_file_bytes: int = 200_000
+
+    # --- Git (per-project workspace repos) -----------------------------------
+    git_enabled: bool = True
+    git_timeout_seconds: float = 10.0
 
     # --- Agent runtime -------------------------------------------------------
     agent_max_tool_calls: int = 4
@@ -105,6 +127,9 @@ class Settings(BaseSettings):
     # Simple per-user rate limits (Redis sliding window).
     rate_limit_agent_runs_per_minute: int = 30
     rate_limit_paper_search_per_minute: int = 60
+    # Per-client-IP limit for the unauthenticated /auth/login and /auth/register
+    # endpoints (each endpoint gets its own bucket). <= 0 disables.
+    rate_limit_auth_per_minute: int = 10
 
     # --- Derived values ------------------------------------------------------
     @computed_field  # type: ignore[prop-decorator]

@@ -19,7 +19,10 @@ from .enums import SkillModule
 ALLOWED_TOOLS: tuple[str, ...] = (
     "paper.search",
     "library.list",
+    "paper.sections",
     "workspace.tree",
+    "workspace.read",
+    "workspace.grep",
     "memory.read",
     "experiment.read",
 )

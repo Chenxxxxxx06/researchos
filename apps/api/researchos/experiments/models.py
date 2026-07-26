@@ -5,7 +5,18 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import (
+    CHAR,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,6 +35,8 @@ class Experiment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     goal: Mapped[str | None] = mapped_column(Text, nullable=True)
     default_config_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    # Per-metric metadata: {"<name>": {"direction": "min"|"max", "unit"?, "display_name"?}}.
+    metric_meta_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     created_by: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True
     )
@@ -53,6 +66,8 @@ class ExperimentRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     config_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Next log seq to hand out; blocks are reserved atomically via UPDATE..RETURNING.
+    log_next_seq: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_by: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True
     )
@@ -75,6 +90,7 @@ class ExperimentMetric(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 class ExperimentLog(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "experiment_logs"
+    __table_args__ = (UniqueConstraint("run_id", "seq", name="uq_experiment_logs_run_seq"),)
 
     run_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("experiment_runs.id", ondelete="CASCADE"), nullable=False, index=True
@@ -101,3 +117,22 @@ class ExperimentArtifact(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     uri: Mapped[str] = mapped_column(String(1024), nullable=False, default="")
     size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     metadata_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+
+
+class ExperimentIngestToken(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Per-project bearer token for the cookie-less NDJSON telemetry ingest."""
+
+    __tablename__ = "experiment_ingest_tokens"
+
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    # Only the sha256 of the plaintext is stored; the prefix is for display.
+    token_hash: Mapped[str] = mapped_column(CHAR(64), nullable=False, unique=True)
+    token_prefix: Mapped[str] = mapped_column(String(12), nullable=False)
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

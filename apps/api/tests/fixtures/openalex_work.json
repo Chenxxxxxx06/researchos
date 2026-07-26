@@ -1,0 +1,34 @@
+{
+  "id": "https://openalex.org/W2741809807",
+  "title": "Efficient Vision-Language Pretraining for Document Understanding",
+  "display_name": "Efficient Vision-Language Pretraining for Document Understanding",
+  "ids": {"openalex": "https://openalex.org/W2741809807", "doi": "https://doi.org/10.1234/abc"},
+  "publication_date": "2024-01-03",
+  "cited_by_count": 91,
+  "abstract_inverted_index": {
+    "We": [0],
+    "present": [1],
+    "an": [2],
+    "efficient": [3],
+    "pretraining": [4],
+    "method": [5],
+    "for": [6],
+    "vision-language": [7],
+    "models.": [8]
+  },
+  "authorships": [
+    {"author": {"id": "https://openalex.org/A1", "display_name": "Alice Researcher"}},
+    {"author": {"id": "https://openalex.org/A2", "display_name": "Bob Scientist"}}
+  ],
+  "primary_location": {
+    "source": {"id": "https://openalex.org/S1", "display_name": "Advances in Neural Information Processing Systems"},
+    "landing_page_url": "https://arxiv.org/abs/2401.01234v2",
+    "pdf_url": "https://arxiv.org/pdf/2401.01234v2"
+  },
+  "locations": [
+    {
+      "landing_page_url": "https://arxiv.org/abs/2401.01234v2",
+      "pdf_url": "https://arxiv.org/pdf/2401.01234v2"
+    }
+  ]
+}

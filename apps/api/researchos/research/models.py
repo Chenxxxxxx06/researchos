@@ -1,17 +1,27 @@
-"""Research ORM models: papers, ideas, critiques."""
+"""Research ORM models: papers, sections, ideas, critiques, feed prefs."""
 
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from researchos.common.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
-from .enums import IdeaStatus
+from .enums import IdeaStatus, PaperIngestStatus, PaperSectionKind
 
 
 class Paper(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -20,6 +30,8 @@ class Paper(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "papers"
     __table_args__ = (
         UniqueConstraint("project_id", "source", "external_id", name="uq_paper_project_source_ext"),
+        Index("ix_papers_project_doi", "project_id", "doi"),
+        Index("ix_papers_project_arxiv", "project_id", "arxiv_id"),
     )
 
     project_id: Mapped[uuid.UUID] = mapped_column(
@@ -35,10 +47,61 @@ class Paper(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     url: Mapped[str] = mapped_column(String(1024), nullable=False)
     pdf_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    doi: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    arxiv_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    primary_category: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    citation_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    ingest_status: Mapped[PaperIngestStatus] = mapped_column(
+        Enum(
+            PaperIngestStatus,
+            name="paper_ingest_status",
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+        default=PaperIngestStatus.PENDING,
+    )
+    ingested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ingest_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     metadata_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     imported_by: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True
     )
+
+
+class PaperSection(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A typed full-text section parsed from a paper's HTML rendition."""
+
+    __tablename__ = "paper_sections"
+    __table_args__ = (UniqueConstraint("paper_id", "seq", name="uq_paper_section_seq"),)
+
+    paper_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("papers.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    seq: Mapped[int] = mapped_column(Integer, nullable=False)
+    level: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    heading: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    char_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    kind: Mapped[PaperSectionKind] = mapped_column(
+        Enum(
+            PaperSectionKind,
+            name="paper_section_kind",
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+        default=PaperSectionKind.OTHER,
+    )
+
+
+class ResearchFeedPref(TimestampMixin, Base):
+    """Explicit followed-category overrides for a project's freshness feed."""
+
+    __tablename__ = "research_feed_prefs"
+
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True
+    )
+    categories: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
 
 
 class Idea(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -56,6 +119,7 @@ class Idea(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         default=IdeaStatus.DRAFT,
     )
     novelty_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    metadata_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     created_by: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True
     )

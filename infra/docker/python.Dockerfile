@@ -9,6 +9,11 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
+# git powers the per-project workspace repos (patch commits, log, revert).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
 # uv for fast, reproducible installs.
 RUN pip install --no-cache-dir uv
 

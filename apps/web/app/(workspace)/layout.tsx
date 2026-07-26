@@ -5,6 +5,10 @@ import { useEffect, type ReactNode } from 'react';
 
 import { ApiError } from '@/lib/api/client';
 import { useSession } from '@/lib/auth/session-context';
+import { useBuiltinCommands } from '@/lib/command/builtin';
+import { ShortcutProvider } from '@/lib/shortcuts';
+import { CommandPalette } from '@/components/command/CommandPalette';
+import { ShortcutCheatsheet } from '@/components/command/ShortcutCheatsheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SideRail } from '@/features/workspace/SideRail';
 import { TopBar } from '@/features/workspace/TopBar';
@@ -34,12 +38,23 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <TopBar me={me} />
-      <div className="flex flex-1">
-        <SideRail />
-        <main className="flex-1 bg-neutral-50 p-6">{children}</main>
+    <ShortcutProvider>
+      <WorkspaceCommands />
+      <div className="flex min-h-screen flex-col">
+        <TopBar me={me} />
+        <div className="flex flex-1">
+          <SideRail />
+          <main className="flex-1 bg-bg p-6">{children}</main>
+        </div>
       </div>
-    </div>
+      <CommandPalette />
+      <ShortcutCheatsheet />
+    </ShortcutProvider>
   );
+}
+
+/** Hook host: registers built-in palette commands for the workspace. */
+function WorkspaceCommands() {
+  useBuiltinCommands();
+  return null;
 }

@@ -11,15 +11,18 @@ from .base import (
     Usage,
 )
 from .factory import get_llm_provider
+from .structured import StructuredOutputError, extract_json
 
 __all__ = [
     "LLMMessage",
     "LLMProvider",
     "LLMTool",
     "StreamEvent",
+    "StructuredOutputError",
     "TextDelta",
     "ToolCall",
     "Usage",
     "StreamDone",
+    "extract_json",
     "get_llm_provider",
 ]

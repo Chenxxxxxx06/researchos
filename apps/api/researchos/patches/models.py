@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from researchos.common.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -34,10 +35,25 @@ class PatchProposal(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
     applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Sha of the workspace commit recorded when this patch was applied (None
+    # when git is disabled or the commit failed — apply still succeeds).
+    applied_commit_sha: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Conflict details persisted at conflict-detection time (survives refresh
+    # and seeds agent re-proposals).
+    conflict_json: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    superseded_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("patch_proposals.id", ondelete="SET NULL"), nullable=True
+    )
 
     files: Mapped[list[PatchFile]] = relationship(
         back_populates="proposal", cascade="all, delete-orphan", order_by="PatchFile.path"
     )
+
+    @property
+    def conflicts(self) -> list[dict]:
+        """Response-facing view of ``conflict_json`` (pydantic from_attributes)."""
+
+        return list(self.conflict_json or [])
 
 
 class PatchFile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -54,15 +70,26 @@ class PatchFile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # against the live file; a mismatch is a conflict.
     base_sha: Mapped[str | None] = mapped_column(String(64), nullable=True)
     new_content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Full pre-image snapshot for modify/delete of text files (None for
+    # create/binary/legacy rows) — powers review diffs and manual recovery.
+    base_content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Raw [{search, replace}] blocks as proposed (None for whole-file patches).
+    edits_json: Mapped[list | None] = mapped_column(JSONB, nullable=True)
 
     proposal: Mapped[PatchProposal] = relationship(back_populates="files")
     hunks: Mapped[list[PatchHunk]] = relationship(
         back_populates="file", cascade="all, delete-orphan", order_by="PatchHunk.new_start"
     )
 
+    @property
+    def edits(self) -> list[dict]:
+        """Response-facing view of ``edits_json`` (pydantic from_attributes)."""
+
+        return list(self.edits_json or [])
+
 
 class PatchHunk(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """Display-only diff hunk (no partial apply in MVP)."""
+    """Server-derived unified-diff hunk (display; apply is file-granular)."""
 
     __tablename__ = "patch_hunks"
 

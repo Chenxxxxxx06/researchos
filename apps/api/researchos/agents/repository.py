@@ -47,12 +47,20 @@ class AgentRunRepository:
 class ToolCallRepository:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
+        # In-instance monotonic allocator (seeded from max(seq)+1). The broker
+        # holds one repository per run, so allocation is race-free even if tool
+        # execution is ever parallelized; the unique constraint is the backstop.
+        self._seq_next: dict[uuid.UUID, int] = {}
 
     async def next_seq(self, agent_run_id: uuid.UUID) -> int:
-        current = await self.db.scalar(
-            select(func.count()).select_from(ToolCall).where(ToolCall.agent_run_id == agent_run_id)
-        )
-        return int(current or 0)
+        cached = self._seq_next.get(agent_run_id)
+        if cached is None:
+            current = await self.db.scalar(
+                select(func.max(ToolCall.seq)).where(ToolCall.agent_run_id == agent_run_id)
+            )
+            cached = int(current) + 1 if current is not None else 0
+        self._seq_next[agent_run_id] = cached + 1
+        return cached
 
     async def create(self, tool_call: ToolCall) -> ToolCall:
         self.db.add(tool_call)
@@ -69,12 +77,24 @@ class ToolCallRepository:
 class AgentRunEventRepository:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
+        self._seq_next: dict[uuid.UUID, int] = {}
 
     async def next_seq(self, agent_run_id: uuid.UUID) -> int:
-        current = await self.db.scalar(
-            select(func.max(AgentRunEvent.seq)).where(AgentRunEvent.agent_run_id == agent_run_id)
-        )
-        return int(current) + 1 if current is not None else 0
+        cached = self._seq_next.get(agent_run_id)
+        if cached is None:
+            current = await self.db.scalar(
+                select(func.max(AgentRunEvent.seq)).where(
+                    AgentRunEvent.agent_run_id == agent_run_id
+                )
+            )
+            cached = int(current) + 1 if current is not None else 0
+        self._seq_next[agent_run_id] = cached + 1
+        return cached
+
+    def reset_seq_cache(self, agent_run_id: uuid.UUID) -> None:
+        """Drop the cached allocator so the next call re-seeds from the DB."""
+
+        self._seq_next.pop(agent_run_id, None)
 
     async def append(
         self,

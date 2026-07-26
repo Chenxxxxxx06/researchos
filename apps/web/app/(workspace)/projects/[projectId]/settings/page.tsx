@@ -10,6 +10,7 @@ import {
   type LLMConfig,
 } from '@/lib/api/llmConfig';
 import { useI18n } from '@/lib/i18n';
+import { useTheme, type ThemePreference } from '@/lib/theme';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,9 +18,59 @@ import { Label } from '@/components/ui/label';
 import { LanguageSwitcher } from '@/features/workspace/LanguageSwitcher';
 import { ApiError } from '@/lib/api/client';
 import { useParams } from 'next/navigation';
+import { cn } from '@/lib/utils';
+
+/** Fixed-hex mini mock previews so each tile shows its own palette. */
+const TILE_PREVIEW: Record<ThemePreference, { canvas: string; card: string; line: string }> = {
+  light: { canvas: '#fafafa', card: '#ffffff', line: '#d4d4d4' },
+  dark: { canvas: '#0c0c0e', card: '#18181b', line: '#3f3f46' },
+  system: { canvas: '#fafafa', card: '#18181b', line: '#737373' },
+};
+
+function AppearanceTile({
+  value,
+  label,
+  selected,
+  onSelect,
+}: {
+  value: ThemePreference;
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const preview = TILE_PREVIEW[value];
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cn(
+        'flex flex-col items-center gap-2 rounded-lg border p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60',
+        selected ? 'border-accent bg-surface-2' : 'border-border hover:border-border-strong',
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className="flex h-10 w-16 items-center justify-center rounded border"
+        style={{ background: preview.canvas, borderColor: preview.line }}
+      >
+        <span
+          className="flex h-6 w-10 flex-col justify-center gap-1 rounded-sm px-1.5"
+          style={{ background: preview.card }}
+        >
+          <span className="h-0.5 w-full rounded" style={{ background: preview.line }} />
+          <span className="h-0.5 w-2/3 rounded" style={{ background: preview.line }} />
+        </span>
+      </span>
+      <span className="text-xs font-medium text-text">{label}</span>
+    </button>
+  );
+}
 
 export default function SettingsPage() {
   const { t } = useI18n();
+  const { preference, setTheme } = useTheme();
   const params = useParams<{ projectId: string }>();
   const projectId = params.projectId!;
   const queryClient = useQueryClient();
@@ -49,15 +100,40 @@ export default function SettingsPage() {
     description: '',
   });
 
+  const themeOptions: Array<{ value: ThemePreference; label: string }> = [
+    { value: 'light', label: t('theme.light') },
+    { value: 'dark', label: t('theme.dark') },
+    { value: 'system', label: t('theme.system') },
+  ];
+
   return (
     <div className="max-w-3xl space-y-8">
-      <h1 className="text-xl font-bold tracking-tight text-neutral-900">{t('settings.title')}</h1>
+      <h1 className="text-xl font-bold tracking-tight text-text">{t('settings.title')}</h1>
+
+      {/* Appearance */}
+      <Card>
+        <CardHeader><CardTitle>{t('settings.appearance')}</CardTitle></CardHeader>
+        <CardContent>
+          <p className="mb-3 text-sm text-muted">{t('settings.appearanceHint')}</p>
+          <div role="radiogroup" aria-label={t('settings.appearance')} className="flex gap-3">
+            {themeOptions.map((option) => (
+              <AppearanceTile
+                key={option.value}
+                value={option.value}
+                label={option.label}
+                selected={preference === option.value}
+                onSelect={() => setTheme(option.value)}
+              />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Language */}
       <Card>
         <CardHeader><CardTitle>{t('settings.language')}</CardTitle></CardHeader>
         <CardContent>
-          <p className="mb-3 text-sm text-neutral-500">{t('settings.languageHint')}</p>
+          <p className="mb-3 text-sm text-muted">{t('settings.languageHint')}</p>
           <LanguageSwitcher />
         </CardContent>
       </Card>
@@ -74,40 +150,40 @@ export default function SettingsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="mb-4 text-sm text-neutral-500">{t('settings.llmHint')}</p>
+          <p className="mb-4 text-sm text-muted">{t('settings.llmHint')}</p>
 
           {configs.data?.length === 0 && !showForm && (
-            <div className="rounded-lg border border-dashed border-neutral-300 p-6 text-center">
-              <p className="text-sm text-neutral-500">{t('settings.llmNoConfigs')}</p>
+            <div className="rounded-lg border border-dashed border-border-strong p-6 text-center">
+              <p className="text-sm text-muted">{t('settings.llmNoConfigs')}</p>
               <Button size="sm" className="mt-3" onClick={() => setShowForm(true)}>{t('settings.llmAdd')}</Button>
             </div>
           )}
 
           {configs.data?.map((cfg) => (
-            <div key={cfg.id} className="mb-3 rounded-lg border border-neutral-200 p-4">
+            <div key={cfg.id} className="mb-3 rounded-lg border border-border p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="font-medium text-neutral-900">{cfg.name}</span>
-                  <span className="ml-2 rounded bg-neutral-100 px-2 py-0.5 font-mono text-xs text-neutral-600">{cfg.provider_type}</span>
-                  {cfg.is_active && <span className="ml-2 rounded bg-green-100 px-2 py-0.5 text-xs text-green-700">active</span>}
+                  <span className="font-medium text-text">{cfg.name}</span>
+                  <span className="ml-2 rounded bg-surface-2 px-2 py-0.5 font-mono text-xs text-muted">{cfg.provider_type}</span>
+                  {cfg.is_active && <span className="ml-2 rounded bg-success-bg px-2 py-0.5 text-xs text-success">active</span>}
                 </div>
                 <Button size="sm" variant="ghost" onClick={() => del.mutate(cfg.id)} disabled={del.isPending}>
                   {t('common.delete')}
                 </Button>
               </div>
-              <p className="mt-1 text-xs text-neutral-500">Model: {cfg.model} · URL: {cfg.base_url} · Key: {cfg.api_key_masked}</p>
+              <p className="mt-1 text-xs text-muted">Model: {cfg.model} · URL: {cfg.base_url} · Key: {cfg.api_key_masked}</p>
             </div>
           ))}
 
           {showForm && (
-            <form className="mt-4 rounded-lg border border-neutral-300 bg-neutral-50 p-4 space-y-3" onSubmit={(e) => {
+            <form className="mt-4 space-y-3 rounded-lg border border-border-strong bg-surface-2 p-4" onSubmit={(e) => {
               e.preventDefault();
               save.mutate(form, { onSuccess: () => setShowForm(false) });
             }}>
               <div className="grid grid-cols-2 gap-3">
                 <div><Label>{t('settings.llmName')}</Label><Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
                 <div><Label>{t('settings.llmProviderType')}</Label>
-                  <select className="h-10 w-full rounded-md border border-neutral-300 bg-white px-3 text-sm" value={form.provider_type} onChange={e => setForm({...form, provider_type: e.target.value})}>
+                  <select className="h-10 w-full rounded-md border border-border-strong bg-surface px-3 text-sm text-text" value={form.provider_type} onChange={e => setForm({...form, provider_type: e.target.value})}>
                     <option value="openai_compatible">OpenAI Compatible</option>
                     <option value="anthropic">Anthropic</option>
                   </select>
@@ -115,9 +191,9 @@ export default function SettingsPage() {
                 <div><Label>{t('settings.llmBaseUrl')}</Label><Input placeholder="https://api.openai.com/v1" value={form.base_url} onChange={e => setForm({...form, base_url: e.target.value})} /></div>
                 <div><Label>{t('settings.llmModel')}</Label><Input placeholder="gpt-4o" value={form.model} onChange={e => setForm({...form, model: e.target.value})} /></div>
               </div>
-              <div><Label>{t('settings.llmApiKey')}</Label><Input type="password" placeholder="sk-..." value={form.api_key} onChange={e => setForm({...form, api_key: e.target.value})} /><p className="mt-1 text-xs text-neutral-400">{t('settings.llmApiKeyHint')}</p></div>
+              <div><Label>{t('settings.llmApiKey')}</Label><Input type="password" placeholder="sk-..." value={form.api_key} onChange={e => setForm({...form, api_key: e.target.value})} /><p className="mt-1 text-xs text-faint">{t('settings.llmApiKeyHint')}</p></div>
               <div><Label>{t('settings.llmDesc')}</Label><Input value={form.description} onChange={e => setForm({...form, description: e.target.value})} /></div>
-              {save.error instanceof ApiError && <p className="text-sm text-red-600">{save.error.message}</p>}
+              {save.error instanceof ApiError && <p className="text-sm text-danger">{save.error.message}</p>}
               <div className="flex gap-2 pt-2">
                 <Button type="submit" size="sm" disabled={save.isPending}>{save.isPending ? '…' : t('common.save')}</Button>
                 <Button type="button" size="sm" variant="secondary" onClick={() => setShowForm(false)}>{t('common.cancel')}</Button>

@@ -1,12 +1,26 @@
 'use client';
 
+/**
+ * Explorer tree. Retokened to WS7 semantic classes and repointed at the owned
+ * `@/lib/ide/store`; active-file highlight reads the store. Open flow unchanged.
+ */
+
 import { useQuery } from '@tanstack/react-query';
+import { ChevronDown, ChevronRight, File, FileCode2, FileText, Folder } from 'lucide-react';
 import { useState } from 'react';
 
-import { getTree, type TreeNode, type TreeResponse } from '@/lib/api/workspace';
-import { ApiError } from '@/lib/api/client';
-import { useIdeStore } from '@/lib/store/ide';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ApiError } from '@/lib/api/client';
+import { getTree, type TreeNode, type TreeResponse } from '@/lib/api/workspace';
+import { useIdeStore } from '@/lib/ide/store';
+import { useI18n } from '@/lib/i18n';
+
+function fileIcon(name: string) {
+  if (name.endsWith('.py') || /\.(ts|tsx|js|jsx|go|rs|c|cpp|h)$/.test(name)) return FileCode2;
+  if (name.endsWith('.md') || name.endsWith('.txt')) return FileText;
+  return File;
+}
 
 function Node({ node, depth }: { node: TreeNode; depth: number }) {
   const [open, setOpen] = useState(true);
@@ -16,33 +30,68 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
   if (node.type === 'dir') {
     return (
       <div>
-        <button className="flex w-full items-center gap-1 rounded px-2 py-1 text-left text-xs text-neutral-600 hover:bg-neutral-100" style={{ paddingLeft: 8 + depth * 14 }} onClick={() => setOpen(!open)}>
-          <span className="text-[10px]">{open ? '▾' : '▸'}</span>📁 {node.name}
+        <button
+          type="button"
+          className="flex w-full items-center gap-1 rounded px-2 py-1 text-left text-xs text-muted hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60"
+          style={{ paddingLeft: 8 + depth * 14 }}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? (
+            <ChevronDown className="h-3 w-3 shrink-0" aria-hidden="true" />
+          ) : (
+            <ChevronRight className="h-3 w-3 shrink-0" aria-hidden="true" />
+          )}
+          <Folder className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden="true" />
+          <span className="truncate">{node.name}</span>
         </button>
         {open && (node.children ?? []).map((child) => <Node key={child.path} node={child} depth={depth + 1} />)}
       </div>
     );
   }
-  const icon = node.name.endsWith('.py') ? '🐍' : node.name.endsWith('.md') ? '📝' : '📄';
+
+  const Icon = fileIcon(node.name);
+  const isActive = active === node.path;
   return (
-    <button className={`flex w-full items-center gap-1 rounded px-2 py-1 text-left text-xs hover:bg-neutral-100 ${active === node.path ? 'bg-neutral-200 font-medium text-neutral-900' : 'text-neutral-700'}`}
-      style={{ paddingLeft: 8 + depth * 14 }} onClick={() => openTab(node.path)}>
-      <span className="text-[10px]">{icon}</span> {node.name}
+    <button
+      type="button"
+      className={
+        'flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-xs hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 ' +
+        (isActive ? 'bg-surface-2 font-medium text-text' : 'text-muted')
+      }
+      style={{ paddingLeft: 8 + depth * 14 }}
+      onClick={() => openTab(node.path)}
+    >
+      <Icon className="h-3.5 w-3.5 shrink-0 text-faint" aria-hidden="true" />
+      <span className="truncate">{node.name}</span>
     </button>
   );
 }
 
 export function FileTree({ projectId }: { projectId: string }) {
-  const { data, isLoading, isError } = useQuery<TreeResponse, ApiError>({
-    queryKey: ['workspace-tree', projectId], queryFn: () => getTree(projectId),
+  const { t } = useI18n();
+  const { data, isLoading, isError, refetch } = useQuery<TreeResponse, ApiError>({
+    queryKey: ['workspace-tree', projectId],
+    queryFn: () => getTree(projectId),
   });
 
   return (
-    <div>
-      <h3 className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">Explorer</h3>
-      {isLoading && <Skeleton className="mx-3 h-16" />}
-      {isError && <p className="px-3 text-xs text-red-600">Failed.</p>}
-      {data && data.nodes.length === 0 && <p className="px-3 text-xs text-neutral-400">Empty.</p>}
+    <div className="py-1">
+      {isLoading && <Skeleton className="mx-3 my-2 h-16" />}
+      {isError && (
+        <div className="px-3 py-4 text-center">
+          <p className="text-xs text-danger">{t('ide.explorerFailed')}</p>
+          <button
+            type="button"
+            onClick={() => void refetch()}
+            className="mt-1 text-xs font-medium text-info hover:underline"
+          >
+            {t('common.retry')}
+          </button>
+        </div>
+      )}
+      {data && data.nodes.length === 0 && (
+        <EmptyState className="mx-2 mt-4 border-none" title={t('ide.explorerEmpty')} />
+      )}
       {data?.nodes.map((node) => <Node key={node.path} node={node} depth={0} />)}
     </div>
   );

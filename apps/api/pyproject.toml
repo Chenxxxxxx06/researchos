@@ -20,6 +20,8 @@ dependencies = [
     "itsdangerous>=2.2",
     "feedparser>=6.0",
     "celery>=5.4",
+    "selectolax>=0.3.21",
+    "matplotlib>=3.9",
 ]
 
 [project.optional-dependencies]
@@ -63,7 +65,10 @@ extend-immutable-calls = [
 ]
 
 [tool.mypy]
-python_version = "3.11"
+# 3.12: numpy's inline stubs (pulled in transitively via matplotlib) use PEP 695
+# `type` statements that fail to parse under a 3.11 target. Runtime images run
+# 3.13; ruff still enforces py311 syntax for our own code.
+python_version = "3.12"
 plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 warn_unused_ignores = true

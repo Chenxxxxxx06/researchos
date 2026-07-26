@@ -45,6 +45,7 @@ class AgentRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 class ToolCall(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "tool_calls"
+    __table_args__ = (UniqueConstraint("agent_run_id", "seq", name="uq_tool_call_run_seq"),)
 
     agent_run_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("agent_runs.id", ondelete="CASCADE"), nullable=False, index=True

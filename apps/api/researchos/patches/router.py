@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Body, Depends, Query, status
 
+from researchos.agents.schemas import CreateAgentRunResponse
 from researchos.common.deps import CurrentUser, DbSession, require_csrf
 from researchos.common.pagination import DEFAULT_LIMIT, MAX_LIMIT, Page
 
-from .schemas import ApplyResultResponse, CreatePatchRequest, PatchResponse
+from .schemas import ApplyPatchRequest, ApplyResultResponse, CreatePatchRequest, PatchResponse
 from .service import PatchService
 
 router = APIRouter(prefix="/projects/{project_id}/workspace/patches", tags=["patches"])
@@ -61,9 +62,14 @@ async def get_patch(
     dependencies=[Depends(require_csrf)],
 )
 async def apply_patch(
-    project_id: uuid.UUID, patch_id: uuid.UUID, user: CurrentUser, db: DbSession
+    project_id: uuid.UUID,
+    patch_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    payload: ApplyPatchRequest | None = Body(default=None),
 ) -> ApplyResultResponse:
-    return await PatchService(db).apply_patch(user, project_id, patch_id)
+    paths = payload.paths if payload is not None else None
+    return await PatchService(db).apply_patch(user, project_id, patch_id, paths=paths)
 
 
 @router.post(
@@ -76,3 +82,18 @@ async def reject_patch(
 ) -> PatchResponse:
     proposal = await PatchService(db).reject_patch(user, project_id, patch_id)
     return PatchResponse.model_validate(proposal)
+
+
+@router.post(
+    "/{patch_id}/repropose",
+    response_model=CreateAgentRunResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_csrf)],
+)
+async def repropose_patch(
+    project_id: uuid.UUID, patch_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> CreateAgentRunResponse:
+    run = await PatchService(db).repropose_patch(user, project_id, patch_id)
+    return CreateAgentRunResponse(
+        agent_run_id=run.id, status=run.status, stream=f"/ws?project_id={project_id}"
+    )

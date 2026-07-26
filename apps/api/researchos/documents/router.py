@@ -7,18 +7,54 @@ import uuid
 from fastapi import APIRouter, Depends, Query, status
 
 from researchos.common.deps import CurrentUser, DbSession, require_csrf
+from researchos.common.pagination import DEFAULT_LIMIT, MAX_LIMIT, Page
 
+from .anchors import AnchorInsertService
+from .bibtex import CitationService
+from .enums import SuggestionStatus
+from .models import DocumentSuggestion
 from .schemas import (
+    AcceptSuggestionRequest,
+    AcceptSuggestionResponse,
+    CitationListResponse,
     CompileJobResponse,
     CreateLatexProjectRequest,
     DocumentFileResponse,
     DocumentFileSummary,
+    FileRevisionSummary,
+    InsertAnchorRequest,
+    InsertAnchorResponse,
+    InsertCitationRequest,
+    InsertCitationResponse,
     LatexProjectResponse,
     SaveFileRequest,
+    SelectionOpRequest,
+    SelectionOpResponse,
+    SuggestionResponse,
 )
 from .service import DocumentService
+from .suggestions import SuggestionService, suggestion_range
 
 router = APIRouter(prefix="/projects/{project_id}/latex-projects", tags=["paper"])
+
+
+def _suggestion_response(suggestion: DocumentSuggestion, path: str) -> SuggestionResponse:
+    return SuggestionResponse(
+        id=suggestion.id,
+        path=path,
+        op=suggestion.op,
+        status=suggestion.status,
+        base_version=suggestion.base_version,
+        range=suggestion_range(suggestion),
+        old_text=suggestion.old_text,
+        new_text=suggestion.new_text,
+        rationale=suggestion.rationale,
+        spans=suggestion.spans_json or [],
+        agent_run_id=suggestion.agent_run_id,
+        last_error=suggestion.last_error,
+        created_at=suggestion.created_at,
+        resolved_at=suggestion.resolved_at,
+    )
 
 
 @router.get("", response_model=list[LatexProjectResponse])
@@ -70,6 +106,42 @@ async def get_file(
     return DocumentFileResponse.model_validate(file)
 
 
+@router.get("/{latex_project_id}/files/history", response_model=list[FileRevisionSummary])
+async def list_file_history(
+    project_id: uuid.UUID,
+    latex_project_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    path: str = Query(...),
+    limit: int = Query(default=20, ge=1, le=MAX_LIMIT),
+) -> list[FileRevisionSummary]:
+    revisions = await DocumentService(db).list_file_history(
+        user, project_id, latex_project_id, path=path, limit=limit
+    )
+    return [FileRevisionSummary.model_validate(r) for r in revisions]
+
+
+@router.get("/{latex_project_id}/files/revision", response_model=DocumentFileResponse)
+async def get_file_revision(
+    project_id: uuid.UUID,
+    latex_project_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    path: str = Query(...),
+    version: int = Query(..., ge=1),
+) -> DocumentFileResponse:
+    file, revision = await DocumentService(db).get_file_revision(
+        user, project_id, latex_project_id, path=path, version=version
+    )
+    return DocumentFileResponse(
+        id=file.id,
+        path=file.path,
+        content=revision.content,
+        version=revision.version,
+        updated_at=revision.created_at,
+    )
+
+
 @router.put(
     "/{latex_project_id}/files",
     response_model=DocumentFileResponse,
@@ -83,9 +155,187 @@ async def save_file(
     db: DbSession,
 ) -> DocumentFileResponse:
     file = await DocumentService(db).save_file(
-        user, project_id, latex_project_id, path=payload.path, content=payload.content
+        user,
+        project_id,
+        latex_project_id,
+        path=payload.path,
+        content=payload.content,
+        expected_version=payload.expected_version,
     )
     return DocumentFileResponse.model_validate(file)
+
+
+# --- selection ops / suggestions ---------------------------------------------
+
+
+@router.post(
+    "/{latex_project_id}/selection-ops",
+    response_model=SelectionOpResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(require_csrf)],
+)
+async def create_selection_op(
+    project_id: uuid.UUID,
+    latex_project_id: uuid.UUID,
+    payload: SelectionOpRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> SelectionOpResponse:
+    run = await SuggestionService(db).create_selection_op(
+        user, project_id, latex_project_id, payload
+    )
+    return SelectionOpResponse(agent_run_id=run.id, stream=f"/ws?project_id={project_id}")
+
+
+@router.get("/{latex_project_id}/suggestions", response_model=Page[SuggestionResponse])
+async def list_suggestions(
+    project_id: uuid.UUID,
+    latex_project_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    status_filter: SuggestionStatus | None = Query(default=None, alias="status"),
+    path: str | None = Query(default=None),
+    limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
+    offset: int = Query(default=0, ge=0),
+) -> Page[SuggestionResponse]:
+    rows, total = await SuggestionService(db).list_suggestions(
+        user,
+        project_id,
+        latex_project_id,
+        status=status_filter,
+        path=path,
+        limit=limit,
+        offset=offset,
+    )
+    return Page[SuggestionResponse](
+        items=[_suggestion_response(s, p) for s, p in rows],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get(
+    "/{latex_project_id}/suggestions/{suggestion_id}", response_model=SuggestionResponse
+)
+async def get_suggestion(
+    project_id: uuid.UUID,
+    latex_project_id: uuid.UUID,
+    suggestion_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+) -> SuggestionResponse:
+    suggestion, path = await SuggestionService(db).get_suggestion(
+        user, project_id, latex_project_id, suggestion_id
+    )
+    return _suggestion_response(suggestion, path)
+
+
+@router.post(
+    "/{latex_project_id}/suggestions/{suggestion_id}/accept",
+    response_model=AcceptSuggestionResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def accept_suggestion(
+    project_id: uuid.UUID,
+    latex_project_id: uuid.UUID,
+    suggestion_id: uuid.UUID,
+    payload: AcceptSuggestionRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> AcceptSuggestionResponse:
+    suggestion, file = await SuggestionService(db).accept(
+        user,
+        project_id,
+        latex_project_id,
+        suggestion_id,
+        expected_version=payload.expected_version,
+    )
+    return AcceptSuggestionResponse(
+        suggestion=_suggestion_response(suggestion, file.path),
+        file=DocumentFileResponse.model_validate(file),
+    )
+
+
+@router.post(
+    "/{latex_project_id}/suggestions/{suggestion_id}/reject",
+    response_model=SuggestionResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def reject_suggestion(
+    project_id: uuid.UUID,
+    latex_project_id: uuid.UUID,
+    suggestion_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+) -> SuggestionResponse:
+    suggestion, path = await SuggestionService(db).reject(
+        user, project_id, latex_project_id, suggestion_id
+    )
+    return _suggestion_response(suggestion, path)
+
+
+# --- anchors -----------------------------------------------------------------
+
+
+@router.post(
+    "/{latex_project_id}/anchors/insert",
+    response_model=InsertAnchorResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def insert_anchor(
+    project_id: uuid.UUID,
+    latex_project_id: uuid.UUID,
+    payload: InsertAnchorRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> InsertAnchorResponse:
+    return await AnchorInsertService(db).insert(user, project_id, latex_project_id, payload)
+
+
+# --- citations ---------------------------------------------------------------
+
+
+@router.get("/{latex_project_id}/citations", response_model=CitationListResponse)
+async def list_citations(
+    project_id: uuid.UUID,
+    latex_project_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
+    offset: int = Query(default=0, ge=0),
+) -> CitationListResponse:
+    items, total = await CitationService(db).list_citations(
+        user, project_id, latex_project_id, limit=limit, offset=offset
+    )
+    return CitationListResponse(items=items, total=total, limit=limit, offset=offset)
+
+
+@router.post(
+    "/{latex_project_id}/citations/insert",
+    response_model=InsertCitationResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def insert_citation(
+    project_id: uuid.UUID,
+    latex_project_id: uuid.UUID,
+    payload: InsertCitationRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> InsertCitationResponse:
+    result = await CitationService(db).insert_citation(
+        user,
+        project_id,
+        latex_project_id,
+        paper_id=payload.paper_id,
+        bib_path=payload.bib_path,
+        expected_bib_version=payload.expected_bib_version,
+        expected_main_version=payload.expected_main_version,
+    )
+    return InsertCitationResponse.model_validate(result)
+
+
+# --- compile -----------------------------------------------------------------
 
 
 @router.post(

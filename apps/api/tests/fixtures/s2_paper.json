@@ -1,0 +1,13 @@
+{
+  "paperId": "649def34f8be52c8b66281af98ae884c09aef38b",
+  "title": "Efficient Vision-Language Pretraining for Document Understanding",
+  "abstract": "We present an efficient pretraining method for vision-language models applied to document understanding tasks.",
+  "externalIds": {"DOI": "10.1234/abc", "ArXiv": "2401.01234"},
+  "year": 2024,
+  "venue": "NeurIPS",
+  "citationCount": 87,
+  "openAccessPdf": {"url": "https://example.org/oa/2401.01234.pdf"},
+  "authors": [{"authorId": "1", "name": "Alice Researcher"}, {"authorId": "2", "name": "Bob Scientist"}],
+  "publicationDate": "2024-01-03",
+  "url": "https://www.semanticscholar.org/paper/649def34f8be52c8b66281af98ae884c09aef38b"
+}

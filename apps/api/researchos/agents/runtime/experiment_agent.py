@@ -1,8 +1,11 @@
 """Experiment analysis agent.
 
 Computes a deterministic, source-backed summary from a run's metrics (best and
-final values) so the analysis never fabricates numbers. The LLM text is a
-wrapper; the facts come from the database.
+final values) so the analysis never fabricates numbers. The LLM text is still
+streamed for UX; the deterministic result is what gets persisted — unchanged
+by design. Metric direction comes from the experiment's metadata via
+``researchos.experiments.directions`` (built by a parallel partition; the old
+name-contains-loss heuristic remains the fallback until it lands).
 """
 
 from __future__ import annotations
@@ -21,7 +24,15 @@ _SYSTEM = (
 )
 
 
-def _summarize(metrics: list) -> tuple[str, dict]:
+def _direction(name: str, metric_meta: dict) -> str:
+    try:
+        from researchos.experiments.directions import metric_direction
+    except ImportError:  # pragma: no cover - parallel-partition seam
+        return "min" if "loss" in name.lower() else "max"
+    return metric_direction(name, metric_meta)
+
+
+def _summarize(metrics: list, metric_meta: dict) -> tuple[str, dict]:
     by_name: dict[str, list[tuple[int, float]]] = {}
     for m in metrics:
         by_name.setdefault(m.name, []).append((m.step, m.value))
@@ -32,7 +43,7 @@ def _summarize(metrics: list) -> tuple[str, dict]:
         points.sort(key=lambda p: p[0])
         final[name] = points[-1][1]
         values = [v for _, v in points]
-        best[name] = min(values) if "loss" in name.lower() else max(values)
+        best[name] = min(values) if _direction(name, metric_meta) == "min" else max(values)
 
     lines = []
     for name in sorted(by_name):
@@ -48,19 +59,27 @@ class ExperimentAgent(Agent):
     allowed_tools: list[str] = []
     response_schema = None
 
-    async def _metrics(self, actx: AgentContext) -> list:
+    async def _metrics(self, actx: AgentContext) -> tuple[list, dict]:
         from researchos.experiments.service import ExperimentService
 
         run_id = actx.context.get("experiment_run_id")
         if not run_id:
             raise NotFoundError("experiment_run_id is required.")
-        return await ExperimentService(actx.db).list_metrics(
+        service = ExperimentService(actx.db)
+        metrics = await service.list_metrics(
             actx.actor, actx.project_id, uuid.UUID(str(run_id))
         )
+        metric_meta: dict = {}
+        if hasattr(service, "get_metric_meta_for_run"):
+            # Provided by the experiments partition; {} until it lands.
+            metric_meta = await service.get_metric_meta_for_run(
+                actx.actor, actx.project_id, uuid.UUID(str(run_id))
+            )
+        return metrics, metric_meta
 
     async def build_messages(self, actx: AgentContext) -> list[LLMMessage]:
-        metrics = await self._metrics(actx)
-        text, _ = _summarize(metrics)
+        metrics, metric_meta = await self._metrics(actx)
+        text, _ = _summarize(metrics, metric_meta)
         return [
             LLMMessage(role="system", content=_SYSTEM),
             LLMMessage(role="user", content=f"Analyze this run.\n{text}"),
@@ -75,6 +94,6 @@ class ExperimentAgent(Agent):
         citation_sources: dict[str, dict],
         usage: dict,
     ) -> tuple[dict, list[dict]]:
-        metrics = await self._metrics(actx)
-        text, summary = _summarize(metrics)
+        metrics, metric_meta = await self._metrics(actx)
+        text, summary = _summarize(metrics, metric_meta)
         return {"message": text, "summary": summary}, []

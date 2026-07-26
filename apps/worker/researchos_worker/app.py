@@ -21,7 +21,12 @@ def create_celery() -> Celery:
         "researchos",
         broker=settings.broker_url,
         backend=settings.result_backend,
-        include=["researchos_worker.tasks.health", "researchos_worker.tasks.agents"],
+        include=[
+            "researchos_worker.tasks.health",
+            "researchos_worker.tasks.agents",
+            "researchos_worker.tasks.figures",
+            "researchos_worker.tasks.ingestion",
+        ],
     )
 
     celery_app.conf.update(

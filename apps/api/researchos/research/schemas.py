@@ -4,26 +4,54 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from researchos.research.providers.base import PaperResult
+from researchos.research.providers.base import (
+    CATEGORY_RE,
+    PaperImportRef,
+    PaperResult,
+    PaperSearchFilters,
+)
 
-from .enums import IdeaStatus
+from .enums import IdeaStatus, PaperIngestStatus, PaperSectionKind
 
 
 # --- Papers ------------------------------------------------------------------
 class PaperSearchRequest(BaseModel):
-    query: str = Field(min_length=1, max_length=500)
+    # Empty query is allowed iff filters carry categories or fielded terms.
+    query: str = Field(default="", max_length=500)
     limit: int = Field(default=10, ge=1, le=50)
+    filters: PaperSearchFilters | None = None
+
+    @model_validator(mode="after")
+    def _query_or_fielded_filters(self) -> PaperSearchRequest:
+        if self.query.strip():
+            return self
+        if self.filters is not None and self.filters.has_fielded_terms():
+            return self
+        raise ValueError(
+            "query must be non-empty unless filters provide categories or fielded terms"
+        )
 
 
 class PaperSearchResponse(BaseModel):
     results: list[PaperResult]
+    provider_status: dict[str, str] = Field(default_factory=dict)
 
 
 class ImportPapersRequest(BaseModel):
-    papers: list[PaperResult] = Field(min_length=1, max_length=50)
+    papers: list[PaperImportRef] = Field(min_length=1, max_length=50)
+
+
+SkipReason = Literal["not_found", "provider_error", "invalid_source"]
+
+
+class SkippedImport(BaseModel):
+    source: str
+    external_id: str
+    reason: SkipReason
 
 
 class PaperResponse(BaseModel):
@@ -41,7 +69,72 @@ class PaperResponse(BaseModel):
     url: str
     pdf_url: str | None
     summary: str | None
+    doi: str | None = None
+    arxiv_id: str | None = None
+    primary_category: str | None = None
+    citation_count: int | None = None
+    ingest_status: PaperIngestStatus = PaperIngestStatus.PENDING
+    ingested_at: datetime | None = None
     created_at: datetime
+
+
+class ImportPapersResponse(BaseModel):
+    imported: list[PaperResponse]
+    skipped: list[SkippedImport] = Field(default_factory=list)
+
+
+# --- Paper sections ----------------------------------------------------------
+class PaperSectionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    seq: int
+    level: int
+    kind: PaperSectionKind
+    heading: str
+    body: str
+    char_count: int
+
+
+class SectionsResponse(BaseModel):
+    paper_id: uuid.UUID
+    ingest_status: PaperIngestStatus
+    ingested_at: datetime | None
+    ingest_error: str | None
+    sections: list[PaperSectionResponse]
+
+
+class IngestTriggerResponse(BaseModel):
+    paper_id: uuid.UUID
+    ingest_status: PaperIngestStatus
+
+
+# --- Freshness feed ----------------------------------------------------------
+class FeedItem(PaperResult):
+    in_library: bool = False
+
+
+class FeedResponse(BaseModel):
+    items: list[FeedItem]
+    next_cursor: str | None = None
+    categories_used: list[str] = Field(default_factory=list)
+    cached: bool = False
+
+
+class FeedCategoriesRequest(BaseModel):
+    categories: list[str] = Field(min_length=0, max_length=8)
+
+    @field_validator("categories")
+    @classmethod
+    def _validate_categories(cls, value: list[str]) -> list[str]:
+        for category in value:
+            if not CATEGORY_RE.match(category):
+                raise ValueError(f"Invalid category: {category!r}")
+        return value
+
+
+class FeedCategoriesResponse(BaseModel):
+    categories: list[str]
+    derived: bool
 
 
 # --- Ideas -------------------------------------------------------------------
@@ -59,7 +152,7 @@ class UpdateIdeaRequest(BaseModel):
 
 
 class IdeaResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     id: uuid.UUID
     project_id: uuid.UUID
@@ -68,9 +161,24 @@ class IdeaResponse(BaseModel):
     hypothesis: str | None
     status: IdeaStatus
     novelty_score: float | None
+    # Gap-generation fields (gap_type, supporting_paper_keys, ...) live here.
+    metadata: dict = Field(
+        default_factory=dict,
+        validation_alias=AliasChoices("metadata_json", "metadata"),
+    )
     created_by: uuid.UUID
     created_at: datetime
     updated_at: datetime
+
+
+class GenerateIdeasRequest(BaseModel):
+    max_ideas: int = Field(default=3, ge=1, le=5)
+
+
+class GenerateIdeasResponse(BaseModel):
+    ideas: list[IdeaResponse]
+    gaps_considered: int
+    papers_used: int
 
 
 # --- Critiques ---------------------------------------------------------------

@@ -1,17 +1,37 @@
 """Deterministic mock LLM provider.
 
-Drives the full agent loop with no external calls or API keys: it requests the
-first available tool, then (on the second pass, once a tool result is present)
-produces either a short text answer or a structured JSON object. Used as the
-default provider and in all tests.
+Drives the full agent loop with no external calls or API keys, and *validates*
+the message protocol the way a real API would (strict mode, default on), so
+tests reject the exact message shapes Anthropic/OpenAI reject.
+
+Deterministic scripts covered (cross-partition contract, CONSOLIDATION risk 7):
+
+1. Multi-turn coding tool use (coding-git CP-4): ``workspace.tree`` →
+   ``workspace.read`` of the first file → a no-op-safe SEARCH/REPLACE modify of
+   that file; empty tree or no read tool → the legacy ``AGENT_NOTES.md`` create.
+2. Selection ops (writing CP-1): schema with a ``replacement`` property →
+   deterministic ``_mock_op`` transform of the ``SELECTION_OP_INPUT:`` payload.
+3. Gap ideas (research CP-4): schema with an ``ideas`` property → one fixed
+   gap-typed idea citing keys from tool-shaped context messages.
+4. Section-grounded explain (research CP-5f): a prompt containing the
+   ``## Referenced paper sections`` block → prose echoing the section heading
+   and the paper key.
 """
 
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator
+import re
+from collections.abc import AsyncIterator, Iterable
 
 from .base import LLMMessage, LLMTool, StreamDone, StreamEvent, TextDelta, ToolCall, Usage
+
+SKILLS_HEADER = "## Active skills"
+SECTIONS_HEADER = "## Referenced paper sections"
+
+_SECTION_PAPER_RE = re.compile(r"^Paper: (\S+)", re.MULTILINE)
+_SECTION_HEADING_RE = re.compile(r"^### \[S\d+\] (.+)$", re.MULTILINE)
+_SELECTION_OP_PREFIX = "SELECTION_OP_INPUT: "
 
 
 def _last_user_text(messages: list[LLMMessage]) -> str:
@@ -30,6 +50,8 @@ def _cited_keys_from_tools(messages: list[LLMMessage]) -> list[str]:
             data = json.loads(msg.content)
         except json.JSONDecodeError:
             continue
+        if not isinstance(data, dict):
+            continue
         for item in data.get("results", []):
             source = item.get("source")
             ext = item.get("external_id")
@@ -38,8 +60,229 @@ def _cited_keys_from_tools(messages: list[LLMMessage]) -> list[str]:
     return keys
 
 
+def _tool_results(messages: list[LLMMessage]) -> list[dict]:
+    """Parsed JSON payloads of every tool message, in order."""
+
+    out: list[dict] = []
+    for msg in messages:
+        if msg.role != "tool":
+            continue
+        try:
+            data = json.loads(msg.content)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(data, dict):
+            out.append(data)
+    return out
+
+
+def _called_tool_names(messages: list[LLMMessage]) -> set[str]:
+    called: set[str] = set()
+    for msg in messages:
+        if msg.role == "assistant" and msg.tool_calls:
+            called.update(c.name for c in msg.tool_calls)
+    return called
+
+
+def _validate_protocol(messages: list[LLMMessage]) -> None:
+    """Reject message shapes a real API would reject (see base.py invariants).
+
+    A tool message that answers no assistant ``tool_calls`` turn is tolerated
+    as a context document ONLY when it does not directly follow an assistant
+    turn (or a consumed tool-result block) — the exact shapes the old runtime
+    bug produced remain rejected.
+    """
+
+    seen_non_system = False
+    consumed: set[int] = set()
+    i = 0
+    while i < len(messages):
+        msg = messages[i]
+        if msg.role == "system":
+            if seen_non_system:
+                raise ValueError(
+                    "mock protocol violation: system message after non-system messages"
+                )
+            i += 1
+            continue
+        seen_non_system = True
+        if msg.role == "assistant" and msg.tool_calls:
+            for offset, call in enumerate(msg.tool_calls):
+                j = i + 1 + offset
+                if j >= len(messages) or messages[j].role != "tool":
+                    raise ValueError(
+                        "mock protocol violation: assistant tool_calls not followed "
+                        f"by {len(msg.tool_calls)} tool message(s)"
+                    )
+                if messages[j].tool_call_id != call.id:
+                    raise ValueError(
+                        "mock protocol violation: tool message id "
+                        f"{messages[j].tool_call_id!r} does not match tool_call id "
+                        f"{call.id!r} (order matters)"
+                    )
+                consumed.add(j)
+            i += 1 + len(msg.tool_calls)
+            continue
+        if msg.role == "tool":
+            prev = messages[i - 1] if i > 0 else None
+            if prev is not None and (
+                prev.role == "assistant" or (prev.role == "tool" and (i - 1) in consumed)
+            ):
+                raise ValueError(
+                    "mock protocol violation: tool message at index "
+                    f"{i} follows an assistant turn without matching tool_calls"
+                )
+        i += 1
+
+
+# --- Coding script (coding-git CP-4) -----------------------------------------
+def _first_file_path(nodes: Iterable[dict]) -> str | None:
+    for node in nodes:
+        if node.get("type") == "file":
+            return str(node.get("path", "")) or None
+        child = _first_file_path(node.get("children", []) or [])
+        if child:
+            return child
+    return None
+
+
+def _coding_script_call(
+    messages: list[LLMMessage], tool_names: list[str], called: set[str]
+) -> ToolCall | None:
+    if "workspace.tree" not in called:
+        return ToolCall(id=f"call_{len(called) + 1}", name="workspace.tree", arguments={})
+    if "workspace.read" in tool_names and "workspace.read" not in called:
+        tree_path: str | None = None
+        for result in _tool_results(messages):
+            tree = result.get("tree")
+            if isinstance(tree, dict):
+                tree_path = _first_file_path(tree.get("nodes", []) or [])
+        if tree_path:
+            return ToolCall(
+                id=f"call_{len(called) + 1}",
+                name="workspace.read",
+                arguments={"path": tree_path},
+            )
+    return None
+
+
+def _coding_answer(messages: list[LLMMessage]) -> dict:
+    read: dict | None = None
+    for result in _tool_results(messages):
+        if "sha" in result and "content" in result and "path" in result:
+            read = result
+    if read is not None and read.get("content"):
+        first_line = str(read["content"]).splitlines()[0] + "\n"
+        return {
+            "summary": "Mock edit",
+            "files": [
+                {
+                    "path": read["path"],
+                    "change_type": "modify",
+                    "base_sha": read["sha"],
+                    "edits": [{"search": first_line, "replace": first_line}],
+                }
+            ],
+        }
+    # Empty tree / no readable file: propose a small, safe create.
+    return {
+        "summary": "Add a notes file describing the requested change.",
+        "files": [
+            {
+                "path": "AGENT_NOTES.md",
+                "change_type": "create",
+                "base_sha": None,
+                "new_content": (
+                    "# Agent Notes\n\n"
+                    "This file was proposed by the coding agent for review.\n"
+                ),
+            }
+        ],
+    }
+
+
+# --- Selection ops (writing CP-1) --------------------------------------------
+def _mock_op(op: str, selection: str, instruction: str | None) -> str:
+    if op == "fix_grammar":
+        text = re.sub(r"\s+", " ", selection).strip()
+        if text:
+            text = text[0].upper() + text[1:]
+        if text and text[-1] not in ".!?":
+            text += "."
+        return text
+    if op == "condense":
+        idx = selection.find(". ")
+        if idx != -1:
+            return selection[: idx + 2]
+        return " ".join(selection.split()[:15]) + "."
+    if op == "expand":
+        return (
+            selection
+            + " Moreover, this observation holds under the additional settings considered."
+        )
+    if op == "rewrite":
+        if not selection:
+            return "This work shows that "
+        return "This work shows that " + selection[:1].lower() + selection[1:]
+    if op == "continue_writing":
+        return "Building on the previous paragraph, we next describe the evaluation protocol."
+    if op == "custom":
+        return selection + " [addressed: " + (instruction or "")[:40] + "]"
+    # Unknown op: behave like fix_grammar (deterministic, never empty-handed).
+    return _mock_op("fix_grammar", selection, instruction)
+
+
+def _selection_op_object(messages: list[LLMMessage]) -> dict:
+    last_user = _last_user_text(messages)
+    payload: dict | None = None
+    for line in last_user.splitlines():
+        if line.startswith(_SELECTION_OP_PREFIX):
+            try:
+                candidate = json.loads(line[len(_SELECTION_OP_PREFIX) :])
+            except json.JSONDecodeError:
+                candidate = None
+            if isinstance(candidate, dict):
+                payload = candidate
+    if payload is None:
+        op = "fix_grammar"
+        selection = last_user
+        instruction = None
+    else:
+        op = str(payload.get("op", "fix_grammar"))
+        selection = str(payload.get("selection", ""))
+        raw_instruction = payload.get("instruction")
+        instruction = None if raw_instruction is None else str(raw_instruction)
+    return {
+        "replacement": _mock_op(op, selection, instruction),
+        "rationale": f"Mock {op} suggestion (deterministic).",
+    }
+
+
+# --- Section-grounded explain (research CP-5f) --------------------------------
+def _explain_text(messages: list[LLMMessage]) -> str | None:
+    block: str | None = None
+    for msg in messages:
+        if SECTIONS_HEADER in msg.content:
+            block = msg.content
+            break
+    if block is None:
+        return None
+    paper = _SECTION_PAPER_RE.search(block)
+    heading = _SECTION_HEADING_RE.search(block)
+    key = paper.group(1) if paper else "unknown:unknown"
+    title = heading.group(1) if heading else "the referenced section"
+    return (
+        f'The section "{title}" of {key} explains the following: this is a '
+        "deterministic mock explanation grounded only in the injected section "
+        f"bodies of {key}."
+    )
+
+
 class MockLLMProvider:
     name = "mock"
+
+    def __init__(self, strict_protocol: bool = True) -> None:
+        self.strict_protocol = strict_protocol
 
     async def stream(
         self,
@@ -47,39 +290,57 @@ class MockLLMProvider:
         messages: list[LLMMessage],
         tools: list[LLMTool] | None = None,
         response_schema: dict | None = None,
+        force_structured: bool = False,
     ) -> AsyncIterator[StreamEvent]:
-        has_tool_result = any(m.role == "tool" for m in messages)
+        if self.strict_protocol:
+            _validate_protocol(messages)
 
-        # First pass: call the first available tool.
-        if tools and not has_tool_result:
-            tool = tools[0]
-            args: dict = {}
-            if tool.name == "paper.search":
-                args = {"query": _last_user_text(messages), "limit": 5}
-            yield ToolCall(id="call_1", name=tool.name, arguments=args)
-            yield Usage(input_tokens=12, output_tokens=0)
-            yield StreamDone(stop_reason="tool_use")
-            return
+        called = _called_tool_names(messages)
+        tool_names = [t.name for t in (tools or [])]
+
+        if tools and not force_structured:
+            call: ToolCall | None = None
+            if "workspace.tree" in tool_names:
+                call = _coding_script_call(messages, tool_names, called)
+            elif len(called) < 2:
+                remaining = [name for name in tool_names if name not in called]
+                if remaining:
+                    name = remaining[0]
+                    args: dict = {}
+                    if name == "paper.search":
+                        args = {"query": _last_user_text(messages), "limit": 5}
+                    call = ToolCall(id=f"call_{len(called) + 1}", name=name, arguments=args)
+            if call is not None:
+                yield call
+                yield Usage(input_tokens=12, output_tokens=0)
+                yield StreamDone(stop_reason="tool_use")
+                return
 
         cited = _cited_keys_from_tools(messages)
+        skills_active = any(
+            m.role == "system" and SKILLS_HEADER in m.content for m in messages
+        )
 
         if response_schema is not None:
             props = (response_schema or {}).get("properties", {})
             if "files" in props:
-                # Coding agent: propose a small, safe patch (creates a notes file).
-                obj: dict = {
-                    "summary": "Add a notes file describing the requested change.",
-                    "files": [
+                obj: dict = _coding_answer(messages)
+            elif "replacement" in props:
+                obj = _selection_op_object(messages)
+            elif "ideas" in props:
+                first_line = (_last_user_text(messages).splitlines() or [""])[0]
+                obj = {
+                    "ideas": [
                         {
-                            "path": "AGENT_NOTES.md",
-                            "change_type": "create",
-                            "base_sha": None,
-                            "new_content": (
-                                "# Agent Notes\n\n"
-                                "This file was proposed by the coding agent for review.\n"
+                            "title": f"Bridge gap: {first_line[:60]}",
+                            "description": (
+                                "Deterministic mock idea grounded in provided papers."
                             ),
+                            "hypothesis": "H1",
+                            "gap_type": "coverage",
+                            "supporting_paper_keys": cited[:2],
                         }
-                    ],
+                    ]
                 }
             else:
                 # Critic agent: citations reference real retrieved papers.
@@ -93,14 +354,22 @@ class MockLLMProvider:
                     "reproducibility": ["Specify random seeds", "Release training config"],
                     "citations": cited,
                 }
+            if skills_active:
+                obj["_skills_active"] = True
             text = json.dumps(obj)
         else:
-            # Research synthesis. The runtime derives citations from tool results.
-            n = len(cited)
-            text = (
-                f"Based on {n} retrieved paper(s), here is a brief synthesis of the "
-                "current literature relevant to your query."
-            )
+            explain = _explain_text(messages)
+            if explain is not None:
+                text = explain
+            else:
+                # Research synthesis. The runtime derives citations from tool results.
+                n = len(cited)
+                text = (
+                    f"Based on {n} retrieved paper(s), here is a brief synthesis of "
+                    "the current literature relevant to your query."
+                )
+            if skills_active:
+                text = "[skills-active] " + text
 
         # Stream the text in a few deltas to exercise token streaming.
         for chunk in _chunks(text, 24):

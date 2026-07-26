@@ -1,4 +1,4 @@
-"""Paper library import/list/isolation tests (search is mocked, no network)."""
+"""Paper library import/list/isolation tests (providers mocked, no network)."""
 
 from __future__ import annotations
 
@@ -6,22 +6,30 @@ from pathlib import Path
 
 import pytest
 
+from researchos.research import service as service_module
 from researchos.research.providers import arxiv as arxiv_module
 
 from .helpers import csrf_headers, register
 
-_PAPER = {
-    "source": "arxiv",
-    "external_id": "2401.99999",
-    "title": "A Test Paper",
-    "abstract": "Abstract.",
-    "authors": ["Tester"],
-    "venue": "arXiv",
-    "published_at": None,
-    "url": "http://arxiv.org/abs/2401.99999",
-    "pdf_url": None,
-    "extra": {},
-}
+# Import refs carry only source/external_id; metadata is server-verified.
+_PAPER = {"source": "arxiv", "external_id": "2401.01234"}
+
+
+@pytest.fixture
+def mocked_providers(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Serve the recorded id_list feed and swallow Celery ingest dispatches."""
+
+    xml = (Path(__file__).parent / "fixtures" / "arxiv_idlist.xml").read_text(encoding="utf-8")
+
+    async def fake_fetch(self, params):  # noqa: ANN001 - test stub
+        return xml
+
+    class _NullCelery:
+        def send_task(self, name, args=None, queue=None):
+            return None
+
+    monkeypatch.setattr(arxiv_module.ArxivProvider, "_fetch", fake_fetch)
+    monkeypatch.setattr(service_module, "get_celery_client", lambda: _NullCelery())
 
 
 async def _make_project(client, email: str) -> str:
@@ -33,7 +41,7 @@ async def _make_project(client, email: str) -> str:
     return resp.json()["id"]
 
 
-async def test_import_is_idempotent_and_lists(client) -> None:
+async def test_import_is_idempotent_and_lists(client, mocked_providers) -> None:
     project_id = await _make_project(client, "lib@example.com")
 
     r1 = await client.post(
@@ -42,6 +50,7 @@ async def test_import_is_idempotent_and_lists(client) -> None:
         headers=csrf_headers(client),
     )
     assert r1.status_code == 201
+    assert len(r1.json()["imported"]) == 1
     # Re-import the same paper -> no duplicate.
     await client.post(
         f"/projects/{project_id}/papers/import",
@@ -51,7 +60,7 @@ async def test_import_is_idempotent_and_lists(client) -> None:
 
     listing = (await client.get(f"/projects/{project_id}/papers")).json()
     assert listing["total"] == 1
-    assert listing["items"][0]["external_id"] == "2401.99999"
+    assert listing["items"][0]["external_id"] == "2401.01234"
 
 
 async def test_search_uses_provider_via_monkeypatch(

@@ -1,0 +1,32 @@
+{
+  "total": 2,
+  "offset": 0,
+  "data": [
+    {
+      "paperId": "649def34f8be52c8b66281af98ae884c09aef38b",
+      "title": "Efficient Vision-Language Pretraining for Document Understanding",
+      "abstract": "We present an efficient pretraining method for vision-language models applied to document understanding tasks. This longer abstract also details the corpus construction and the evaluation protocol used across benchmarks.",
+      "externalIds": {"DOI": "10.1234/ABC", "ArXiv": "2401.01234"},
+      "year": 2024,
+      "venue": "NeurIPS",
+      "citationCount": 87,
+      "openAccessPdf": {"url": "https://example.org/oa/2401.01234.pdf"},
+      "authors": [{"authorId": "1", "name": "Alice Researcher"}, {"authorId": "2", "name": "Bob Scientist"}],
+      "publicationDate": "2024-01-03",
+      "url": "https://www.semanticscholar.org/paper/649def34f8be52c8b66281af98ae884c09aef38b"
+    },
+    {
+      "paperId": "abcdef1234567890abcdef1234567890abcdef12",
+      "title": "Contrastive Decoding Improves Reasoning",
+      "abstract": "Contrastive decoding improves multi-step reasoning in large language models.",
+      "externalIds": {"DOI": "10.5555/xyz"},
+      "year": 2023,
+      "venue": "ACL",
+      "citationCount": 12,
+      "openAccessPdf": null,
+      "authors": [{"authorId": "3", "name": "Carol Author"}],
+      "publicationDate": null,
+      "url": "https://www.semanticscholar.org/paper/abcdef1234567890abcdef1234567890abcdef12"
+    }
+  ]
+}

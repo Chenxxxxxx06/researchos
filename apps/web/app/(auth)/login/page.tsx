@@ -10,15 +10,18 @@ import { LoginForm } from '@/features/auth/LoginForm';
 export default function LoginPage() {
   const { t } = useI18n();
   return (
-    <Card className="shadow-md">
+    <Card className="shadow-elev2">
       <CardContent className="p-6">
-        <h2 className="mb-5 text-base font-semibold text-neutral-900">{t('auth.signInTitle')}</h2>
+        <h2 className="mb-5 text-base font-semibold text-text">{t('auth.signInTitle')}</h2>
         <Suspense fallback={null}>
           <LoginForm />
         </Suspense>
-        <p className="mt-5 text-center text-sm text-neutral-500">
+        <p className="mt-5 text-center text-sm text-muted">
           {t('auth.noAccount')}{' '}
-          <Link href="/register" className="font-medium text-neutral-900 underline decoration-neutral-300 hover:decoration-neutral-900">
+          <Link
+            href="/register"
+            className="font-medium text-text underline decoration-border-strong hover:decoration-current"
+          >
             {t('auth.createOne')}
           </Link>
         </p>

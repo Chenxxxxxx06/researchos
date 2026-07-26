@@ -15,6 +15,15 @@ const EXT_TO_LANG: Record<string, string> = {
   css: 'css',
   html: 'html',
   txt: 'plaintext',
+  rs: 'rust',
+  go: 'go',
+  c: 'c',
+  h: 'c',
+  cpp: 'cpp',
+  sql: 'sql',
+  xml: 'xml',
+  svg: 'xml',
+  lock: 'plaintext',
 };
 
 export function languageForPath(path: string): string {

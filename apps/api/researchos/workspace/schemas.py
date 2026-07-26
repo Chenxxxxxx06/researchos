@@ -28,4 +28,15 @@ class FileContentResponse(BaseModel):
     content: str | None
 
 
+class GrepMatch(BaseModel):
+    path: str
+    line: int
+    preview: str
+
+
+class GrepResponse(BaseModel):
+    matches: list[GrepMatch]
+    truncated: bool
+
+
 TreeNode.model_rebuild()

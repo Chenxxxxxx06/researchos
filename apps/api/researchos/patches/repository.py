@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from .enums import PatchStatus
 from .models import PatchFile, PatchProposal
 
 
@@ -27,6 +28,13 @@ class PatchRepository:
             .options(selectinload(PatchProposal.files).selectinload(PatchFile.hunks))
         )
         return result.scalar_one_or_none()
+
+    async def mark_superseded(self, proposal: PatchProposal, *, by: uuid.UUID) -> None:
+        """Link a re-proposal and retire the old proposal (terminal, auditable)."""
+
+        proposal.superseded_by = by
+        proposal.status = PatchStatus.REJECTED
+        await self.db.flush()
 
     async def list_by_project(
         self, project_id: uuid.UUID, *, limit: int, offset: int

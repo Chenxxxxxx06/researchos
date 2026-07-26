@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Efficient Vision-Language Pretraining for Document Understanding</title></head>
+<body>
+<article class="ltx_document">
+  <h1 class="ltx_title ltx_title_document">Efficient Vision-Language Pretraining for Document Understanding</h1>
+  <div class="ltx_abstract">
+    <h6 class="ltx_title ltx_title_abstract">Abstract</h6>
+    <p class="ltx_p">We present an efficient pretraining method for vision-language models applied to document understanding tasks. Our approach halves compute while matching accuracy.</p>
+  </div>
+  <section class="ltx_section" id="S1">
+    <h2 class="ltx_title ltx_title_section"><span class="ltx_tag ltx_tag_section">1 </span>Introduction</h2>
+    <div class="ltx_para"><p class="ltx_p">Document understanding requires jointly modeling layout and text. Prior systems are compute hungry.</p></div>
+    <section class="ltx_subsection" id="S1.SS1">
+      <h3 class="ltx_title ltx_title_subsection"><span class="ltx_tag ltx_tag_subsection">1.1 </span>Motivation</h3>
+      <div class="ltx_para"><p class="ltx_p">Practitioners need affordable pretraining recipes.</p></div>
+    </section>
+  </section>
+  <section class="ltx_section" id="S2">
+    <h2 class="ltx_title ltx_title_section"><span class="ltx_tag ltx_tag_section">2 </span>Method</h2>
+    <div class="ltx_para"><p class="ltx_p">Our objective combines masked layout modeling with contrastive alignment where the loss is <math alttext="L=L_m+\lambda L_c" display="inline"><semantics><mrow><mi>L</mi></mrow></semantics></math> over patches.</p></div>
+    <table class="ltx_equation" id="S2.E1"><tr><td class="ltx_eqn_cell">DISPLAY_EQUATION_GIBBERISH</td></tr></table>
+    <figure class="ltx_figure" id="S2.F1"><img src="x1.png" alt=""/><figcaption class="ltx_caption">FIGURE_CAPTION_TO_DROP</figcaption></figure>
+    <div class="ltx_para"><p class="ltx_p">We train with a two-stage curriculum.</p></div>
+  </section>
+  <section class="ltx_section" id="S3">
+    <h2 class="ltx_title ltx_title_section"><span class="ltx_tag ltx_tag_section">3 </span>Experimental Setup</h2>
+    <div class="ltx_para"><p class="ltx_p">We evaluate on three document benchmarks with frozen backbones.</p></div>
+    <svg height="10" width="10"><circle cx="5" cy="5" r="4"/></svg>
+  </section>
+  <section class="ltx_section" id="S4">
+    <h2 class="ltx_title ltx_title_section"><span class="ltx_tag ltx_tag_section">4 </span>Results and Discussion</h2>
+    <div class="ltx_para"><p class="ltx_p">Our method matches the state of the art at half the compute budget.</p></div>
+  </section>
+  <section class="ltx_section" id="S5">
+    <h2 class="ltx_title ltx_title_section"><span class="ltx_tag ltx_tag_section">5 </span>Conclusion</h2>
+    <div class="ltx_para"><p class="ltx_p">Efficient pretraining is practical for document AI.</p></div>
+  </section>
+  <section class="ltx_appendix" id="A1">
+    <h2 class="ltx_title ltx_title_appendix"><span class="ltx_tag ltx_tag_appendix">A </span>Additional Proofs</h2>
+    <div class="ltx_para"><p class="ltx_p">We include the full derivation of the objective.</p></div>
+  </section>
+  <section class="ltx_bibliography" id="bib">
+    <h2 class="ltx_title ltx_title_bibliography">References</h2>
+    <ul class="ltx_biblist"><li class="ltx_bibitem">BIBLIOGRAPHY_ENTRY_TO_DROP</li></ul>
+  </section>
+</article>
+</body>
+</html>

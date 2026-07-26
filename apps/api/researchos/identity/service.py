@@ -27,12 +27,19 @@ class AuthService:
         self, *, email: str, password: str, display_name: str
     ) -> tuple[User, Organization]:
         normalized = _normalize_email(email)
+        # Hash before the existence check so the duplicate path takes the same
+        # dominant work as the success path (anti-enumeration, mirrors the
+        # timing equalization in authenticate()). The conflict message stays
+        # generic so the response body does not confirm the address either.
+        password_hash = hash_password(password)
         if await self.users.get_by_email(normalized) is not None:
-            raise ConflictError("An account with this email already exists.")
+            raise ConflictError(
+                "Registration could not be completed with the provided details."
+            )
 
         user = await self.users.create(
             email=normalized,
-            password_hash=hash_password(password),
+            password_hash=password_hash,
             display_name=display_name.strip(),
         )
         organization = await self.organizations.create_personal_organization(user)

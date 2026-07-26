@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from researchos import __version__
 from researchos.agents.router import router as agents_router
 from researchos.coding_agent.router import router as coding_agent_router
+from researchos.coding_chat.router import router as coding_chat_router
 from researchos.common.config import get_settings
 from researchos.common.db import dispose_engine
 from researchos.common.errors import register_exception_handlers
@@ -22,13 +23,17 @@ from researchos.common.logging import configure_logging, get_logger
 from researchos.common.middleware import RequestContextMiddleware
 from researchos.common.redis import close_redis
 from researchos.documents.router import router as documents_router
+from researchos.experiments.ingest_router import router as experiments_ingest_router
 from researchos.experiments.router import router as experiments_router
+from researchos.figures.router import router as figures_router
 from researchos.git.router import router as git_router
 from researchos.health.router import router as health_router
 from researchos.identity.router import router as auth_router
 from researchos.llm_config.router import router as llm_config_router
 from researchos.organizations.router import router as organizations_router
 from researchos.patches.router import router as patches_router
+from researchos.preferences.router import me_router as preferences_me_router
+from researchos.preferences.router import project_router as preferences_project_router
 from researchos.projects.router import router as projects_router
 from researchos.research.router import router as research_router
 from researchos.skills.router import router as skills_router
@@ -93,8 +98,13 @@ def create_app() -> FastAPI:
     app.include_router(workspace_router)
     app.include_router(patches_router)
     app.include_router(coding_agent_router)
+    app.include_router(coding_chat_router)
     app.include_router(git_router)
     app.include_router(experiments_router)
+    app.include_router(experiments_ingest_router)
+    app.include_router(figures_router)
+    app.include_router(preferences_me_router)
+    app.include_router(preferences_project_router)
     app.include_router(documents_router)
     app.include_router(skills_router)
     app.include_router(llm_config_router)

@@ -4,10 +4,19 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 from .enums import ExperimentRunStatus
+
+MAX_METRIC_META_KEYS = 200
+
+
+class MetricMetaEntry(BaseModel):
+    direction: Literal["min", "max"]
+    unit: str | None = Field(default=None, max_length=32)
+    display_name: str | None = Field(default=None, max_length=120)
 
 
 class CreateExperimentRequest(BaseModel):
@@ -16,14 +25,34 @@ class CreateExperimentRequest(BaseModel):
     goal: str | None = Field(default=None, max_length=10_000)
 
 
+class UpdateExperimentRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=10_000)
+    goal: str | None = Field(default=None, max_length=10_000)
+    metric_meta: dict[str, MetricMetaEntry] | None = None
+
+    @field_validator("metric_meta")
+    @classmethod
+    def _cap_keys(
+        cls, value: dict[str, MetricMetaEntry] | None
+    ) -> dict[str, MetricMetaEntry] | None:
+        if value is not None and len(value) > MAX_METRIC_META_KEYS:
+            raise ValueError(f"metric_meta accepts at most {MAX_METRIC_META_KEYS} metrics")
+        return value
+
+
 class ExperimentResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     id: uuid.UUID
     project_id: uuid.UUID
     name: str
     description: str | None
     goal: str | None
+    metric_meta: dict = Field(
+        default_factory=dict,
+        validation_alias=AliasChoices("metric_meta", "metric_meta_json"),
+    )
     created_at: datetime
 
 
@@ -104,3 +133,61 @@ class ArtifactResponse(BaseModel):
     uri: str
     size_bytes: int | None
     created_at: datetime
+
+
+# --- ingest tokens -----------------------------------------------------------
+
+
+class CreateIngestTokenRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+
+
+class IngestTokenResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    token_prefix: str
+    created_at: datetime
+    last_used_at: datetime | None
+    revoked_at: datetime | None
+
+
+class IngestTokenCreatedResponse(IngestTokenResponse):
+    # Plaintext token; present only in the creation response.
+    token: str
+
+
+# --- NDJSON ingest lines -----------------------------------------------------
+
+
+class MetricLine(BaseModel):
+    t: Literal["metric"]
+    name: str = Field(min_length=1, max_length=120)
+    step: int = 0
+    value: float
+
+
+class LogLine(BaseModel):
+    t: Literal["log"]
+    level: str = Field(default="info", max_length=20)
+    msg: str = Field(min_length=1, max_length=20_000)
+
+
+class StatusLine(BaseModel):
+    t: Literal["status"]
+    status: ExperimentRunStatus
+
+
+IngestLine = Annotated[MetricLine | LogLine | StatusLine, Field(discriminator="t")]
+
+
+class RejectedLine(BaseModel):
+    line: int
+    error: str
+
+
+class IngestResult(BaseModel):
+    accepted: int
+    rejected: list[RejectedLine]
+    run_status: ExperimentRunStatus

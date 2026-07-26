@@ -7,8 +7,9 @@ packages/shared-schemas (which the frontend depends on).
 from __future__ import annotations
 
 import uuid
+from typing import get_args
 
-from researchos.websocket.envelopes import AGENT_EVENT_TYPES, build_agent_event
+from researchos.websocket.envelopes import AGENT_EVENT_TYPES, ResourceType, build_agent_event
 
 # This must match AGENT_EVENTS in packages/shared-schemas/src/events.ts.
 _EXPECTED = {
@@ -21,9 +22,25 @@ _EXPECTED = {
     "agent.run.cancelled",
 }
 
+# This must match ResourceType in packages/shared-schemas/src/events.ts.
+_EXPECTED_RESOURCE_TYPES = {
+    "agent_run",
+    "experiment_run",
+    "latex_compile",
+    "runtime_command",
+    "skill_installation",
+    "project",
+    "paper",
+    "figure",
+}
+
 
 def test_agent_event_types_match_shared_schema() -> None:
     assert set(AGENT_EVENT_TYPES) == _EXPECTED
+
+
+def test_resource_types_match_shared_schema() -> None:
+    assert set(get_args(ResourceType)) == _EXPECTED_RESOURCE_TYPES
 
 
 def test_build_agent_event_envelope_shape() -> None:

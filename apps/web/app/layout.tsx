@@ -9,9 +9,36 @@ export const metadata: Metadata = {
   description: 'AI-native research operating system.',
 };
 
+/**
+ * FOUC-free boot: runs before first paint, resolves the stored theme
+ * preference ('system' via matchMedia) onto <html data-theme>, and stamps
+ * <html lang> from the stored locale. Keys mirror lib/theme ('ros-theme')
+ * and lib/i18n ('ros_locale'). Guarded — storage failures fall through.
+ */
+const BOOT_SCRIPT = `(function () {
+  try {
+    var doc = document.documentElement;
+    var pref = localStorage.getItem('ros-theme');
+    var resolved =
+      pref === 'light' || pref === 'dark'
+        ? pref
+        : window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
+    doc.setAttribute('data-theme', resolved);
+    var locale = localStorage.getItem('ros_locale');
+    if (locale === 'en-US' || locale === 'zh-CN') doc.setAttribute('lang', locale);
+  } catch (e) {}
+})();`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: the boot script mutates data-theme/lang on
+    // <html> before hydration; the default lang matches the default locale.
+    <html lang="zh-CN" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: BOOT_SCRIPT }} />
+      </head>
       <body>
         <Providers>{children}</Providers>
       </body>

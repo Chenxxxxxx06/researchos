@@ -1,14 +1,16 @@
-"""Workspace endpoints: file tree and file read."""
+"""Workspace endpoints: file tree, file read, and grep."""
 
 from __future__ import annotations
 
+import re
 import uuid
 
 from fastapi import APIRouter, Query
 
 from researchos.common.deps import CurrentUser, DbSession
+from researchos.common.errors import ValidationError
 
-from .schemas import FileContentResponse, TreeResponse
+from .schemas import FileContentResponse, GrepMatch, GrepResponse, TreeResponse
 from .service import WorkspaceService
 
 router = APIRouter(prefix="/projects/{project_id}/workspace", tags=["workspace"])
@@ -24,3 +26,30 @@ async def get_file(
     project_id: uuid.UUID, user: CurrentUser, db: DbSession, path: str = Query(...)
 ) -> FileContentResponse:
     return await WorkspaceService(db).read_file(user, project_id, path)
+
+
+@router.get("/grep", response_model=GrepResponse)
+async def grep_workspace(
+    project_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    query: str = Query(min_length=1),
+    regex: bool = Query(default=False),
+    limit: int = Query(default=100, ge=1, le=100),
+) -> GrepResponse:
+    pattern = query if regex else re.escape(query)
+    try:
+        data = await WorkspaceService(db).grep(
+            user, project_id, pattern=pattern, max_results=limit
+        )
+    except re.error as exc:
+        raise ValidationError(
+            f"Invalid regular expression: {exc}", http_status=400
+        ) from exc
+    return GrepResponse(
+        matches=[
+            GrepMatch(path=m["path"], line=m["line_no"], preview=m["line"])
+            for m in data["matches"]
+        ],
+        truncated=data["truncated"],
+    )

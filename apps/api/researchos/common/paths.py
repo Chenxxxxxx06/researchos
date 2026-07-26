@@ -30,7 +30,7 @@ DENY_FILE_GLOBS: tuple[str, ...] = (
     ".netrc",
     ".npmrc",
 )
-DENY_DIR_NAMES: frozenset[str] = frozenset({".git"})
+DENY_DIR_NAMES: frozenset[str] = frozenset({".git", ".ros-staging"})
 
 
 class WorkspaceAccessError(AppError):

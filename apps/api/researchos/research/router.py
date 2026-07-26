@@ -1,4 +1,4 @@
-"""Research endpoints: papers, ideas, critiques."""
+"""Research endpoints: papers, sections, feed, ideas, critiques."""
 
 from __future__ import annotations
 
@@ -12,14 +12,25 @@ from researchos.agents.service import AgentRunService
 from researchos.common.deps import CurrentUser, DbSession, require_csrf
 from researchos.common.pagination import DEFAULT_LIMIT, MAX_LIMIT, Page
 
+from .feed import FeedService
+from .gap_matrix import GapMatrixService
 from .schemas import (
     CreateIdeaRequest,
     CritiqueResponse,
+    FeedCategoriesRequest,
+    FeedCategoriesResponse,
+    FeedResponse,
+    GenerateIdeasRequest,
+    GenerateIdeasResponse,
     IdeaResponse,
     ImportPapersRequest,
+    ImportPapersResponse,
+    IngestTriggerResponse,
     PaperResponse,
     PaperSearchRequest,
     PaperSearchResponse,
+    PaperSectionResponse,
+    SectionsResponse,
     UpdateIdeaRequest,
 )
 from .service import CritiqueService, IdeaService, PaperService
@@ -36,23 +47,25 @@ router = APIRouter(prefix="/projects/{project_id}", tags=["research"])
 async def search_papers(
     project_id: uuid.UUID, payload: PaperSearchRequest, user: CurrentUser, db: DbSession
 ) -> PaperSearchResponse:
-    results = await PaperService(db).search(
-        user, project_id, query=payload.query, limit=payload.limit
+    results, provider_status = await PaperService(db).search_with_status(
+        user, project_id, query=payload.query, limit=payload.limit, filters=payload.filters
     )
-    return PaperSearchResponse(results=results)
+    return PaperSearchResponse(results=results, provider_status=provider_status)
 
 
 @router.post(
     "/papers/import",
-    response_model=list[PaperResponse],
+    response_model=ImportPapersResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_csrf)],
 )
 async def import_papers(
     project_id: uuid.UUID, payload: ImportPapersRequest, user: CurrentUser, db: DbSession
-) -> list[PaperResponse]:
-    papers = await PaperService(db).import_papers(user, project_id, payload.papers)
-    return [PaperResponse.model_validate(p) for p in papers]
+) -> ImportPapersResponse:
+    imported, skipped = await PaperService(db).import_papers(user, project_id, payload.papers)
+    return ImportPapersResponse(
+        imported=[PaperResponse.model_validate(p) for p in imported], skipped=skipped
+    )
 
 
 @router.get("/papers", response_model=Page[PaperResponse])
@@ -72,12 +85,72 @@ async def list_papers(
     )
 
 
+# --- Freshness feed (literal routes MUST precede /papers/{paper_id}) ---------
+@router.get("/papers/feed", response_model=FeedResponse)
+async def get_feed(
+    project_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    cursor: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=50),
+) -> FeedResponse:
+    return await FeedService(db).get_feed(user, project_id, cursor=cursor, limit=limit)
+
+
+@router.get("/papers/feed/categories", response_model=FeedCategoriesResponse)
+async def get_feed_categories(
+    project_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> FeedCategoriesResponse:
+    return await FeedService(db).get_categories(user, project_id)
+
+
+@router.put(
+    "/papers/feed/categories",
+    response_model=FeedCategoriesResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def put_feed_categories(
+    project_id: uuid.UUID,
+    payload: FeedCategoriesRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> FeedCategoriesResponse:
+    return await FeedService(db).set_categories(user, project_id, payload.categories)
+
+
 @router.get("/papers/{paper_id}", response_model=PaperResponse)
 async def get_paper(
     project_id: uuid.UUID, paper_id: uuid.UUID, user: CurrentUser, db: DbSession
 ) -> PaperResponse:
     paper = await PaperService(db).get(user, project_id, paper_id)
     return PaperResponse.model_validate(paper)
+
+
+@router.get("/papers/{paper_id}/sections", response_model=SectionsResponse)
+async def get_paper_sections(
+    project_id: uuid.UUID, paper_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> SectionsResponse:
+    paper, sections = await PaperService(db).get_sections(user, project_id, paper_id)
+    return SectionsResponse(
+        paper_id=paper.id,
+        ingest_status=paper.ingest_status,
+        ingested_at=paper.ingested_at,
+        ingest_error=paper.ingest_error,
+        sections=[PaperSectionResponse.model_validate(s) for s in sections],
+    )
+
+
+@router.post(
+    "/papers/{paper_id}/ingest",
+    response_model=IngestTriggerResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(require_csrf)],
+)
+async def trigger_paper_ingest(
+    project_id: uuid.UUID, paper_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> IngestTriggerResponse:
+    paper = await PaperService(db).trigger_ingest(user, project_id, paper_id)
+    return IngestTriggerResponse(paper_id=paper.id, ingest_status=paper.ingest_status)
 
 
 @router.delete(
@@ -109,6 +182,25 @@ async def create_idea(
         hypothesis=payload.hypothesis,
     )
     return IdeaResponse.model_validate(idea)
+
+
+@router.post(
+    "/ideas/generate",
+    response_model=GenerateIdeasResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_csrf)],
+)
+async def generate_ideas(
+    project_id: uuid.UUID, payload: GenerateIdeasRequest, user: CurrentUser, db: DbSession
+) -> GenerateIdeasResponse:
+    ideas, gaps_considered, papers_used = await GapMatrixService(db).generate(
+        user, project_id, max_ideas=payload.max_ideas
+    )
+    return GenerateIdeasResponse(
+        ideas=[IdeaResponse.model_validate(i) for i in ideas],
+        gaps_considered=gaps_considered,
+        papers_used=papers_used,
+    )
 
 
 @router.get("/ideas", response_model=Page[IdeaResponse])

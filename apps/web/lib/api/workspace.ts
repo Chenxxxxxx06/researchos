@@ -21,10 +21,37 @@ export interface FileContent {
   content: string | null;
 }
 
+export interface GrepMatch {
+  path: string;
+  line: number;
+  preview: string;
+}
+
+export interface GrepResponse {
+  matches: GrepMatch[];
+  truncated: boolean;
+}
+
 export function getTree(projectId: string): Promise<TreeResponse> {
   return apiRequest(`/projects/${projectId}/workspace/tree`);
 }
 
 export function getFile(projectId: string, path: string): Promise<FileContent> {
   return apiRequest(`/projects/${projectId}/workspace/files?path=${encodeURIComponent(path)}`);
+}
+
+/**
+ * Full-text workspace search. Literal by default; pass `regex:true` for a
+ * regular expression (400 `code:'validation_error'` on an invalid pattern).
+ * A 404 means the endpoint is absent — callers hide the Search tab.
+ */
+export function grepWorkspace(
+  projectId: string,
+  opts: { query: string; regex?: boolean; limit?: number },
+): Promise<GrepResponse> {
+  const params = new URLSearchParams();
+  params.set('query', opts.query);
+  if (opts.regex) params.set('regex', 'true');
+  params.set('limit', String(opts.limit ?? 100));
+  return apiRequest(`/projects/${projectId}/workspace/grep?${params.toString()}`);
 }

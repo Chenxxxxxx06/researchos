@@ -16,12 +16,16 @@ from .schemas import (
     ArtifactResponse,
     CreateArtifactRequest,
     CreateExperimentRequest,
+    CreateIngestTokenRequest,
     CreateRunRequest,
     ExperimentResponse,
+    IngestTokenCreatedResponse,
+    IngestTokenResponse,
     LogResponse,
     MetricResponse,
     RecordMetricsRequest,
     RunResponse,
+    UpdateExperimentRequest,
     UpdateRunRequest,
 )
 from .service import ExperimentService
@@ -52,11 +56,73 @@ async def create_experiment(
     return ExperimentResponse.model_validate(exp)
 
 
+# Ingest-token routes use a static segment under /experiments and must be
+# registered before the parameterized /experiments/{experiment_id} routes.
+
+
+@router.post(
+    "/experiments/ingest-tokens",
+    response_model=IngestTokenCreatedResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_csrf)],
+)
+async def create_ingest_token(
+    project_id: uuid.UUID, payload: CreateIngestTokenRequest, user: CurrentUser, db: DbSession
+) -> IngestTokenCreatedResponse:
+    token, plaintext = await ExperimentService(db).create_ingest_token(
+        user, project_id, name=payload.name
+    )
+    return IngestTokenCreatedResponse(
+        id=token.id,
+        name=token.name,
+        token_prefix=token.token_prefix,
+        created_at=token.created_at,
+        last_used_at=token.last_used_at,
+        revoked_at=token.revoked_at,
+        token=plaintext,
+    )
+
+
+@router.get("/experiments/ingest-tokens", response_model=list[IngestTokenResponse])
+async def list_ingest_tokens(
+    project_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> list[IngestTokenResponse]:
+    tokens = await ExperimentService(db).list_ingest_tokens(user, project_id)
+    return [IngestTokenResponse.model_validate(t) for t in tokens]
+
+
+@router.delete(
+    "/experiments/ingest-tokens/{token_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_csrf)],
+)
+async def revoke_ingest_token(
+    project_id: uuid.UUID, token_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> None:
+    await ExperimentService(db).revoke_ingest_token(user, project_id, token_id)
+
+
 @router.get("/experiments/{experiment_id}", response_model=ExperimentResponse)
 async def get_experiment(
     project_id: uuid.UUID, experiment_id: uuid.UUID, user: CurrentUser, db: DbSession
 ) -> ExperimentResponse:
     exp = await ExperimentService(db).get_experiment(user, project_id, experiment_id)
+    return ExperimentResponse.model_validate(exp)
+
+
+@router.patch(
+    "/experiments/{experiment_id}",
+    response_model=ExperimentResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def update_experiment(
+    project_id: uuid.UUID,
+    experiment_id: uuid.UUID,
+    payload: UpdateExperimentRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> ExperimentResponse:
+    exp = await ExperimentService(db).update_experiment(user, project_id, experiment_id, payload)
     return ExperimentResponse.model_validate(exp)
 
 

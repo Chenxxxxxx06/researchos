@@ -1,26 +1,43 @@
 """LaTeX document business logic, authorization, and a safe mock compiler.
 
-The compiler is a pure-Python text transform. There is NO shell, NO subprocess,
-and NO shell-escape (PHASE3/5 security): real isolated LaTeX compilation is a
-later phase.
+The compiler is a pure-Python structural pass (see ``latex_parse``). There is
+NO shell, NO subprocess, and NO shell-escape (PHASE3/5 security): real isolated
+LaTeX compilation is a later phase.
+
+Every content mutation (saves, suggestion accepts, anchor includes, citation
+inserts) goes through ``write_file_versioned`` so each write is compare-and-
+swapped on the per-file version counter and snapshotted into
+``document_file_revisions``.
 """
 
 from __future__ import annotations
 
-import re
 import uuid
 from datetime import UTC, datetime
 
+import structlog
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from researchos.common.errors import NotFoundError
+from researchos.common.errors import ConflictError, NotFoundError
+from researchos.common.pubsub import publish_event
 from researchos.common.roles import ProjectRole
 from researchos.identity.models import User
 from researchos.projects.service import ProjectService
+from researchos.websocket.envelopes import EventEnvelope
 
 from .enums import CompileStatus
-from .models import DocumentFile, LatexCompileJob, LatexProject
-from .repository import CompileJobRepository, DocumentFileRepository, LatexProjectRepository
+from .latex_parse import parse_document, render_plain_preview
+from .merge import three_way_merge
+from .models import DocumentFile, DocumentFileRevision, LatexCompileJob, LatexProject
+from .repository import (
+    CompileJobRepository,
+    DocumentFileRepository,
+    DocumentRevisionRepository,
+    LatexProjectRepository,
+)
+
+logger = structlog.get_logger(__name__)
 
 _DEFAULT_MAIN = r"""\documentclass{article}
 \title{Untitled Paper}
@@ -40,26 +57,10 @@ Present your results.
 \end{document}
 """
 
-_CMD_RE = re.compile(r"\\[a-zA-Z]+\*?(\[[^\]]*\])?(\{([^{}]*)\})?")
-_COMMENT_RE = re.compile(r"(?<!\\)%.*")
-
-
-def _mock_preview(latex: str) -> str:
-    """Render a readable plain-text preview from LaTeX (no compilation)."""
-
-    out: list[str] = []
-    for line in latex.splitlines():
-        line = _COMMENT_RE.sub("", line)
-        if line.strip().startswith(("\\documentclass", "\\usepackage", "\\begin", "\\end")):
-            continue
-        line = re.sub(r"\\section\*?\{([^}]*)\}", r"\n# \1", line)
-        line = re.sub(r"\\subsection\*?\{([^}]*)\}", r"\n## \1", line)
-        line = re.sub(r"\\title\{([^}]*)\}", r"# \1", line)
-        line = re.sub(r"\\textbf\{([^}]*)\}", r"\1", line)
-        line = re.sub(r"\\emph\{([^}]*)\}", r"\1", line)
-        line = _CMD_RE.sub(lambda m: m.group(3) or "", line)
-        out.append(line)
-    return "\n".join(out).strip() or "(empty document)"
+# Keep at most this many revisions per file (newest retained).
+_REVISION_KEEP = 50
+# Omit server_content from 409 payloads beyond this size.
+_SERVER_CONTENT_MAX_BYTES = 512 * 1024
 
 
 class DocumentService:
@@ -68,6 +69,7 @@ class DocumentService:
         self.projects = ProjectService(db)
         self.latex_projects = LatexProjectRepository(db)
         self.files = DocumentFileRepository(db)
+        self.revisions = DocumentRevisionRepository(db)
         self.jobs = CompileJobRepository(db)
 
     async def create_latex_project(
@@ -77,11 +79,7 @@ class DocumentService:
         lp = await self.latex_projects.add(
             LatexProject(project_id=project_id, name=name, created_by=actor.id)
         )
-        await self.files.add(
-            DocumentFile(
-                latex_project_id=lp.id, path="main.tex", content=_DEFAULT_MAIN, updated_by=actor.id
-            )
-        )
+        await self.write_file_versioned(actor, lp.id, path="main.tex", content=_DEFAULT_MAIN)
         await self.db.commit()
         await self.db.refresh(lp)
         return lp
@@ -90,9 +88,11 @@ class DocumentService:
         await self.projects.ensure_access(actor, project_id, ProjectRole.VIEWER)
         return await self.latex_projects.list(project_id)
 
-    async def _require_latex_project(
+    async def require_latex_project(
         self, actor: User, project_id: uuid.UUID, latex_project_id: uuid.UUID, role: ProjectRole
     ) -> LatexProject:
+        """Access guard shared with the suggestion/citation/anchor services."""
+
         await self.projects.ensure_access(actor, project_id, role)
         lp = await self.latex_projects.get(project_id, latex_project_id)
         if lp is None:
@@ -102,23 +102,136 @@ class DocumentService:
     async def get_latex_project(
         self, actor: User, project_id: uuid.UUID, latex_project_id: uuid.UUID
     ) -> LatexProject:
-        return await self._require_latex_project(
+        return await self.require_latex_project(
             actor, project_id, latex_project_id, ProjectRole.VIEWER
         )
 
     async def list_files(
         self, actor: User, project_id: uuid.UUID, latex_project_id: uuid.UUID
     ) -> list[DocumentFile]:
-        await self._require_latex_project(actor, project_id, latex_project_id, ProjectRole.VIEWER)
+        await self.require_latex_project(actor, project_id, latex_project_id, ProjectRole.VIEWER)
         return await self.files.list(latex_project_id)
 
     async def get_file(
         self, actor: User, project_id: uuid.UUID, latex_project_id: uuid.UUID, path: str
     ) -> DocumentFile:
-        await self._require_latex_project(actor, project_id, latex_project_id, ProjectRole.VIEWER)
+        await self.require_latex_project(actor, project_id, latex_project_id, ProjectRole.VIEWER)
         file = await self.files.get_by_path(latex_project_id, path)
         if file is None:
             raise NotFoundError("Document file not found.")
+        return file
+
+    # --- versioned write core -------------------------------------------------
+
+    async def build_version_conflict(
+        self, file: DocumentFile, *, expected_version: int, client_content: str
+    ) -> ConflictError:
+        """409 payload with the server content and a three-way merge hint."""
+
+        server_content = file.content
+        omitted = len(server_content.encode("utf-8")) > _SERVER_CONTENT_MAX_BYTES
+        details: dict = {
+            "path": file.path,
+            "expected_version": expected_version,
+            "current_version": file.version,
+            "server_content_omitted": omitted,
+            "base_available": False,
+            "merge": None,
+        }
+        if not omitted:
+            details["server_content"] = server_content
+        base = await self.revisions.get_by_version(file.id, expected_version)
+        if base is not None:
+            details["base_available"] = True
+            details["merge"] = three_way_merge(
+                base.content, server_content, client_content
+            ).to_payload()
+        return ConflictError(
+            f"Document changed since version {expected_version}.",
+            code="document_version_conflict",
+            details=details,
+        )
+
+    async def write_file_versioned(
+        self,
+        actor: User,
+        latex_project_id: uuid.UUID,
+        *,
+        path: str,
+        content: str,
+        expected_version: int | None = None,
+    ) -> DocumentFile:
+        """Create-or-update a file with CAS + a revision snapshot. No commit.
+
+        All internal writers (suggestion accept, anchor include, citation
+        insert) share this core so every mutation is versioned and revisioned.
+        """
+
+        file = await self.files.get_by_path(latex_project_id, path)
+        if file is None:
+            candidate = DocumentFile(
+                latex_project_id=latex_project_id,
+                path=path,
+                content=content,
+                updated_by=actor.id,
+            )
+            try:
+                async with self.db.begin_nested():
+                    self.db.add(candidate)
+                    await self.db.flush()
+            except IntegrityError:
+                # Concurrent create of the same path: re-select and fall
+                # through to the update path instead of a 500.
+                file = await self.files.get_by_path(latex_project_id, path)
+                if file is None:  # pragma: no cover - unexpected integrity source
+                    raise
+            else:
+                await self.revisions.add(
+                    DocumentFileRevision(
+                        document_file_id=candidate.id,
+                        version=candidate.version,
+                        content=content,
+                        updated_by=actor.id,
+                    )
+                )
+                return candidate
+
+        if expected_version is not None and expected_version != file.version:
+            raise await self.build_version_conflict(
+                file, expected_version=expected_version, client_content=content
+            )
+
+        # The Python-side version check is advisory; the revision table's
+        # UNIQUE(document_file_id, version) is the real CAS. Stage the content
+        # bump AND the revision insert in one savepoint so a concurrent writer
+        # that already claimed this version rolls the whole thing back and gets
+        # a 409 merge hint instead of an opaque 500.
+        new_version = file.version + 1
+        file.content = content
+        file.version = new_version
+        file.updated_by = actor.id
+        try:
+            async with self.db.begin_nested():
+                await self.db.flush()
+                await self.revisions.add(
+                    DocumentFileRevision(
+                        document_file_id=file.id,
+                        version=new_version,
+                        content=content,
+                        updated_by=actor.id,
+                    )
+                )
+        except IntegrityError:
+            fresh = await self.files.get_by_path(latex_project_id, path)
+            target = fresh if fresh is not None else file
+            raise await self.build_version_conflict(
+                target,
+                expected_version=expected_version
+                if expected_version is not None
+                else target.version,
+                client_content=content,
+            ) from None
+        await self.revisions.prune(file.id, keep=_REVISION_KEEP)
         return file
 
     async def save_file(
@@ -129,56 +242,118 @@ class DocumentService:
         *,
         path: str,
         content: str,
+        expected_version: int | None = None,
     ) -> DocumentFile:
-        await self._require_latex_project(
+        await self.require_latex_project(
             actor, project_id, latex_project_id, ProjectRole.RESEARCHER
         )
-        file = await self.files.get_by_path(latex_project_id, path)
-        if file is None:
-            file = await self.files.add(
-                DocumentFile(
-                    latex_project_id=latex_project_id,
-                    path=path,
-                    content=content,
-                    updated_by=actor.id,
-                )
-            )
-        else:
-            file.content = content
-            file.version += 1
-            file.updated_by = actor.id
+        file = await self.write_file_versioned(
+            actor, latex_project_id, path=path, content=content, expected_version=expected_version
+        )
         await self.db.commit()
         await self.db.refresh(file)
         return file
 
+    # --- history --------------------------------------------------------------
+
+    async def list_file_history(
+        self,
+        actor: User,
+        project_id: uuid.UUID,
+        latex_project_id: uuid.UUID,
+        *,
+        path: str,
+        limit: int,
+    ) -> list[DocumentFileRevision]:
+        await self.require_latex_project(actor, project_id, latex_project_id, ProjectRole.VIEWER)
+        file = await self.files.get_by_path(latex_project_id, path)
+        if file is None:
+            raise NotFoundError("Document file not found.")
+        return await self.revisions.list_versions(file.id, limit=limit)
+
+    async def get_file_revision(
+        self,
+        actor: User,
+        project_id: uuid.UUID,
+        latex_project_id: uuid.UUID,
+        *,
+        path: str,
+        version: int,
+    ) -> tuple[DocumentFile, DocumentFileRevision]:
+        await self.require_latex_project(actor, project_id, latex_project_id, ProjectRole.VIEWER)
+        file = await self.files.get_by_path(latex_project_id, path)
+        if file is None:
+            raise NotFoundError("Document file not found.")
+        revision = await self.revisions.get_by_version(file.id, version)
+        if revision is None:
+            raise NotFoundError("Revision not found (it may have been pruned).")
+        return file, revision
+
+    # --- compile --------------------------------------------------------------
+
     async def compile(
         self, actor: User, project_id: uuid.UUID, latex_project_id: uuid.UUID
     ) -> LatexCompileJob:
-        lp = await self._require_latex_project(
+        lp = await self.require_latex_project(
             actor, project_id, latex_project_id, ProjectRole.RESEARCHER
         )
-        main = await self.files.get_by_path(latex_project_id, lp.main_file_path)
-        content = main.content if main else ""
+        files = await self.files.list(latex_project_id)
+        file_map = {f.path: f.content for f in files}
+        preview_model, diagnostics = parse_document(file_map, lp.main_file_path)
+        errors = [d for d in diagnostics if d["severity"] == "error"]
+        status = CompileStatus.FAILED if errors else CompileStatus.SUCCEEDED
         job = await self.jobs.add(
             LatexCompileJob(
                 latex_project_id=latex_project_id,
                 project_id=project_id,
-                status=CompileStatus.SUCCEEDED,
+                status=status,
                 engine="mock",
-                log="Mock compile succeeded (no shell, no shell-escape).",
-                preview=_mock_preview(content),
+                log=(
+                    "Mock compile (no shell, no shell-escape): "
+                    f"{len(diagnostics)} diagnostic(s)."
+                ),
+                preview=render_plain_preview(preview_model),
+                preview_model_json=preview_model,
+                diagnostics_json=diagnostics,
+                error_summary=errors[0]["message"] if errors else None,
                 created_by=actor.id,
                 finished_at=datetime.now(tz=UTC),
             )
         )
         await self.db.commit()
         await self.db.refresh(job)
+        await self._publish_compile_event(job)
         return job
+
+    async def _publish_compile_event(self, job: LatexCompileJob) -> None:
+        event_type = (
+            "latex.compile.failed"
+            if job.status == CompileStatus.FAILED
+            else "latex.compile.completed"
+        )
+        envelope = EventEnvelope(
+            event_type=event_type,
+            project_id=str(job.project_id),
+            resource_type="latex_compile",
+            resource_id=str(job.id),
+            timestamp=datetime.now(tz=UTC).isoformat(),
+            payload={
+                "job_id": str(job.id),
+                "status": job.status.value,
+                "engine": job.engine,
+                "diagnostics_count": len(job.diagnostics_json or []),
+                "error_summary": job.error_summary,
+            },
+        ).model_dump()
+        try:
+            await publish_event(str(job.project_id), envelope)
+        except Exception:  # noqa: BLE001 - live events must not fail the compile
+            logger.warning("latex_compile_event_publish_failed", job_id=str(job.id))
 
     async def get_compile_job(
         self, actor: User, project_id: uuid.UUID, latex_project_id: uuid.UUID, job_id: uuid.UUID
     ) -> LatexCompileJob:
-        await self._require_latex_project(actor, project_id, latex_project_id, ProjectRole.VIEWER)
+        await self.require_latex_project(actor, project_id, latex_project_id, ProjectRole.VIEWER)
         job = await self.jobs.get(latex_project_id, job_id)
         if job is None:
             raise NotFoundError("Compile job not found.")

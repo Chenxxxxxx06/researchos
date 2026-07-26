@@ -9,7 +9,9 @@ researcher+; reading requires viewer+.
 from __future__ import annotations
 
 import uuid
+from dataclasses import dataclass, field
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from researchos.common.errors import ConflictError, NotFoundError, ValidationError
@@ -17,8 +19,8 @@ from researchos.common.roles import ProjectRole
 from researchos.identity.models import User
 from researchos.projects.service import ProjectService
 
-from .enums import SkillVisibility
-from .manifest import SkillManifest, validate_manifest
+from .enums import SkillModule, SkillVisibility
+from .manifest import ALLOWED_TOOLS, SkillManifest, validate_manifest
 from .models import Skill, SkillInstallation, SkillVersion
 from .repository import InstallationRepository, SkillRepository
 from .schemas import (
@@ -27,6 +29,19 @@ from .schemas import (
     SkillCatalogItem,
     SkillDetailResponse,
 )
+
+
+@dataclass
+class RuntimeSkill:
+    """A skill as consumed by the agent runtime (pinned version, pre-filtered)."""
+
+    slug: str
+    name: str
+    version: str
+    prompt_template: str
+    workflow: list[str] = field(default_factory=list)
+    tool_permissions: list[str] = field(default_factory=list)
+    settings: dict = field(default_factory=dict)
 
 
 class SkillService:
@@ -143,6 +158,50 @@ class SkillService:
                     enabled=inst.enabled,
                 )
             )
+        return out
+
+    # --- runtime read-path ---------------------------------------------------
+    async def list_enabled_for_runtime(
+        self, project_id: uuid.UUID, module: SkillModule, *, cap: int = 5
+    ) -> list[RuntimeSkill]:
+        """Enabled skills for a project/module, at their PINNED versions.
+
+        Internal runtime path (no auth check): invoked by the worker on behalf
+        of an already-authorized run. ``tool_permissions`` are pre-filtered
+        against the platform allowlist so the runtime never sees undeclarable
+        names.
+        """
+
+        result = await self.db.execute(
+            select(SkillInstallation, Skill, SkillVersion)
+            .join(Skill, Skill.id == SkillInstallation.skill_id)
+            .join(SkillVersion, SkillVersion.id == SkillInstallation.skill_version_id)
+            .where(
+                SkillInstallation.project_id == project_id,
+                SkillInstallation.enabled.is_(True),
+            )
+            .order_by(SkillInstallation.created_at.asc())
+        )
+        out: list[RuntimeSkill] = []
+        for installation, skill, version in result.all():
+            manifest = version.manifest_json or {}
+            if module.value not in manifest.get("modules", []):
+                continue
+            out.append(
+                RuntimeSkill(
+                    slug=skill.slug,
+                    name=skill.name,
+                    version=version.version,
+                    prompt_template=str(manifest.get("prompt_template", "")),
+                    workflow=[str(step) for step in manifest.get("workflow", [])],
+                    tool_permissions=[
+                        t for t in manifest.get("tool_permissions", []) if t in ALLOWED_TOOLS
+                    ],
+                    settings=dict(installation.settings_json or {}),
+                )
+            )
+            if len(out) >= cap:
+                break
         return out
 
     # --- skill builder -------------------------------------------------------

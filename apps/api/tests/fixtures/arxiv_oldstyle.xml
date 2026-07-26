@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom">
+  <title>ArXiv Query</title>
+  <opensearch:totalResults xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">3</opensearch:totalResults>
+  <entry>
+    <id>http://arxiv.org/abs/solv-int/9701001</id>
+    <updated>1997-01-03T10:00:00Z</updated>
+    <published>1997-01-02T09:00:00Z</published>
+    <title>Integrable Systems and Solitons</title>
+    <summary>Classic old-style identifier paper on integrable systems.</summary>
+    <author><name>Eve Oldstyle</name></author>
+    <arxiv:primary_category term="solv-int" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="solv-int" scheme="http://arxiv.org/schemas/atom"/>
+    <link href="http://arxiv.org/abs/solv-int/9701001" rel="alternate" type="text/html"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/math/0211159</id>
+    <updated>2002-11-12T10:00:00Z</updated>
+    <published>2002-11-11T09:00:00Z</published>
+    <title>The Entropy Formula for the Ricci Flow</title>
+    <summary>Old-style mathematics identifier without a version suffix.</summary>
+    <author><name>Grisha Mathematician</name></author>
+    <arxiv:primary_category term="math.DG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="math.DG" scheme="http://arxiv.org/schemas/atom"/>
+    <link href="http://arxiv.org/abs/math/0211159" rel="alternate" type="text/html"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/cond-mat/0703470v2</id>
+    <updated>2007-03-20T10:00:00Z</updated>
+    <published>2007-03-18T09:00:00Z</published>
+    <title>Condensed Matter with a Version Suffix</title>
+    <summary>Old-style identifier carrying an explicit version.</summary>
+    <author><name>Frank Physicist</name></author>
+    <arxiv:primary_category term="cond-mat.str-el" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cond-mat.str-el" scheme="http://arxiv.org/schemas/atom"/>
+    <link href="http://arxiv.org/abs/cond-mat/0703470v2" rel="alternate" type="text/html"/>
+  </entry>
+</feed>

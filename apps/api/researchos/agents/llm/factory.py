@@ -34,6 +34,8 @@ async def get_llm_provider(project_id: uuid.UUID | None = None) -> LLMProvider:
                     LLMProviderConfig.project_id == project_id,
                     LLMProviderConfig.is_active.is_(True),
                 )
+                # Deterministic pick: most recently updated active row wins.
+                .order_by(LLMProviderConfig.updated_at.desc(), LLMProviderConfig.id)
                 .limit(1)
             )
         if cfg is not None:
@@ -41,7 +43,14 @@ async def get_llm_provider(project_id: uuid.UUID | None = None) -> LLMProvider:
 
             if cfg.provider_type == "anthropic":
                 from .anthropic import AnthropicProvider
-                return AnthropicProvider()
+
+                # Empty strings mean "use env" (matches the llm_config router's
+                # empty-api_key-preserves-stored-key convention).
+                return AnthropicProvider(
+                    model=cfg.model or None,
+                    api_key=cfg.api_key or None,
+                    base_url=cfg.base_url or None,
+                )
             return OpenAICompatibleProvider(
                 base_url=cfg.base_url,
                 model=cfg.model,
@@ -62,17 +71,4 @@ async def get_llm_provider(project_id: uuid.UUID | None = None) -> LLMProvider:
         return OpenAICompatibleProvider()
 
     # 3. Safe default: mock (always works, no calls, no cost).
-    return MockLLMProvider()
-
-
-def get_llm_provider_sync() -> LLMProvider:
-    """Synchronous stub for tests and non-async callers (defaults to mock)."""
-
-    settings = get_settings()
-    if settings.llm_provider == "mock":
-        return MockLLMProvider()
-    if settings.llm_provider == "anthropic":
-        from .anthropic import AnthropicProvider
-
-        return AnthropicProvider()
     return MockLLMProvider()

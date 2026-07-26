@@ -7,6 +7,8 @@ sends events across project boundaries.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import uuid
 
 import structlog
@@ -68,12 +70,35 @@ async def ws_endpoint(websocket: WebSocket, project_id: str = Query(...)) -> Non
 
     await websocket.accept()
     logger.info("ws_connected", project_id=project_id)
+    relay = asyncio.create_task(_relay(websocket, project_id))
+    reader = asyncio.create_task(_read_client_frames(websocket))
     try:
-        async for envelope in subscribe_project(project_id):
-            await websocket.send_json(envelope)
-    except WebSocketDisconnect:
-        pass
-    except Exception as exc:  # noqa: BLE001 - log and close on relay failure
-        logger.warning("ws_relay_error", error=str(exc))
+        done, pending = await asyncio.wait({relay, reader}, return_when=asyncio.FIRST_COMPLETED)
+        for task in pending:
+            task.cancel()
+        for task in done:
+            exc = task.exception()
+            if exc is not None and not isinstance(exc, WebSocketDisconnect):
+                logger.warning("ws_relay_error", error=str(exc))
     finally:
+        relay.cancel()
+        reader.cancel()
         logger.info("ws_disconnected", project_id=project_id)
+
+
+async def _relay(websocket: WebSocket, project_id: str) -> None:
+    async for envelope in subscribe_project(project_id):
+        await websocket.send_json(envelope)
+
+
+async def _read_client_frames(websocket: WebSocket) -> None:
+    """Answer heartbeat pings; ignore any other client frame (forward-compatible)."""
+
+    while True:
+        raw = await websocket.receive_text()
+        try:
+            frame = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(frame, dict) and frame.get("type") == "ping":
+            await websocket.send_json({"type": "pong", "ts": frame.get("ts")})

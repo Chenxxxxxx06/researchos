@@ -12,6 +12,10 @@ from .enums import AgentRunStatus, AgentType, ToolCallStatus
 
 class AgentRunContext(BaseModel):
     idea_id: uuid.UUID | None = None
+    # "Explain this section" seeds the research agent with a library paper and
+    # optional section indices; both flow verbatim into input_json.context.
+    paper_id: uuid.UUID | None = None
+    section_seqs: list[int] | None = Field(default=None, max_length=64)
 
 
 class CreateAgentRunRequest(BaseModel):

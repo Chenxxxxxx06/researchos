@@ -28,3 +28,38 @@ class WorkspaceService:
         await self.projects.ensure_access(actor, project_id, ProjectRole.VIEWER)
         data = fs.read_file(project_id, path)
         return FileContentResponse.model_validate(data)
+
+    async def read_file_range(
+        self,
+        actor: User,
+        project_id: uuid.UUID,
+        path: str,
+        *,
+        start_line: int | None = None,
+        end_line: int | None = None,
+    ) -> dict:
+        """Line-ranged read for the agent ``workspace.read`` tool (raw dict)."""
+
+        await self.projects.ensure_access(actor, project_id, ProjectRole.VIEWER)
+        return fs.read_file_range(project_id, path, start_line, end_line)
+
+    async def grep(
+        self,
+        actor: User,
+        project_id: uuid.UUID,
+        *,
+        pattern: str,
+        glob: str | None = None,
+        max_results: int,
+        ignore_case: bool = False,
+    ) -> dict:
+        """Bounded workspace grep (raw dict; may raise ``re.error``)."""
+
+        await self.projects.ensure_access(actor, project_id, ProjectRole.VIEWER)
+        return fs.grep_files(
+            project_id,
+            pattern,
+            glob=glob,
+            max_results=max_results,
+            ignore_case=ignore_case,
+        )

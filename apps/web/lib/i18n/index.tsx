@@ -18,7 +18,7 @@ const DEFAULT_LOCALE: Locale = 'zh-CN';
 interface I18nContextValue {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: (key: DictKey) => string;
+  t: (key: DictKey, params?: Record<string, string | number>) => string;
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null);
@@ -37,7 +37,18 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = next;
   }, []);
 
-  const t = useCallback((key: DictKey) => DICTS[locale][key] ?? key, [locale]);
+  // `{name}` placeholders are replaced in a single pass; unknown placeholders
+  // are left verbatim so missing params are visible instead of silent.
+  const t = useCallback(
+    (key: DictKey, params?: Record<string, string | number>) => {
+      const template = DICTS[locale][key] ?? key;
+      if (!params) return template;
+      return template.replace(/\{(\w+)\}/g, (match, name: string) =>
+        params[name] !== undefined ? String(params[name]) : match,
+      );
+    },
+    [locale],
+  );
 
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
 }
