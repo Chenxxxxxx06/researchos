@@ -7,7 +7,7 @@
 
 <div align="center">
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=36&duration=3000&pause=1000&color=6366F1&center=true&vCenter=true&random=false&width=600&lines=ResearchOS;AI+Research+Operating+System;%E5%AE%9E%E9%AA%8C++%E8%AE%BA%E6%96%87+++%E4%BB%A3%E7%A0%81;One+Workspace%2C+End+to+End" alt="ResearchOS" />
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=36&duration=3000&pause=1000&color=6366F1&center=true&vCenter=true&random=false&width=600&lines=ResearchOS;AI+Research+Operating+System;Experiment+%E2%86%92+Paper+%E2%86%92+Code;One+Workspace%2C+End+to+End" alt="ResearchOS" />
 
 <p>
   <a href="https://github.com/NPUwho/researchos/actions/workflows/ci.yml"><img src="https://github.com/NPUwho/researchos/actions/workflows/ci.yml/badge.svg?label=CI" alt="CI" /></a>
@@ -20,12 +20,16 @@
 </p>
 
 <blockquote>
-  <b>🔬 研究</b> · <b>💻 编码</b> · <b>🧪 实验</b> · <b>📝 写作</b><br/>
-  一个工作台，端到端完成 AI 辅助科研全流程
+  <b>🔬 Research</b> · <b>💻 Code</b> · <b>🧪 Experiment</b> · <b>📝 Write</b><br/>
+  One workspace, end-to-end AI-assisted research — from idea to paper
 </blockquote>
 
 <p>
   <sub>Built with ❤️ using <b>FastAPI</b> + <b>Next.js</b> + <b>PostgreSQL/pgvector</b> + <b>Redis</b> + <b>Docker</b></sub>
+</p>
+
+<p>
+  <a href="README_zh.md">中文文档</a>
 </p>
 
 </div>
@@ -39,25 +43,25 @@
 ## 🚀 30-Second Quick Start
 
 ```bash
-# 一行命令启动全部服务
+# One command to launch everything
 pnpm stack:full
 
-# 打开浏览器
+# Open your browser
 open http://localhost:3000
 ```
 
-| 🔑 Demo 账号 | |
+| 🔑 Demo Account | |
 |---|---|
-| 邮箱 | `demo@researchos.dev` |
-| 密码 | `demo-password-123` |
+| Email | `demo@researchos.dev` |
+| Password | `demo-password-123` |
 
 <p align="right">
-  <sub><a href="#-manual-setup">没有 pnpm？点这里 →</a></sub>
+  <sub><a href="#-manual-setup">Don't have pnpm? Click here →</a></sub>
 </p>
 
 ---
 
-## 🎯 六大核心模块
+## 🎯 Six Core Modules
 
 <table>
 <tr>
@@ -66,10 +70,10 @@ open http://localhost:3000
   <b>Research Copilot</b>
 </td>
 <td width="50%">
-  arXiv 论文搜索 · 个人图书馆 · 创意孵化 · LLM 对话 · 同行评审
+  arXiv paper search · Personal library · Idea incubation · LLM chat · Peer review
 </td>
 <td width="34%">
-  <sub>arXiv API · pgvector 语义检索 · Mock/Real LLM</sub>
+  <sub>arXiv API · pgvector semantic search · Mock/Real LLM</sub>
 </td>
 </tr>
 
@@ -79,10 +83,10 @@ open http://localhost:3000
   <b>AI IDE Workspace</b>
 </td>
 <td>
-  文件树 · Monaco 编辑器 · Coding Agent · 可审查 Patch
+  File tree · Monaco editor · Coding Agent · Reviewable patches
 </td>
 <td>
-  <sub>Monaco Editor · Git 版本控制 · Agent 驱动 Patch</sub>
+  <sub>Monaco Editor · Git version control · Agent-driven patches</sub>
 </td>
 </tr>
 
@@ -92,10 +96,10 @@ open http://localhost:3000
   <b>Experiment Dashboard</b>
 </td>
 <td>
-  实验管理 · 运行追踪 · Recharts 指标曲线 · 日志 · AI 分析
+  Experiment management · Run tracking · Recharts metrics · Logs · AI analysis
 </td>
 <td>
-  <sub>Recharts 可视化 · 时序指标 · 实验对比</sub>
+  <sub>Recharts visualization · Time-series metrics · Side-by-side comparison</sub>
 </td>
 </tr>
 
@@ -105,10 +109,10 @@ open http://localhost:3000
   <b>Paper Workspace</b>
 </td>
 <td>
-  三栏 LaTeX 编辑器 · AI 写作助手 · 实时预览
+  Three-panel LaTeX editor · AI writing assistant · Live preview
 </td>
 <td>
-  <sub>LaTeX 编辑 · AI 辅助写作 · 编译预览</sub>
+  <sub>LaTeX editing · AI-assisted writing · Compile & preview</sub>
 </td>
 </tr>
 
@@ -118,10 +122,10 @@ open http://localhost:3000
   <b>Skills Marketplace</b>
 </td>
 <td>
-  5 个官方 Skill · 一键安装启用 · Skill Builder 自定义
+  5 official Skills · One-click install & enable · Skill Builder for custom tools
 </td>
 <td>
-  <sub>插件化架构 · 热加载 · 自定义 Skill</sub>
+  <sub>Plugin architecture · Hot-reload · Custom Skills</sub>
 </td>
 </tr>
 
@@ -131,10 +135,10 @@ open http://localhost:3000
   <b>Settings</b>
 </td>
 <td>
-  中英文切换 · 项目级 LLM 配置 · OpenAI / Anthropic
+  Chinese/English toggle · Per-project LLM config · OpenAI / Anthropic
 </td>
 <td>
-  <sub>i18n · 多模型配置 · 项目隔离</sub>
+  <sub>i18n · Multi-model config · Project isolation</sub>
 </td>
 </tr>
 </table>
@@ -169,33 +173,33 @@ open http://localhost:3000
 
 ## ⚡ Commands
 
-| 🎯 命令 | 📝 说明 |
+| 🎯 Command | 📝 Description |
 |---|---|
-| `pnpm stack:full` | 完整重置：down → up → migrate → seed |
-| `pnpm stack:up` | 启动全部服务 |
-| `pnpm stack:down` | 停止全部服务 |
-| `pnpm test` | 后端 pytest（361 测试） |
-| `pnpm check` | 全质量门：test + typecheck + build |
-| `pnpm smoke:api` | API 冒烟测试（16 端点） |
-| `pnpm smoke:e2e` | Playwright E2E（10 页面） |
+| `pnpm stack:full` | Full reset: down → up → migrate → seed |
+| `pnpm stack:up` | Start all services |
+| `pnpm stack:down` | Stop all services |
+| `pnpm test` | Backend pytest (361 tests) |
+| `pnpm check` | Full quality gate: test + typecheck + build |
+| `pnpm smoke:api` | API smoke test (16 endpoints) |
+| `pnpm smoke:e2e` | Playwright E2E (10 pages) |
 
 ```bash
-# Windows 用户也可以用 PowerShell
+# Windows users — also available via PowerShell
 .\scripts\dev.ps1 full
 .\scripts\dev.ps1 test
 ```
 
 ---
 
-## 🚧 当前 Mock/Stub 状态
+## 🚧 Current Mock/Stub Status
 
-| 🔧 功能 | 📌 状态 |
+| 🔧 Feature | 📌 Status |
 |---|---|
-| 🤖 LLM（无 API Key） | Mock 提供者（确定性、零成本）。Settings → LLM 配置真实 Key 后切换到 Anthropic / OpenAI |
-| 📜 LaTeX 编译 | Mock 文本转换（无 shell、无 PDF）。真实隔离 latexmk 编译待实现 |
-| 💻 终端面板 | 仅 UI 外壳（无命令执行） |
-| 🌐 SSH 运行时 | 仅接口 + 权限模型（无远程连接） |
-| 🧩 Skill 运行时注入 | Skills 可安装启用，Agent 运行时尚未注入 Skill prompt/workflow |
+| 🤖 LLM (no API key) | Mock provider (deterministic, zero-cost). Settings → LLM → configure real key for Anthropic / OpenAI |
+| 📜 LaTeX compilation | Mock text transform (no shell, no PDF). Real sandboxed latexmk compilation planned |
+| 💻 Terminal panel | UI shell only (no command execution) |
+| 🌐 SSH runtime | Interface + permission model only (no remote connection) |
+| 🧩 Skill runtime injection | Skills installable & enabled. Agent runtime not yet injecting Skill prompt/workflow |
 
 ---
 
@@ -203,11 +207,11 @@ open http://localhost:3000
 
 > 💡 *Got an idea? [Open a Discussion](https://github.com/NPUwho/researchos/discussions) or send a PR!*
 
-### 🔥 Phase 1 — Production Ready（v0.2）
+### 🔥 Phase 1 — Production Ready (v0.2)
 
 | 🎯 Feature | 📌 Status |
 |---|---|
-| 🤖 Real LLM providers（Anthropic Claude · OpenAI GPT · DeepSeek） | 🟡 planned |
+| 🤖 Real LLM providers (Anthropic Claude · OpenAI GPT · DeepSeek) | 🟡 planned |
 | 📜 Real LaTeX compilation (isolated latexmk in Docker) | 🟡 planned |
 | 🌿 Git branch visualization & merge conflict resolution | 🟡 planned |
 | 📊 Experiment metric comparison (side-by-side runs) | 🟡 planned |
@@ -216,7 +220,7 @@ open http://localhost:3000
 | 🔔 Real-time notifications (WebSocket push) | 🟡 planned |
 | 🌓 Dark mode auto-switch | 🟡 planned |
 
-### 🚀 Phase 2 — Collaboration（v0.3）
+### 🚀 Phase 2 — Collaboration (v0.3)
 
 | 🎯 Feature | 📌 Status |
 |---|---|
@@ -229,7 +233,7 @@ open http://localhost:3000
 | 📋 Research project templates (CS, Bio, Physics, etc.) | ⚪ backlog |
 | 🏷️ Auto-tagging & smart categorization of papers | ⚪ backlog |
 
-### 🌌 Phase 3 — Intelligence（v1.0）
+### 🌌 Phase 3 — Intelligence (v1.0)
 
 | 🎯 Feature | 📌 Status |
 |---|---|
@@ -263,7 +267,7 @@ open http://localhost:3000
 
 ## 👩‍💻 Development
 
-### 🛠️ 环境要求
+### 🛠️ Requirements
 
 <p>
   <img src="https://img.shields.io/badge/Python-3.13+-3776AB?logo=python&logoColor=white&style=flat-square" />
@@ -274,21 +278,21 @@ open http://localhost:3000
   <img src="https://img.shields.io/badge/Git-required-F05032?logo=git&logoColor=white&style=flat-square" />
 </p>
 
-- conda 环境 `researchos`（conda-forge channel）
-- corepack 启用：`corepack enable`
+- conda environment `researchos` (conda-forge channel)
+- corepack enabled: `corepack enable`
 
-### 🧪 运行测试
+### 🧪 Running Tests
 
 ```bash
 cd apps/api
 
-# 全部 361 测试
+# All 361 tests
 pytest -q
 
-# 指定模块
+# Specific modules
 pytest -q tests/test_coding_chat.py tests/test_git_service.py tests/test_patches.py
 
-# 全质量门
+# Full quality gate
 pnpm check
 ```
 
@@ -300,37 +304,37 @@ pnpm check
   <a href="https://github.com/NPUwho/researchos/actions/workflows/ci.yml"><img src="https://github.com/NPUwho/researchos/actions/workflows/ci.yml/badge.svg?label=CI%20Status" alt="CI" /></a>
 </p>
 
-GitHub Actions (`.github/workflows/ci.yml`) · push / PR 自动触发：
+GitHub Actions (`.github/workflows/ci.yml`) · runs on push / PR:
 
-| 🧪 Stage | ⚙️ 命令 | 🟢 状态 |
+| 🧪 Stage | ⚙️ Command | 🟢 Status |
 |---|---|---|
 | Backend Lint | `ruff check .` + `mypy researchos` | ✅ |
-| Backend Test | `pytest -q`（PostgreSQL + Redis，361 tests） | ✅ |
+| Backend Test | `pytest -q` (PostgreSQL + Redis, 361 tests) | ✅ |
 | Frontend Typecheck | `pnpm -r typecheck` | ✅ |
 | Frontend Build | `pnpm --filter web build` | ✅ |
 
 <details>
 <summary>💡 Git identity in CI</summary>
 
-测试提交的 git 身份通过 `GIT_AUTHOR_*` / `GIT_COMMITTER_*` 环境变量注入（配置在 `researchos/git/runner.py`），CI 环境无需 `~/.gitconfig`。
+Test-commit git identity is injected via `GIT_AUTHOR_*` / `GIT_COMMITTER_*` env vars (configured in `researchos/git/runner.py`). CI does not need `~/.gitconfig`.
 </details>
 
 ---
 
-## 📚 文档导航
+## 📚 Documentation
 
-| 📖 文档 | 📝 说明 |
+| 📖 Doc | 📝 Description |
 |---|---|
-| [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | 运维指南 & 故障排除 |
-| [`docs/MVP_STATUS.md`](docs/MVP_STATUS.md) | MVP 完成度追踪 |
-| [`docs/SKILL_BUILDER.md`](docs/SKILL_BUILDER.md) | Skill 架构 & 开发指南 |
-| [`docs/`](docs/) | 产品设计 · 数据库 · API 设计 |
+| [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | Ops guide & troubleshooting |
+| [`docs/MVP_STATUS.md`](docs/MVP_STATUS.md) | MVP completion tracker |
+| [`docs/SKILL_BUILDER.md`](docs/SKILL_BUILDER.md) | Skill architecture & dev guide |
+| [`docs/`](docs/) | Product design · Database · API design |
 
 ---
 
 ## 🤝 Contributing
 
-我们欢迎一切形式的贡献！提 Issue、PR、或者直接在 Discussions 里聊想法。
+We welcome all contributions! Open an issue, send a PR, or share ideas in Discussions.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" alt="rainbow" />
@@ -344,10 +348,10 @@ GitHub Actions (`.github/workflows/ci.yml`) · push / PR 自动触发：
 ---
 
 <details>
-<summary><b>📦 Manual Setup</b>（没有 pnpm 时使用）</summary>
+<summary><b>📦 Manual Setup</b> (use when pnpm is unavailable)</summary>
 
 ```bash
-# Docker 启动
+# Start with Docker
 docker compose -f infra/docker/docker-compose.yml up -d --build
 docker compose -f infra/docker/docker-compose.yml exec -T api alembic upgrade head
 docker compose -f infra/docker/docker-compose.yml exec -T api python -m researchos.seed.demo
