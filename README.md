@@ -1,10 +1,12 @@
 # ResearchOS
 
-AI-native research operating system -- full-stack MVP connecting research
+[![CI](https://github.com/NPUwho/researchos/actions/workflows/ci.yml/badge.svg)](https://github.com/NPUwho/researchos/actions/workflows/ci.yml)
+
+AI-native research operating system — full-stack MVP connecting research
 discovery, code editing, experiment tracking, paper writing, and reusable skills
 in one workspace.
 
-> Stack: FastAPI + Next.js + PostgreSQL (pgvector) + Redis + Celery + Docker
+> **Stack:** FastAPI + Next.js + PostgreSQL (pgvector) + Redis + Celery + Docker
 
 ## Quick start
 
@@ -91,19 +93,15 @@ Or use `.\scripts\dev.ps1 <command>` on Windows (same commands as above).
 ### Running tests
 
 ```bash
-# Backend tests (requires PostgreSQL + Redis)
-cd apps/api
-pytest -q
+# All backend tests (361 tests)
+cd apps/api && pytest -q
 
-# Specific test files
+# Specific suites
 pytest -q tests/test_coding_chat.py tests/test_git_service.py tests/test_patches.py
 
 # Full quality gate
 pnpm check
 ```
-
-Git identity for test commits is configured via `GIT_AUTHOR_*` / `GIT_COMMITTER_*`
-environment variables (set in `researchos/git/runner.py`); no global `~/.gitconfig` needed.
 
 ## Docs
 
@@ -114,14 +112,15 @@ environment variables (set in `researchos/git/runner.py`); no global `~/.gitconf
 
 ## Quality / CI
 
-| Check | Command |
+[![CI](https://github.com/NPUwho/researchos/actions/workflows/ci.yml/badge.svg)](https://github.com/NPUwho/researchos/actions/workflows/ci.yml)
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR:
+
+| Stage | Command |
 |---|---|
-| Backend lint | `ruff check . && mypy researchos` (from `apps/api`) |
-| Backend test | `pytest -q` (from `apps/api`) |
+| Backend lint | `ruff check .` + `mypy researchos` |
+| Backend test | `pytest -q` (PostgreSQL + Redis, 361 tests) |
 | Frontend typecheck | `pnpm -r typecheck` |
 | Frontend build | `pnpm --filter web build` |
-| API smoke | `pnpm smoke:api` |
-| Browser E2E | `pnpm smoke:e2e` (requires stack running) |
-| Full gate | `pnpm check` |
 
-GitHub Actions CI (`.github/workflows/ci.yml`) runs `ruff` + `mypy` + `pytest` + `typecheck` + `build` on push/PR.
+Git identity for test commits uses `GIT_AUTHOR_*` / `GIT_COMMITTER_*` env vars (configured in `researchos/git/runner.py`) — no `~/.gitconfig` needed in CI.
