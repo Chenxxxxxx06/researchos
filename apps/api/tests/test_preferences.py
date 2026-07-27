@@ -135,8 +135,18 @@ async def test_rows_are_personal_per_user(make_client) -> None:
 async def test_project_scope_is_per_member(make_client) -> None:
     a = make_client()
     b = make_client()
-    p = await _project(a, "pref-owner@example.com")
+    await register(a, email="pref-owner@example.com")
+    org_id = (await a.get("/organizations")).json()[0]["id"]
+    p = (await a.post(
+        "/projects", json={"organization_id": org_id, "name": "P"}, headers=csrf_headers(a)
+    )).json()["id"]
     await register(b, email="pref-member@example.com")
+    # User must belong to the organization before being added to the project.
+    await a.post(
+        f"/organizations/{org_id}/members",
+        json={"email": "pref-member@example.com", "role": "member"},
+        headers=csrf_headers(a),
+    )
     added = await a.post(
         f"/projects/{p}/members",
         json={"email": "pref-member@example.com", "role": "viewer"},

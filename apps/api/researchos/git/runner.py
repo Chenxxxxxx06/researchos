@@ -54,7 +54,7 @@ def run_git(
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
     settings = get_settings()
-    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_CONFIG_NOSYSTEM": "1"}
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
     try:
         proc = subprocess.run(  # noqa: S603 - argv exec, no shell; inputs validated upstream
             ["git", "-C", str(root), *args],

@@ -388,25 +388,38 @@ class CodingAgent(Agent):
     async def _persist_chat_reply(
         self, actx: AgentContext, content: str, patch_id: uuid.UUID | None
     ) -> None:
-        """Persist the assistant turn (committed by the runtime after finalize)."""
+        """Persist the assistant turn (committed by the runtime after finalize).
+
+        Retries once on seq collision — a concurrent writer or stale seq read
+        (e.g. a user message inserted immediately before the run started) can
+        produce a duplicate, and one retry covers the common race.
+        """
 
         session_id = _parse_uuid(actx.context.get("chat_session_id"))
         if session_id is None:
             return
+        from sqlalchemy.exc import IntegrityError
+
         from researchos.coding_chat.models import ChatMessage
 
-        current = await actx.db.scalar(
-            select(func.max(ChatMessage.seq)).where(ChatMessage.session_id == session_id)
-        )
-        seq = int(current) + 1 if current is not None else 0
-        actx.db.add(
-            ChatMessage(
-                session_id=session_id,
-                seq=seq,
-                role="assistant",
-                content=content,
-                agent_run_id=actx.run.id,
-                patch_id=patch_id,
+        for _attempt in (0, 1):
+            current = await actx.db.scalar(
+                select(func.max(ChatMessage.seq)).where(ChatMessage.session_id == session_id)
             )
-        )
-        await actx.db.flush()
+            seq = int(current) + 1 if current is not None else 0
+            actx.db.add(
+                ChatMessage(
+                    session_id=session_id,
+                    seq=seq,
+                    role="assistant",
+                    content=content,
+                    agent_run_id=actx.run.id,
+                    patch_id=patch_id,
+                )
+            )
+            try:
+                await actx.db.flush()
+            except IntegrityError:
+                await actx.db.rollback()
+                continue
+            return
