@@ -199,6 +199,68 @@ open http://localhost:3000
 
 ---
 
+## 🗺️ Roadmap
+
+> 💡 *Got an idea? [Open a Discussion](https://github.com/NPUwho/researchos/discussions) or send a PR!*
+
+### 🔥 Phase 1 — Production Ready（v0.2）
+
+| 🎯 Feature | 📌 Status |
+|---|---|
+| 🤖 Real LLM providers（Anthropic Claude · OpenAI GPT · DeepSeek） | 🟡 planned |
+| 📜 Real LaTeX compilation (isolated latexmk in Docker) | 🟡 planned |
+| 🌿 Git branch visualization & merge conflict resolution | 🟡 planned |
+| 📊 Experiment metric comparison (side-by-side runs) | 🟡 planned |
+| 🔐 OAuth2 / SSO login (Google, GitHub, ORCID) | 🟡 planned |
+| 📎 File upload & attachment in chat | 🟡 planned |
+| 🔔 Real-time notifications (WebSocket push) | 🟡 planned |
+| 🌓 Dark mode auto-switch | 🟡 planned |
+
+### 🚀 Phase 2 — Collaboration（v0.3）
+
+| 🎯 Feature | 📌 Status |
+|---|---|
+| 👥 Multi-user real-time collaboration (Y.js CRDT) | ⚪ backlog |
+| 💻 Real terminal with sandboxed execution (Firecracker/gVisor) | ⚪ backlog |
+| 🌐 SSH runtime — connect to HPC / cloud GPU / Slurm | ⚪ backlog |
+| 📚 Citation manager integration (Zotero · Mendeley · Paperpile) | ⚪ backlog |
+| 📑 PDF annotation & inline highlighting | ⚪ backlog |
+| 🧪 Automated experiment pipelines (DAG workflow) | ⚪ backlog |
+| 📋 Research project templates (CS, Bio, Physics, etc.) | ⚪ backlog |
+| 🏷️ Auto-tagging & smart categorization of papers | ⚪ backlog |
+
+### 🌌 Phase 3 — Intelligence（v1.0）
+
+| 🎯 Feature | 📌 Status |
+|---|---|
+| 🖼️ Multi-modal agent (images, plots, tables, equations) | ⚪ backlog |
+| 🔗 Auto literature graph & citation network visualization | ⚪ backlog |
+| 📝 Venue-specific paper auto-formatting (NeurIPS · ICML · ACL · Nature) | ⚪ backlog |
+| ✅ Research reproducibility checker (rerun + diff outputs) | ⚪ backlog |
+| 🧩 Community Skill Marketplace (publish & share skills) | ⚪ backlog |
+| 📈 Research impact dashboard (citations, altmetrics, downloads) | ⚪ backlog |
+| 🎙️ Voice-to-paper dictation & meeting summarization | ⚪ backlog |
+| 🌍 Federated search across arXiv · Semantic Scholar · PubMed · OpenAlex | ⚪ backlog |
+| 🧠 Active learning experiment suggestion | ⚪ backlog |
+| 📦 One-click paper-to-code reproducibility bundle | ⚪ backlog |
+
+### 🧪 Experimental / Maybe
+
+| 🎯 Idea | 💭 Why |
+|---|---|
+| 🎮 Gamified peer review (review battles, reputation scores) | Make reviewing fun & incentivized |
+| 🔮 Research direction predictor (trend forecasting from arxiv) | Spot hot topics early |
+| 🧬 Protocol.io / Protocols.io integration | Reproducible wet-lab protocols |
+| 📊 Live conference dashboard (acceptance rates, keyword trends) | Conference season tool |
+| 🤝 "Lab-mate matching" — find collaborators by research interest | Build your research network |
+| 🪄 "Explain this paper to a 5-year-old" — layered summarization | Science communication |
+| 🔐 Blockchain timestamping for research claims | Priority & provenance |
+| 📱 Mobile app — check experiments & approve patches on the go | True anywhere access |
+| 🎨 Paper illustration generator (DALL·E / Stable Diffusion integration) | Auto-generate figures |
+| 🌐 Self-hosted arXiv overlay (browse & annotate without leaving the app) | All-in-one workflow |
+
+---
+
 ## 👩‍💻 Development
 
 ### 🛠️ 环境要求
