@@ -89,12 +89,9 @@ class GitService:
         # the working tree starts clean. Otherwise those files stay untracked and
         # every revert (which requires a clean tree) is permanently blocked.
         run_git(root, "add", "-A")
+        # user.name / user.email already set in local config above; no -c needed.
         run_git(
             root,
-            "-c",
-            _BOT_IDENT[0],
-            "-c",
-            _BOT_IDENT[1],
             "commit",
             "--allow-empty",
             "-m",
@@ -185,8 +182,6 @@ class GitService:
     def _commit_diff_sync(self, project_id: uuid.UUID, root: Path, sha: str) -> GitCommitDiff:
         meta = run_git(
             root,
-            "-c",
-            "core.quotepath=false",
             "show",
             "--format=%H%x1f%an%x1f%aI%x1f%s",
             "--name-status",
@@ -339,10 +334,6 @@ class GitService:
         )
         run_git(
             root,
-            "-c",
-            _BOT_IDENT[0],
-            "-c",
-            _BOT_IDENT[1],
             "commit",
             "-m",
             message,
@@ -391,10 +382,6 @@ class GitService:
         )
         run_git(
             root,
-            "-c",
-            _BOT_IDENT[0],
-            "-c",
-            _BOT_IDENT[1],
             "commit",
             "--allow-empty",  # a no-op revert still records the audit trail
             "-m",
