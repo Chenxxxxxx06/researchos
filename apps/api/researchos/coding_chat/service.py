@@ -81,6 +81,7 @@ class CodingChatService:
             select(ChatSession)
             .where(ChatSession.id == session_id, ChatSession.project_id == project_id)
             .options(selectinload(ChatSession.messages))
+            .execution_options(populate_existing=True)
         )
         session = result.scalar_one_or_none()
         if session is None:
@@ -126,6 +127,7 @@ class CodingChatService:
         for attempt in (0, 1):
             seq = await self._next_seq(session_id)
             message = ChatMessage(session_id=session_id, seq=seq, role=role, content=content)
+            message.session = session  # maintain backref so identity map stays consistent
             self.db.add(message)
             try:
                 await self.db.flush()
