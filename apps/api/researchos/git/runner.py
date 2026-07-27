@@ -54,7 +54,16 @@ def run_git(
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
     settings = get_settings()
-    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
+    # Provide fallback identity via env so git commit never needs config files
+    # (CI runners may lack ~/.gitconfig and /etc/gitconfig).
+    env = {
+        **os.environ,
+        "GIT_TERMINAL_PROMPT": "0",
+        "GIT_AUTHOR_NAME": os.environ.get("GIT_AUTHOR_NAME", "ResearchOS"),
+        "GIT_AUTHOR_EMAIL": os.environ.get("GIT_AUTHOR_EMAIL", "bot@researchos.local"),
+        "GIT_COMMITTER_NAME": os.environ.get("GIT_COMMITTER_NAME", "ResearchOS"),
+        "GIT_COMMITTER_EMAIL": os.environ.get("GIT_COMMITTER_EMAIL", "bot@researchos.local"),
+    }
     try:
         proc = subprocess.run(  # noqa: S603 - argv exec, no shell; inputs validated upstream
             ["git", "-C", str(root), *args],

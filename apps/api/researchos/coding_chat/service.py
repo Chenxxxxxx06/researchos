@@ -114,7 +114,11 @@ class CodingChatService:
         role: str,
         content: str,
     ) -> ChatMessage:
-        """Insert with one retry on seq collision (unique constraint safety net)."""
+        """Insert with one retry on seq collision (unique constraint safety net).
+
+        Uses a savepoint so a retry never rolls back the caller's pending work
+        (e.g. the runtime's RUNNING status commit or a concurrent file save).
+        """
 
         session_id = session.id
         for attempt in (0, 1):
@@ -122,9 +126,13 @@ class CodingChatService:
             message = ChatMessage(session_id=session_id, seq=seq, role=role, content=content)
             self.db.add(message)
             try:
-                await self.db.flush()
+                async with self.db.begin_nested():
+                    await self.db.flush()
             except IntegrityError:
-                await self.db.rollback()
+                # Savepoint already rolled back; expire the stale row so the
+                # next add produces a clean INSERT.
+                if message in self.db:
+                    self.db.expunge(message)
                 if attempt == 1:
                     raise
                 continue
