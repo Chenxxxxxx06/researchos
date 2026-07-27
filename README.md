@@ -75,9 +75,35 @@ Or use `.\scripts\dev.ps1 <command>` on Windows (same commands as above).
 | LLM (when no API key is configured) | Mock provider (deterministic, no-cost). Configure a real key in Settings -> LLM to use Anthropic / OpenAI. |
 | LaTeX compile | Mock text transform (no shell, no PDF). Real isolated latexmk compilation is deferred. |
 | Terminal panel | UI shell only (no command execution). |
-| Git status | Stub (always reports clean). Read-only `git status --porcelain` implementation deferred. |
 | SSH runtime | Interface + permission model only (no remote connection). |
 | Skill runtime injection | Skills can be installed/enabled but the agent runtime does not yet inject skill prompts/workflows. |
+
+## Development
+
+### Prerequisites
+
+- Python 3.13+ with conda environment `researchos` (conda-forge channel)
+- Node.js 22 + pnpm 9.15+ (corepack enabled)
+- PostgreSQL 16 with pgvector extension
+- Redis 7+
+- Git (for workspace version-control, available on PATH)
+
+### Running tests
+
+```bash
+# Backend tests (requires PostgreSQL + Redis)
+cd apps/api
+pytest -q
+
+# Specific test files
+pytest -q tests/test_coding_chat.py tests/test_git_service.py tests/test_patches.py
+
+# Full quality gate
+pnpm check
+```
+
+Git identity for test commits is configured via `GIT_AUTHOR_*` / `GIT_COMMITTER_*`
+environment variables (set in `researchos/git/runner.py`); no global `~/.gitconfig` needed.
 
 ## Docs
 
@@ -90,12 +116,12 @@ Or use `.\scripts\dev.ps1 <command>` on Windows (same commands as above).
 
 | Check | Command |
 |---|---|
-| Backend test | `pnpm test` |
-| Backend lint | `pnpm check:api:test` (runs ruff + mypy + pytest in-network) |
+| Backend lint | `ruff check . && mypy researchos` (from `apps/api`) |
+| Backend test | `pytest -q` (from `apps/api`) |
 | Frontend typecheck | `pnpm -r typecheck` |
 | Frontend build | `pnpm --filter web build` |
 | API smoke | `pnpm smoke:api` |
-| Browser E2E | `pnpm smoke:e2e` (requires stack running: `pnpm stack:full` first) |
+| Browser E2E | `pnpm smoke:e2e` (requires stack running) |
 | Full gate | `pnpm check` |
 
-GitHub Actions CI runs `ruff` + `mypy` + `pytest` + `typecheck` + `build` on push/PR.
+GitHub Actions CI (`.github/workflows/ci.yml`) runs `ruff` + `mypy` + `pytest` + `typecheck` + `build` on push/PR.

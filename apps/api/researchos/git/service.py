@@ -85,11 +85,10 @@ class GitService:
         run_git(root, "symbolic-ref", "HEAD", "refs/heads/main")
         run_git(root, "config", "user.name", "ResearchOS")
         run_git(root, "config", "user.email", "bot@researchos.local")
-        # Capture any files that already existed before git was initialized, so
-        # the working tree starts clean. Otherwise those files stay untracked and
-        # every revert (which requires a clean tree) is permanently blocked.
-        run_git(root, "add", "-A")
-        # user.name / user.email already set in local config above; no -c needed.
+        # Empty initial commit so the tree is clean for future reverts.
+        # Pre-existing workspace files are committed separately by
+        # commit_applied_patch; staging them here would make those
+        # later commits no-ops (nothing changed since init).
         run_git(
             root,
             "commit",
@@ -323,6 +322,10 @@ class GitService:
         root = workspace_root_for(project_id)
         rels = [relative_to_root(project_id, resolve_in_workspace(project_id, p)) for p in paths]
         run_git(root, "add", "-A", "--", *rels)
+        # If nothing is staged (e.g. file unchanged since init commit),
+        # skip the commit and return the current HEAD.
+        if run_git(root, "diff", "--cached", "--quiet", check=False).returncode == 0:
+            return run_git(root, "rev-parse", "HEAD").stdout.strip()
         first = (summary or "").strip().splitlines()[0][:72] if (summary or "").strip() else ""
         message = (
             f"{first or 'Apply patch'}\n"
