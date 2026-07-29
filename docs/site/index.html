@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="ResearchOS — 以证据链为核心的科研 Agent Harness，从调研、代码、实验到论文、审稿与发布。"
+      content="ResearchOS — Provenance-first scientific agent harness. 以证据链为核心的科研 Agent 平台，从调研、代码、实验到论文、审稿与发布。"
     />
     <meta name="theme-color" content="#07110f" />
     <title>ResearchOS — Scientific Agent Harness</title>
@@ -13,233 +13,195 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2216%22 fill=%22%2307110f%22/><path d=%22M15 42V20h18c9 0 15 4 15 11s-6 11-15 11H15zm10-8h8c3 0 5-1 5-3s-2-3-5-3h-8v6z%22 fill=%22%236be6b8%22/></svg>" />
   </head>
   <body>
-    <a class="skip-link" href="#main">跳到主要内容</a>
+    <a class="skip-link" href="#main" data-i18n="skip-link">跳到主要内容</a>
     <header class="topbar">
-      <a class="brand" href="#top" aria-label="ResearchOS 首页">
-        <span class="brand-mark">R</span>
-        <span>ResearchOS</span>
-        <small>alpha</small>
-      </a>
-      <nav aria-label="主导航">
-        <a href="#why">为什么</a>
-        <a href="#harness">Harness</a>
-        <a href="#demo">Demo</a>
-        <a href="#cli">CLI</a>
-        <a href="#status">状态</a>
-      </nav>
-      <a class="button button-small" href="https://github.com/Chenxxxxxx06/researchos">GitHub ↗</a>
+      <div class="topbar-left">
+        <a class="brand" href="#top" aria-label="ResearchOS 首页">
+          <span class="brand-mark">R</span>
+          <span>ResearchOS</span>
+          <small>alpha</small>
+        </a>
+        <nav aria-label="主导航">
+          <a href="#why" data-i18n="nav-why">为什么</a>
+          <a href="#harness" data-i18n="nav-harness">Harness</a>
+          <a href="#demo" data-i18n="nav-demo">Demo</a>
+          <a href="#cli" data-i18n="nav-cli">CLI</a>
+          <a href="#status" data-i18n="nav-status">状态</a>
+        </nav>
+      </div>
+      <div class="topbar-right">
+        <button id="lang-toggle" class="util-btn lang-btn" aria-label="Switch language" data-i18n="lang-label">EN</button>
+        <button id="theme-toggle" class="util-btn" aria-label="Toggle theme">💻</button>
+        <a class="button button-small" href="https://github.com/Chenxxxxxx06/researchos" data-i18n="github-text">GitHub ↗</a>
+      </div>
     </header>
 
     <main id="main">
+      <!-- ═══ Hero ═══ -->
       <section class="hero" id="top">
         <div class="hero-glow" aria-hidden="true"></div>
-        <div class="eyebrow"><span></span> Provenance-first scientific agent harness</div>
-        <h1>Your research loop,<br /><em>finally connected.</em></h1>
-        <p class="hero-copy">
+        <div class="eyebrow"><span></span> <span data-i18n="hero-eyebrow">以证据链为核心的科研 Agent 平台</span></div>
+        <h1><span data-i18n="hero-title-part1">你的研究循环，</span><br /><em data-i18n="hero-title-part2">终于连接在一起。</em></h1>
+        <p class="hero-copy" data-i18n="hero-desc">
           将论文、Idea、代码、实验、图表、稿件和评审连接成可暂停、可恢复、可审查的科研工作流。
           模型可以更换，证据链不会丢失。
         </p>
         <div class="hero-actions">
-          <a class="button" href="#harness">Explore the Harness</a>
-          <a class="button button-ghost" href="https://github.com/Chenxxxxxx06/researchos/blob/master/docs/PRODUCT_BLUEPRINT_ZH.md">阅读架构 ↗</a>
+          <a class="button" href="#harness" data-i18n="hero-cta1">探索 Harness</a>
+          <a class="button button-ghost" href="https://github.com/Chenxxxxxx06/researchos/blob/master/docs/PRODUCT_BLUEPRINT_ZH.md" data-i18n="hero-cta2">阅读架构 ↗</a>
         </div>
         <div class="terminal-card" aria-label="ResearchOS CLI 示例">
           <div class="terminal-bar">
             <span></span><span></span><span></span>
-            <b>researchos — mission</b>
+            <b data-i18n="hero-term-title">researchos — mission</b>
           </div>
           <pre><code><span class="prompt">$</span> researchos mission run \
   <span class="string">"研究低资源多模态分类并形成可投稿论文"</span>
 
 <span class="muted">✓ context</span>  RESEARCHOS.md · verified memory · git state
-<span class="muted">✓ plan</span>     literature → baseline → ablation → paper
+<span class="muted">✓ plan</span>     research → code → experiment → paper → release
 <span class="warn">◇ gate</span>     scope approval required before execution
 
 <span class="prompt">$</span> researchos mission approve 91f2… scope</code></pre>
         </div>
       </section>
 
+      <!-- ═══ Why ═══ -->
       <section class="statement reveal" id="why">
-        <p class="section-index">01 / WHY</p>
-        <blockquote>
+        <p class="section-index" data-i18n="why-index">01 / 为什么</p>
+        <blockquote data-i18n="why-quote">
           "论文里的这条结论，来自哪篇文献、哪个实验、哪个 commit 和哪份 artifact？"
         </blockquote>
-        <p>
+        <p data-i18n="why-text">
           科研工具彼此割裂，聊天记录又无法承担科学证据。ResearchOS 的核心不是生成更多文字，
           而是让每个公开主张最终指向可核查的工作过程。
         </p>
       </section>
 
+      <!-- ═══ Harness ═══ -->
       <section class="flow-section reveal" id="harness">
         <div class="section-heading">
           <div>
-            <p class="section-index">02 / HARNESS</p>
-            <h2>One context.<br />Specialist agents.</h2>
+            <p class="section-index" data-i18n="harness-index">02 / HARNESS</p>
+            <h2 data-i18n="harness-heading">一个上下文。<br/>多个专家 Agent。</h2>
           </div>
-          <p>
+          <p data-i18n="harness-desc">
             Coordinator 只负责拆解、调度、验证和合并。每个专项 Agent 拥有明确 Artifact，
             所有高风险动作经过人工闸门。
           </p>
         </div>
         <div class="flow" role="list" aria-label="ResearchOS 科研工作流">
-          <article role="listitem"><span>01</span><b>Research</b><small>Zotero · Evidence</small></article>
+          <article role="listitem"><span>01</span><b data-i18n="agent-flow-1">Research</b><small data-i18n="flow-domain-1">Zotero · Evidence</small></article>
           <i aria-hidden="true">→</i>
-          <article role="listitem"><span>02</span><b>Code</b><small>Patch · Git</small></article>
+          <article role="listitem"><span>02</span><b data-i18n="agent-flow-2">Code</b><small data-i18n="flow-domain-2">Patch · Git</small></article>
           <i aria-hidden="true">→</i>
-          <article role="listitem"><span>03</span><b>Experiment</b><small>DAG · Provenance</small></article>
+          <article role="listitem"><span>03</span><b data-i18n="agent-flow-3">Experiment</b><small data-i18n="flow-domain-3">DAG · Provenance</small></article>
           <i aria-hidden="true">→</i>
-          <article role="listitem"><span>04</span><b>Paper</b><small>LaTeX · Claims</small></article>
+          <article role="listitem"><span>04</span><b data-i18n="agent-flow-4">Paper</b><small data-i18n="flow-domain-4">LaTeX · Claims</small></article>
           <i aria-hidden="true">→</i>
-          <article role="listitem"><span>05</span><b>Release</b><small>Review · Story Pack</small></article>
+          <article role="listitem"><span>05</span><b data-i18n="agent-flow-5">Release</b><small data-i18n="flow-domain-5">Review · Story Pack</small></article>
         </div>
       </section>
 
+      <!-- ═══ Principles ═══ -->
       <section class="principles reveal">
         <article>
           <span class="icon">⌁</span>
-          <h3>Provenance-first</h3>
-          <p>Claim → Evidence → Run → Artifact → Commit。模型输出默认只是候选。</p>
+          <h3 data-i18n="principle1-title">Provenance-first</h3>
+          <p data-i18n="principle1-desc">Claim → Evidence → Run → Artifact → Commit。模型输出默认只是候选。</p>
         </article>
         <article>
           <span class="icon">◫</span>
-          <h3>Context with boundaries</h3>
-          <p>规则、科学事实、会话和学习者记忆分层管理，不做一个混乱的"大向量库"。</p>
+          <h3 data-i18n="principle2-title">Context with boundaries</h3>
+          <p data-i18n="principle2-desc">规则、科学事实、会话和学习者记忆分层管理，不做一个混乱的"大向量库"。</p>
         </article>
         <article>
           <span class="icon">◇</span>
-          <h3>Human-governed</h3>
-          <p>Scope、Evidence、Release 三道闸门。证据不足、预算耗尽或重复失败就停止。</p>
+          <h3 data-i18n="principle3-title">Human-governed</h3>
+          <p data-i18n="principle3-desc">Scope、Evidence、Release 三道闸门。证据不足、预算耗尽或重复失败就停止。</p>
         </article>
       </section>
 
-      <!-- ═══ VISUAL EDITOR DEMO ═══ -->
+      <!-- ═══ VISUAL EDITOR — ResearchOS Mission Canvas ═══ -->
       <section class="demo-section reveal" id="demo">
-        <p class="section-index">03 / VISUAL EDITOR</p>
-        <h2>Design mode.<br/>Drag. Click. Edit.</h2>
-        <p style="color:var(--muted);max-width:600px;margin-bottom:2.5rem">
-          像操作 Figma 一样管理你的研究工作流。拖拽卡片调整优先级，点击选中编辑内容，
-          AI 根据你的操作实时更新实验配置和论文结构。
+        <p class="section-index" data-i18n="demo-index">03 / VISUAL EDITOR</p>
+        <h2 data-i18n="demo-heading">Design mode.<br/>Drag. Click. Edit.</h2>
+        <p style="color:var(--muted);max-width:600px;margin-bottom:2.5rem" data-i18n="demo-desc">
+          像操作 Figma 一样管理你的研究工作流。拖拽卡片调整优先级，点击选中查看溯源详情，每个 Agent 产出可追溯的 Artifact。
         </p>
 
         <div class="veditor" id="veditor">
           <!-- Tab bar -->
           <div class="ve-tabs">
-            <button class="ve-tab active" data-panel="canvas">Experiment Canvas</button>
-            <button class="ve-tab" data-panel="papers">Paper Outline</button>
-            <button class="ve-tab" data-panel="terminal">Terminal</button>
-            <span class="ve-badge">Design Mode</span>
+            <button class="ve-tab active" data-panel="canvas" data-i18n="demo-tab-canvas">Mission Canvas</button>
+            <button class="ve-tab" data-panel="evidence" data-i18n="demo-tab-evidence">Evidence Graph</button>
+            <button class="ve-tab" data-panel="terminal" data-i18n="demo-tab-terminal">Terminal</button>
+            <span class="ve-badge" data-i18n="demo-badge">Design Mode</span>
           </div>
 
           <!-- Split layout -->
           <div class="ve-body">
             <!-- Left: Canvas -->
             <div class="ve-canvas" id="ve-canvas">
+              <!-- Panel: Mission Canvas -->
               <div class="ve-panel ve-panel-active" id="panel-canvas">
                 <div class="ve-canvas-header">
-                  <span>📋 Experiment Queue</span>
-                  <small>drag to reorder · click to inspect</small>
+                  <span data-i18n="canvas-header">📋 Agent Pipeline</span>
+                  <small data-i18n="canvas-hint">drag to reorder · click to inspect</small>
                 </div>
                 <div class="ve-cards" id="ve-cards">
-                  <div class="ve-card" draggable="true" data-id="1" data-name="Baseline BERT" data-status="running" data-gpu="A100-1" data-eta="12m">
-                    <div class="ve-card-drag">⠿</div>
-                    <div class="ve-card-body">
-                      <strong>Baseline BERT</strong>
-                      <small>GLUE benchmark · 3 seeds · batch=32</small>
-                      <span class="ve-card-status running">● running · 67% · ETA 12m</span>
-                    </div>
-                  </div>
-                  <div class="ve-card" draggable="true" data-id="2" data-name="LoRA Fine-tune" data-status="queued" data-gpu="A100-2" data-eta="45m">
-                    <div class="ve-card-drag">⠿</div>
-                    <div class="ve-card-body">
-                      <strong>LoRA Fine-tune r=16</strong>
-                      <small>SST-2 · MNLI · QQP · rank=16 · lr=3e-4</small>
-                      <span class="ve-card-status queued">○ queued · A100-2 · ETA 45m</span>
-                    </div>
-                  </div>
-                  <div class="ve-card" draggable="true" data-id="3" data-name="Ablation: dropout" data-status="done" data-gpu="A100-1" data-eta="—">
-                    <div class="ve-card-drag">⠿</div>
-                    <div class="ve-card-body">
-                      <strong>Ablation: dropout rate</strong>
-                      <small>p ∈ {0.1, 0.2, 0.3, 0.5} · 4 runs · acc=91.2%</small>
-                      <span class="ve-card-status done">✓ done · acc 91.2% · 3h ago</span>
-                    </div>
-                  </div>
-                  <div class="ve-card" draggable="true" data-id="4" data-name="Our Method" data-status="paused" data-gpu="A100-2" data-eta="2h">
-                    <div class="ve-card-drag">⠿</div>
-                    <div class="ve-card-body">
-                      <strong>Our Method: Multi-Scale Fusion</strong>
-                      <small>custom arch · 5 seeds · waiting approval</small>
-                      <span class="ve-card-status paused">⏸ paused · gate: scope approval</span>
-                    </div>
-                  </div>
+                  <!-- Built by JS from missionSteps data -->
                 </div>
               </div>
 
-              <div class="ve-panel" id="panel-papers">
+              <!-- Panel: Evidence Graph -->
+              <div class="ve-panel" id="panel-evidence">
                 <div class="ve-canvas-header">
-                  <span>📝 Paper Outline</span>
-                  <small>click section to expand</small>
+                  <span data-i18n="evidence-header">⌁ Provenance Chain</span>
+                  <small data-i18n="evidence-hint">Claim → Evidence → Run → Artifact → Commit</small>
                 </div>
-                <div class="ve-outline">
-                  <div class="ve-section-head" data-section="abstract">
-                    <span class="ve-fold">▾</span> 1. Abstract
-                    <small>4 paragraphs · last edit 2h ago</small>
-                  </div>
-                  <div class="ve-section-head" data-section="intro">
-                    <span class="ve-fold">▸</span> 2. Introduction
-                    <small>gap identified · needs baseline results</small>
-                  </div>
-                  <div class="ve-section-head" data-section="method">
-                    <span class="ve-fold">▸</span> 3. Method
-                    <small>diagram pending · architecture defined</small>
-                  </div>
-                  <div class="ve-section-head" data-section="experiments">
-                    <span class="ve-fold">▸</span> 4. Experiments
-                    <small>3/5 baselines complete</small>
-                  </div>
-                  <div class="ve-section-head" data-section="conclusion">
-                    <span class="ve-fold">▸</span> 5. Conclusion
-                    <small>draft · pending full results</small>
-                  </div>
+                <div class="ve-evidence-chain" id="ve-evidence">
+                  <!-- Built by JS from evidenceChain data -->
+                </div>
+                <div style="margin-top:20px;padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--muted);font-size:.78rem;transition:border-color .35s,background .35s">
+                  <strong style="color:var(--text)">💡 Pro Tip</strong><br/>
+                  <span data-i18n="inspector-hint">← 点击左侧卡片查看 Agent 详情<br/>拖拽卡片调整任务优先级</span>
                 </div>
               </div>
 
+              <!-- Panel: Terminal -->
               <div class="ve-panel" id="panel-terminal">
                 <div class="ve-canvas-header">
-                  <span>⬛ Terminal</span>
-                  <small>researchos agent log</small>
+                  <span data-i18n="terminal-header">⬛ Terminal</span>
+                  <small data-i18n="terminal-hint">researchos agent log</small>
                 </div>
                 <div class="ve-terminal" id="ve-terminal">
-                  <div class="ve-term-line"><span class="c-green">$</span> researchos experiment run baseline-bert --seed 42</div>
-                  <div class="ve-term-line"><span class="c-muted">[14:02:03]</span> ✓ container started · gpu:0 · 22GB free</div>
-                  <div class="ve-term-line"><span class="c-muted">[14:02:05]</span> ✓ data loaded · 392,702 samples</div>
-                  <div class="ve-term-line"><span class="c-muted">[14:02:10]</span> ◉ epoch 1/3 · loss 0.423 · acc 0.874</div>
-                  <div class="ve-term-line"><span class="c-muted">[14:14:32]</span> ◉ epoch 2/3 · loss 0.218 · acc 0.903</div>
-                  <div class="ve-term-line typing"><span class="c-muted">[14:26:51]</span> ◉ epoch 3/3 · loss 0.147 · acc <span class="ve-cursor">▌</span></div>
+                  <!-- Built by JS terminal animation -->
                 </div>
               </div>
             </div>
 
             <!-- Right: Inspector -->
             <div class="ve-inspector" id="ve-inspector">
-              <div class="ve-inspector-header">🔍 Inspector</div>
+              <div class="ve-inspector-header" data-i18n="inspector-title">🔍 Inspector</div>
               <div class="ve-inspector-body" id="ve-inspector-body">
-                <p class="ve-hint">← 点击左侧卡片查看详情<br/>拖拽卡片调整实验优先级</p>
+                <p class="ve-hint" data-i18n="inspector-hint">← 点击左侧卡片查看 Agent 详情<br/>拖拽卡片调整任务优先级</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
+      <!-- ═══ CLI ═══ -->
       <section class="cli-section reveal" id="cli">
         <div>
-          <p class="section-index">04 / TERMINAL</p>
-          <h2>A research harness<br />from your terminal.</h2>
-          <p>
+          <p class="section-index" data-i18n="cli-index">04 / TERMINAL</p>
+          <h2 data-i18n="cli-heading">从终端启动<br/>科研 Harness。</h2>
+          <p data-i18n="cli-desc">
             同一个 API 服务于 Web、IDE 和 CLI。当前 alpha 已支持登录、项目切换、
             Agent Turn、交互会话、上下文查看、科研记忆与 Mission scaffold。
           </p>
-          <a href="https://github.com/Chenxxxxxx06/researchos/blob/master/docs/HARNESS_CLI_MEMORY_ZH.md">CLI 与记忆设计 ↗</a>
+          <a href="https://github.com/Chenxxxxxx06/researchos/blob/master/docs/HARNESS_CLI_MEMORY_ZH.md" data-i18n="cli-link">CLI 与记忆设计 ↗</a>
         </div>
         <pre class="code-panel"><code><span class="comment"># install the development CLI</span>
 cd apps/api
@@ -255,35 +217,49 @@ researchos context --render
 researchos adapters doctor</code></pre>
       </section>
 
+      <!-- ═══ Status ═══ -->
       <section class="status-section reveal" id="status">
         <div class="section-heading">
           <div>
-            <p class="section-index">05 / ALPHA STATUS</p>
-            <h2>Built honestly.</h2>
+            <p class="section-index" data-i18n="status-index">05 / ALPHA STATUS</p>
+            <h2 data-i18n="status-heading">Built honestly.</h2>
           </div>
-          <p>当前版本用于架构验证和共同设计。没有完成的能力会明确进入 TODO。</p>
+          <p data-i18n="status-desc">当前版本用于架构验证和共同设计。没有完成的能力会明确进入 TODO。</p>
         </div>
         <div class="status-grid">
-          <article class="done"><span>AVAILABLE SKELETON</span><h3>Research workspace</h3><p>Zotero、Copilot、Inbox、受限终端、实验进度、LaTeX、Reviewer、Release Studio、CLI。</p></article>
-          <article class="building"><span>BUILDING</span><h3>Durable mission</h3><p>数据库 DAG、Agent lease/heartbeat、Prompt/Skill Registry、Context retrieval evaluation。</p></article>
-          <article class="planned"><span>PLANNED</span><h3>Isolated execution</h3><p>Container、SSH/HPC/Slurm、真实 LaTeX、可复现重跑、多模态论文解析。</p></article>
+          <article class="done">
+            <span data-i18n="status-available">AVAILABLE SKELETON</span>
+            <h3 data-i18n="status-col1-title">Research workspace</h3>
+            <p data-i18n="status-col1-desc">Zotero、Copilot、Inbox、受限终端、实验进度、LaTeX、Reviewer、Release Studio、CLI。</p>
+          </article>
+          <article class="building">
+            <span data-i18n="status-building">BUILDING</span>
+            <h3 data-i18n="status-col2-title">Durable mission</h3>
+            <p data-i18n="status-col2-desc">数据库 DAG、Agent lease/heartbeat、Prompt/Skill Registry、Context retrieval evaluation。</p>
+          </article>
+          <article class="planned">
+            <span data-i18n="status-planned">PLANNED</span>
+            <h3 data-i18n="status-col3-title">Isolated execution</h3>
+            <p data-i18n="status-col3-desc">Container、SSH/HPC/Slurm、真实 LaTeX、可复现重跑、多模态论文解析。</p>
+          </article>
         </div>
       </section>
 
+      <!-- ═══ CTA ═══ -->
       <section class="cta reveal">
-        <p class="section-index">LET'S BUILD</p>
-        <h2>Models will change.<br />Research memory should survive.</h2>
-        <p>欢迎讨论科研 Agent、实验基础设施、论文教育与可复现工作流。</p>
+        <p class="section-index" data-i18n="cta-index">LET'S BUILD</p>
+        <h2 data-i18n="cta-heading">Models will change.<br/>Research memory should survive.</h2>
+        <p data-i18n="cta-desc">欢迎讨论科研 Agent、实验基础设施、论文教育与可复现工作流。</p>
         <div class="hero-actions">
           <a class="button" href="mailto:3653448612@qq.com">3653448612@qq.com</a>
-          <a class="button button-ghost" href="https://github.com/Chenxxxxxx06/researchos">View on GitHub ↗</a>
+          <a class="button button-ghost" href="https://github.com/Chenxxxxxx06/researchos" data-i18n="github-text">GitHub ↗</a>
         </div>
       </section>
     </main>
 
     <footer>
-      <span>ResearchOS · 0.1.0-alpha.1</span>
-      <span>© 2024–2026 Chenxxxxxx06 · All Rights Reserved</span>
+      <span data-i18n="footer-left">ResearchOS · 0.1.0-alpha.1</span>
+      <span data-i18n="footer-right">© 2024–2026 Chenxxxxxx06 · All Rights Reserved</span>
     </footer>
     <script src="./app.js"></script>
   </body>
