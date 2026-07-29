@@ -7,56 +7,41 @@
 
 <div align="center">
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=36&duration=3000&pause=1000&color=6366F1&center=true&vCenter=true&random=false&width=600&lines=ResearchOS;AI+Research+Operating+System;%E5%AE%9E%E9%AA%8C++%E8%AE%BA%E6%96%87+++%E4%BB%A3%E7%A0%81;One+Workspace%2C+End+to+End" alt="ResearchOS" />
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=36&duration=3000&pause=1000&color=6366F1&center=true&vCenter=true&random=false&width=600&lines=ResearchOS;AI+Research+Operating+System;%E5%AE%9E%E9%AA%8C+%E2%86%92+%E8%AE%BA%E6%96%87+%E2%86%92+%E4%BB%A3%E7%A0%81;One+Workspace%2C+End+to+End" alt="ResearchOS" />
 
-<img src="docs/assets/researchos-otter.png" width="240" alt="ResearchOS 科研小獭 Rho，连接论文与代码" />
+<img src="docs/assets/researchos-otter.png" width="180" alt="ResearchOS 科研小獭 Rho" />
 
 <p>
   <sub><b>这是 Rho，ResearchOS 的科研小獭。</b>保持好奇、善用工具，并认真把每条结论连接到证据。</sub>
 </p>
 
+<br/>
+
 <p>
-  <a href="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml"><img src="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml/badge.svg?label=CI" alt="CI" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Proprietary-6366F1?style=flat" alt="Proprietary License" /></a>
-  <a href="docs/TODO_ZH.md"><img src="https://img.shields.io/badge/maintenance-active-61E6B2?style=flat" alt="持续维护中" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/python-3.13+-blue?logo=python&logoColor=white&color=3776AB" alt="Python" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/node-22+-green?logo=node.js&logoColor=white&color=339933" alt="Node" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-quality%20gated-blue?logo=pytest&logoColor=white" alt="Tests" /></a>
-  <a href="mailto:3653448612@qq.com"><img src="https://img.shields.io/badge/ideas-welcome-brightgreen" alt="欢迎提供想法" /></a>
+  <a href="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-passing-61E6B2?style=flat-square&logo=githubactions&logoColor=white" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Proprietary-6366F1?style=flat-square" /></a>
+  <a href="docs/TODO_ZH.md"><img src="https://img.shields.io/badge/maintenance-active-61E6B2?style=flat-square" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/python-3.13+-3776AB?style=flat-square&logo=python&logoColor=white" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/node-22+-339933?style=flat-square&logo=nodedotjs&logoColor=white" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?style=flat-square&logo=postgresql&logoColor=white" /></a>
+  <a href="mailto:3653448612@qq.com"><img src="https://img.shields.io/badge/ideas-welcome-brightgreen?style=flat-square" /></a>
 </p>
 
-<blockquote>
-  <b>🔬 研究</b> · <b>💻 编码</b> · <b>🧪 实验</b> · <b>📝 写作</b><br/>
-  一个工作台，端到端完成 AI 辅助科研全流程
-</blockquote>
+<br/>
+
+> **🔬 研究** · **💻 编码** · **🧪 实验** · **📝 写作**
+>
+> 一个工作台，端到端完成 AI 辅助科研全流程。
 
 <p>
-  <sub>Built with ❤️ using <b>FastAPI</b> + <b>Next.js</b> + <b>PostgreSQL/pgvector</b> + <b>Redis</b> + <b>Docker</b></sub>
-</p>
-
-<p>
-  <sub>ResearchOS 正在持续维护。当前 Alpha 更重视可验证的进展、诚实的能力边界和能够恢复的科研闭环，而不是夸大的功能数量。</sub>
-</p>
-
-<p>
-  <sub>作者近期正在系统学习与实践 Agent Harness、上下文工程、Skill 协议、持续执行与评测体系；相关设计会随可验证实现持续更新。</sub>
+  <sub>Built with FastAPI + Next.js + PostgreSQL/pgvector + Redis + Docker</sub>
 </p>
 
 </div>
 
 ---
 
-> 一体化科研闭环、Agent 协议、SSH/实验编排边界与能力完成标准见
-> [产品与工程蓝图](docs/PRODUCT_BLUEPRINT_ZH.md)、[Agent 协议](docs/AGENT_PROTOCOL_ZH.md)
-> 、[Harness 架构实施指南](docs/HARNESS_ARCHITECTURE_GUIDE_ZH.md)
-> 和[能力 TODO](docs/TODO_ZH.md)。
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" alt="rainbow" />
-</p>
-
-## 🚀 30 秒快速启动
+## 🚀 快速启动
 
 ```bash
 # 一行命令启动全部服务
@@ -71,302 +56,28 @@ open http://localhost:3000
 | 邮箱 | `demo@researchos.dev` |
 | 密码 | `demo-password-123` |
 
+<br/>
+
 ### 终端 Harness（alpha）
 
 ```bash
-cd apps/api
-uv pip install -e .
+cd apps/api && uv pip install -e .
 
 researchos init
 researchos register --email you@example.com --display-name "Your Name"
 researchos login --email you@example.com
-researchos projects
 researchos projects create --name "My Research"
 researchos use <project-id>
 researchos ask "分析当前工作的创新点与实验缺口"
 researchos chat
 ```
 
-CLI 已支持真实 API 登录、项目选择、Agent Run、交互会话、科研记忆、Context
-Manifest、Mission 人工闸门骨架和外部 Harness 发现。详细设计见
-[CLI 与科研记忆](docs/HARNESS_CLI_MEMORY_ZH.md)和
-[Harness 架构实施指南](docs/HARNESS_ARCHITECTURE_GUIDE_ZH.md)。
-
-<p align="right">
-  <sub><a href="#-手动安装">没有 pnpm？点这里 →</a></sub>
-</p>
-
----
-
-## 🎯 核心工作台
-
-<table>
-<tr>
-<td align="center" width="16%">
-  <h3>🔍</h3>
-  <b>Research Copilot</b>
-</td>
-<td width="50%">
-  arXiv 论文搜索 · 个人图书馆 · 创意孵化 · LLM 对话 · 同行评审
-</td>
-<td width="34%">
-  <sub>arXiv API · pgvector 语义检索 · Mock/Real LLM</sub>
-</td>
-</tr>
-
-<tr>
-<td align="center">
-  <h3>🧠</h3>
-  <b>AI IDE Workspace</b>
-</td>
-<td>
-  文件树 · Monaco 编辑器 · Coding Agent · 可审查 Patch
-</td>
-<td>
-  <sub>Monaco Editor · Git 版本控制 · Agent 驱动 Patch</sub>
-</td>
-</tr>
-
-<tr>
-<td align="center">
-  <h3>🧪</h3>
-  <b>Experiment Dashboard</b>
-</td>
-<td>
-  实验管理 · 运行追踪 · Recharts 指标曲线 · 日志 · AI 分析
-</td>
-<td>
-  <sub>Recharts 可视化 · 时序指标 · 实验对比</sub>
-</td>
-</tr>
-
-<tr>
-<td align="center">
-  <h3>📄</h3>
-  <b>Paper Workspace</b>
-</td>
-<td>
-  三栏 LaTeX 编辑器 · AI 写作助手 · 实时预览
-</td>
-<td>
-  <sub>LaTeX 编辑 · AI 辅助写作 · 编译预览</sub>
-</td>
-</tr>
-
-<tr>
-<td align="center">
-  <h3>⚙️</h3>
-  <b>Settings</b>
-</td>
-<td>
-  中英文切换 · 项目级 LLM 配置 · OpenAI / Anthropic
-</td>
-<td>
-  <sub>i18n · 多模型配置 · 项目隔离</sub>
-</td>
-</tr>
-</table>
-
----
-
-## 🏗️ 架构
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                     🖥️  Frontend                        │
-│              Next.js 15 · React · Monaco                │
-└──────────────────────┬──────────────────────────────────┘
-                       │  REST / WebSocket
-┌──────────────────────┴──────────────────────────────────┐
-│                     ⚡ Backend                           │
-│                   FastAPI · Celery                      │
-│  ┌──────────┬──────────┬──────────┬──────────────┐     │
-│  │ Research │  Coding  │Experiment│    Paper     │     │
-│  │  Agent   │  Agent   │  Agent   │    Agent     │     │
-│  └──────────┴──────────┴──────────┴──────────────┘     │
-│               Agent Runtime · LLM Provider              │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-┌──────────────────────┴──────────────────────────────────┐
-│                     🗄️  数据层                           │
-│       PostgreSQL (pgvector)  ·  Redis  ·  Docker        │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## ⚡ 常用命令
-
-| 🎯 命令 | 📝 说明 |
-|---|---|
-| `pnpm stack:full` | 完整重置：down → up → migrate → seed |
-| `pnpm stack:up` | 启动全部服务 |
-| `pnpm stack:down` | 停止全部服务 |
-| `pnpm test` | 后端 pytest 测试套件 |
-| `pnpm check` | 全质量门：test + typecheck + build |
-| `pnpm smoke:api` | API 冒烟测试（16 端点） |
-| `pnpm smoke:e2e` | 核心工作台 Playwright E2E |
-
-```bash
-# Windows 用户也可以用 PowerShell
-.\scripts\dev.ps1 full
-.\scripts\dev.ps1 test
-```
-
----
-
-## 🚧 当前 Mock/Stub 状态
-
-| 🔧 功能 | 📌 状态 |
-|---|---|
-| 🤖 LLM（无 API Key） | Mock 提供者（确定性、零成本）。Settings → LLM 配置真实 Key 后切换到 Anthropic / OpenAI |
-| 📜 LaTeX 编译 | Mock 文本转换（无 shell、无 PDF）。真实隔离 latexmk 编译待实现 |
-| 💻 终端面板 | 仅 local 环境执行真实 argv；固定开发命令和只读 Git，带目录边界、超时和输出上限；生产环境强制关闭 |
-| 🌐 SSH 运行时 | 仅接口 + 权限模型（无远程连接） |
-| 🎙️ 音频 | 当前保存文件来源并分析转写稿；真实 ASR、说话人分离和对象存储待实现 |
-
----
-
-## 🗺️ 能力路线图（不按阶段包装）
-
-完整状态、边界和验收方式见 [docs/TODO_ZH.md](docs/TODO_ZH.md)。当前重点包括：
-
-| 能力 | 当前状态 |
-|---|---|
-| Zotero 文献同步、推荐入口、独立参考文献中心 | ✅ 可用骨架 |
-| LLM 配置连通性测试、创新点/下一步提取 | ✅ 可用骨架 |
-| 多人归属树、Coordinator/子 Agent 协议 | ✅ 可用骨架 |
-| Research Inbox：方向提取、会议总结、转写稿转论文 | ✅ / 🟡 |
-| 真实受限本地终端、Git 只读状态 | ✅ 可用骨架 |
-| 实验进度、数据输入流概览 | ✅ 可用骨架 |
-| CCFDDL 实时会议 DDL | ✅ 可用骨架：读取中文 iCal、搜索/筛选/订阅；投稿前仍需核对官网 |
-| Reviewer Arena | ✅ 可用骨架：真实 Agent Run；论文版本绑定、结构化 rubric、引用/代码检查与复审 diff 待实现 |
-| 项目页 / README / Poster Release Agent | ✅ 可用骨架 |
-| PDF 标注、实验 DAG、自动标签、多模态、引用图谱、venue 排版、重跑 diff | ⚪ 待实现 |
-| SSH/HPC/Slurm、隔离任意命令、持续 Research Mission | ⚪ 待实现 |
-| 断线持续执行、Mission 隔离、Server Lab 与 GPU 感知调度 | ⚪ 待实现 |
-| Skill/System Prompt Registry、上下文压缩与评测 | ⚪ 待实现 |
-| 社区 Skill/Prompt/Workflow Registry 与签名信任机制 | ⚪ 待实现 |
-| Venue-aware Idea Gate 与结构化 Reviewer 复审闭环 | ⚪ 待实现 |
-| `researchos` / `ros` CLI、科研 Context 与 Mission scaffold | ✅ 可用骨架 |
-| Claude / Codex / OpenClaw / nanobot 执行适配器 | ⚪ 待实现（当前只发现并链接） |
-| GitHub Pages 宣传页与 Tag Release 质量门 | ✅ 站点已部署；Release 质量门就绪 |
-
-> 功能等你来提供想法！欢迎发送场景、输入输出和验收方式到
-> [3653448612@qq.com](mailto:3653448612@qq.com)。
-
-## 🙏 设计参考与致谢
-
-- [academic-research-skills](https://github.com/Imbad0202/academic-research-skills)：科研流水线、材料护照和多人交接。
-- [superpowers](https://github.com/obra/superpowers)：需求澄清、worktree、计划执行和双重审查。
-- [Dify](https://github.com/langgenius/dify)：可视化工作流、模型编排与可观测性。
-- [agent-skills](https://github.com/addyosmani/agent-skills)：DEFINE → PLAN → BUILD → VERIFY → REVIEW → SHIP。
-- [nature-skills](https://github.com/Yuan1z0825/nature-skills)：论文、图表、审稿与展示工作流。
-- [CCFA-Skills](https://github.com/mikubaka88/CCFA-Skills)：artifact owner、共享配置与投稿流水线。
-- [ccf-deadlines](https://github.com/ccfddl/ccf-deadlines)：会议数据与 iCal 订阅来源。
-- [CS Paper Review](https://cspaper.org/)：venue-aware 模拟评审交互参考。
-- [LabVLA](https://zjunlp.github.io/LabVLA/) 与 [DiffBIR](https://0x3f3f3f3fun.github.io/projects/diffbir/)：项目宣传页信息结构参考。
-- [Claude Code](https://code.claude.com/docs/en/how-claude-code-works)、[OpenAI Codex](https://github.com/openai/codex)、[OpenClaw](https://github.com/openclaw/openclaw) 与 [nanobot](https://github.com/HKUDS/nanobot)：Harness、CLI、会话、工具、网关和上下文管理参考；未直接复制其实现。
-
-## 📖 新增设计文档
-
-- [ResearchOS Harness、CLI 与科研记忆设计](docs/HARNESS_CLI_MEMORY_ZH.md)
-- [ResearchOS Harness 架构实施指南：Skill、Prompt、上下文、持续执行与 GPU 调度](docs/HARNESS_ARCHITECTURE_GUIDE_ZH.md)
-- [科研教育 Harness 建设手册](docs/RESEARCH_EDUCATION_HARNESS_ROADMAP_ZH.md)
-- [统一宣传文案包](docs/PROMOTION_COPY_ZH.md)
-- [GitHub Pages 宣传站](https://chenxxxxxx06.github.io/researchos/)
-
----
-
-## 👩‍💻 开发指南
-
-### 🛠️ 环境要求
-
-<p>
-  <img src="https://img.shields.io/badge/Python-3.13+-3776AB?logo=python&logoColor=white&style=flat-square" />
-  <img src="https://img.shields.io/badge/Node.js-22+-339933?logo=node.js&logoColor=white&style=flat-square" />
-  <img src="https://img.shields.io/badge/pnpm-9.15+-F69220?logo=pnpm&logoColor=white&style=flat-square" />
-  <img src="https://img.shields.io/badge/PostgreSQL-16+%2Bpgvector-4169E1?logo=postgresql&logoColor=white&style=flat-square" />
-  <img src="https://img.shields.io/badge/Redis-7+-DC382D?logo=redis&logoColor=white&style=flat-square" />
-  <img src="https://img.shields.io/badge/Git-required-F05032?logo=git&logoColor=white&style=flat-square" />
-</p>
-
-- conda 环境 `researchos`（conda-forge channel）
-- corepack 启用：`corepack enable`
-
-### 🧪 运行测试
-
-```bash
-cd apps/api
-
-# 全部后端测试
-pytest -q
-
-# 指定模块
-pytest -q tests/test_coding_chat.py tests/test_git_service.py tests/test_patches.py
-
-# 全质量门
-pnpm check
-```
-
----
-
-## 📊 CI / 质量
-
-<p align="center">
-  <a href="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml"><img src="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml/badge.svg?label=CI%20Status" alt="CI" /></a>
-</p>
-
-GitHub Actions (`.github/workflows/ci.yml`) · push / PR 自动触发：
-
-| 🧪 阶段 | ⚙️ 命令 | 🟢 状态 |
-|---|---|---|
-| Backend Lint | `ruff check .` + `mypy researchos` | ✅ |
-| Backend Test | `pytest -q`（PostgreSQL + Redis） | ✅ |
-| Frontend Typecheck | `pnpm -r typecheck` | ✅ |
-| Frontend Build | `pnpm --filter web build` | ✅ |
+CLI 已支持真实 API 登录、项目选择、Agent Run、交互会话、科研记忆和 Mission 人工闸门骨架。
 
 <details>
-<summary>💡 CI 中的 Git 身份</summary>
-
-测试提交的 git 身份通过 `GIT_AUTHOR_*` / `GIT_COMMITTER_*` 环境变量注入（配置在 `researchos/git/runner.py`），CI 环境无需 `~/.gitconfig`。
-</details>
-
----
-
-## 📚 文档导航
-
-| 📖 文档 | 📝 说明 |
-|---|---|
-| [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | 运维指南 & 故障排除 |
-| [`docs/MVP_STATUS.md`](docs/MVP_STATUS.md) | MVP 完成度追踪 |
-| [`docs/SKILL_BUILDER.md`](docs/SKILL_BUILDER.md) | Skill 架构 & 开发指南 |
-| [`docs/`](docs/) | 产品设计 · 数据库 · API 设计 |
-
----
-
-## 🔒 项目归属与贡献
-
-ResearchOS 为 **Chenxxxxxx06** 所有的专有项目。获得源码访问权限不代表获得复制、传播、
-商业化、再授权或提供托管服务的许可。任何贡献均须事先获得授权并另行签署书面贡献协议。
-具体条款见 [LICENSE](LICENSE) 与 [NOTICE.md](NOTICE.md)。
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" alt="rainbow" />
-</p>
-
-<p align="center">
-  <sub>Made with 🔬 by researchers, for researchers</sub><br/>
-  <sub>© 2024–2026 Chenxxxxxx06 · <a href="LICENSE">保留所有权利</a></sub>
-</p>
-
----
-
-<details>
-<summary><b>📦 手动安装</b>（没有 pnpm 时使用）</summary>
+<summary><b>📦 手动安装（没有 pnpm）</b></summary>
 
 ```bash
-# Docker 启动
 docker compose -f infra/docker/docker-compose.yml up -d --build
 docker compose -f infra/docker/docker-compose.yml exec -T api alembic upgrade head
 docker compose -f infra/docker/docker-compose.yml exec -T api python -m researchos.seed.demo
@@ -377,3 +88,183 @@ docker compose -f infra/docker/docker-compose.yml exec -T api python -m research
 .\scripts\dev.ps1 full
 ```
 </details>
+
+---
+
+## 🎯 核心工作台
+
+<table>
+<tr>
+<td align="center" width="64"><h3>🔍</h3></td>
+<td width="120"><b>Research Copilot</b></td>
+<td>arXiv 论文搜索 · 个人图书馆 · 创意孵化 · LLM 对话 · 同行评审</td>
+<td><sub>arXiv API · pgvector · Mock / Real LLM</sub></td>
+</tr>
+<tr>
+<td align="center"><h3>🧠</h3></td>
+<td><b>AI IDE</b></td>
+<td>文件树 · Monaco 编辑器 · Coding Agent · 可审查 Patch</td>
+<td><sub>Monaco · Git · Agent 驱动 Patch</sub></td>
+</tr>
+<tr>
+<td align="center"><h3>🧪</h3></td>
+<td><b>实验面板</b></td>
+<td>实验管理 · 运行追踪 · Recharts 指标 · AI 分析</td>
+<td><sub>Recharts · 时序指标 · 实验对比</sub></td>
+</tr>
+<tr>
+<td align="center"><h3>📄</h3></td>
+<td><b>论文工作台</b></td>
+<td>三栏 LaTeX 编辑器 · AI 写作助手 · 实时预览</td>
+<td><sub>LaTeX · AI 辅助写作 · 编译预览</sub></td>
+</tr>
+<tr>
+<td align="center"><h3>⚙️</h3></td>
+<td><b>设置</b></td>
+<td>中英文切换 · 项目级 LLM 配置 · OpenAI / Anthropic</td>
+<td><sub>i18n · 多模型 · 项目隔离</sub></td>
+</tr>
+</table>
+
+---
+
+## 🏗️ 架构
+
+```
+ ┌─────────────────────────────────────────────┐
+ │              Frontend (Next.js 15)           │
+ │         React · Monaco · Tailwind            │
+ └──────────────────┬──────────────────────────┘
+                    │  REST / WebSocket
+ ┌──────────────────┴──────────────────────────┐
+ │              Backend (FastAPI)               │
+ │    Celery · Agent Runtime · LLM Provider     │
+ │  ┌─────────┬─────────┬──────────┬────────┐  │
+ │  │Research │ Coding  │Experiment│ Paper  │  │
+ │  │ Agent   │ Agent   │  Agent   │ Agent  │  │
+ │  └─────────┴─────────┴──────────┴────────┘  │
+ └──────────────────┬──────────────────────────┘
+                    │
+ ┌──────────────────┴──────────────────────────┐
+ │    PostgreSQL (pgvector) · Redis · MinIO     │
+ └─────────────────────────────────────────────┘
+```
+
+---
+
+## 🗺️ 能力路线图
+
+详细状态与验收标准见 [docs/TODO_ZH.md](docs/TODO_ZH.md)。
+
+| 能力 | 状态 |
+|---|---|
+| Zotero 文献同步、推荐入口、参考文献中心 | ✅ 可用骨架 |
+| 多人归属树、Coordinator/子 Agent 协议 | ✅ 可用骨架 |
+| Research Inbox：方向提取、会议总结、转写稿转论文 | ✅ / 🟡 |
+| 真实受限本地终端、实验进度追踪 | ✅ 可用骨架 |
+| CCFDDL 实时会议 DDL，iCal 搜索/筛选/订阅 | ✅ 可用骨架 |
+| Reviewer Arena：真实 Agent Run、结构化 rubric | ✅ 可用骨架 |
+| `researchos` / `ros` CLI、科研 Context、Mission scaffold | ✅ 可用骨架 |
+| GitHub Pages 宣传站与 Tag Release 质量门 | ✅ 已部署 |
+| PDF 标注、实验 DAG、多模态、引用图谱 | ⚪ 待实现 |
+| SSH / HPC / Slurm、隔离任意命令、持续 Mission | ⚪ 待实现 |
+| 断线持续执行、Server Lab、GPU 感知调度 | ⚪ 待实现 |
+| Skill / System Prompt Registry、上下文压缩与评测 | ⚪ 待实现 |
+| 社区 Skill / Prompt / Workflow Registry 与签名信任 | ⚪ 待实现 |
+| Harness 执行适配器（Claude / Codex / OpenClaw / nanobot） | ⚪ 待实现 |
+| Venue-aware Idea Gate、结构化 Reviewer 复审闭环 | ⚪ 待实现 |
+
+---
+
+## 🚧 Mock/Stub 状态
+
+| 功能 | 状态 |
+|---|---|
+| 🤖 LLM（无 API Key） | Mock 提供者（零成本）。Settings → LLM 配置真实 Key |
+| 📜 LaTeX 编译 | Mock 文本转换。真实隔离 latexmk 编译待实现 |
+| 💻 终端面板 | 仅 local 环境执行真实 argv；只读 Git、目录边界、超时和输出上限 |
+| 🌐 SSH 运行时 | 仅接口 + 权限模型（无远程连接） |
+| 🎙️ 音频 | 转写稿分析可用；ASR、说话人分离、对象存储待实现 |
+
+---
+
+## ⚡ 常用命令
+
+| 命令 | 说明 |
+|---|---|
+| `pnpm stack:full` | 完整重置：down → up → migrate → seed |
+| `pnpm stack:up` | 启动全部服务 |
+| `pnpm stack:down` | 停止全部服务 |
+| `pnpm test` | 后端 pytest 测试套件 |
+| `pnpm check` | 全质量门：test + typecheck + build |
+| `pnpm smoke:api` | API 冒烟测试（16 端点） |
+| `pnpm smoke:e2e` | 核心工作台 Playwright E2E |
+
+```bash
+# Windows PowerShell
+.\scripts\dev.ps1 full
+.\scripts\dev.ps1 test
+```
+
+---
+
+## 👩‍💻 开发指南
+
+### 环境要求
+
+<p>
+  <img src="https://img.shields.io/badge/Python-3.13+-3776AB?style=flat-square&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Node.js-22+-339933?style=flat-square&logo=nodedotjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/pnpm-9.15+-F69220?style=flat-square&logo=pnpm&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-16+%2Bpgvector-4169E1?style=flat-square&logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/Redis-7+-DC382D?style=flat-square&logo=redis&logoColor=white" />
+  <img src="https://img.shields.io/badge/Git-F05032?style=flat-square&logo=git&logoColor=white" />
+</p>
+
+- conda 环境 `researchos`（conda-forge）
+- corepack 启用：`corepack enable`
+
+### 运行测试
+
+```bash
+cd apps/api
+
+pytest -q                          # 全部后端测试
+pytest -q tests/test_coding_chat.py tests/test_git_service.py  # 指定模块
+pnpm check                         # 全质量门
+```
+
+---
+
+## 📊 CI
+
+<p align="center">
+  <a href="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml"><img src="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml/badge.svg?label=CI" alt="CI" /></a>
+</p>
+
+| 阶段 | 命令 | 状态 |
+|---|---|---|
+| Backend Lint | `ruff check .` + `mypy researchos` | ✅ |
+| Backend Test | `pytest -q`（PostgreSQL + Redis） | ✅ |
+| Frontend Typecheck | `pnpm -r typecheck` | ✅ |
+| Frontend Build | `pnpm --filter web build` | ✅ |
+
+---
+
+## 📚 文档导航
+
+| 文档 | 说明 |
+|---|---|
+| [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | 运维指南 & 故障排除 |
+| [`docs/MVP_STATUS.md`](docs/MVP_STATUS.md) | MVP 完成度追踪 |
+| [`docs/SKILL_BUILDER.md`](docs/SKILL_BUILDER.md) | Skill 架构 & 开发指南 |
+| [`docs/`](docs/) | 产品设计 · 数据库 · API 设计 |
+
+---
+
+<br/>
+
+<p align="center">
+  <sub>Made with 🔬 by researchers, for researchers</sub><br/>
+  <sub>© 2024–2026 Chenxxxxxx06 · <a href="LICENSE">保留所有权利</a></sub>
+</p>
