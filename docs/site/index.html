@@ -1,333 +1,232 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="lang-zh">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="ResearchOS — AI-Native Research Operating System. Provenance-first scientific agent harness connecting papers, ideas, code, experiments, and manuscripts into resumable, auditable research workflows. | 以证据链为核心的科研 Agent Harness，将论文、Idea、代码、实验、图表、稿件和评审连接成可暂停、可恢复、可审查的科研工作流。" />
-  <meta name="theme-color" content="#07110f" />
+  <meta name="description" content="ResearchOS — AI-Native Research Operating System. Connect papers, ideas, code, experiments, and manuscripts into resumable, auditable research workflows. | 以证据链为核心的科研 Agent Harness，将论文、Idea、代码、实验、稿件和评审连接成可暂停、可恢复、可审查的科研工作流。" />
+  <meta name="theme-color" content="#060e0b" />
   <title>ResearchOS — AI-Native Research Operating System</title>
   <link rel="stylesheet" href="./styles.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2216%22 fill=%22%2307110f%22/><path d=%22M15 42V20h18c9 0 15 4 15 11s-6 11-15 11H15zm10-8h8c3 0 5-1 5-3s-2-3-5-3h-8v6z%22 fill=%22%236be6b8%22/></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2216%22 fill=%22%23060e0b%22/><path d=%22M15 42V20h18c9 0 15 4 15 11s-6 11-15 11H15zm10-8h8c3 0 5-1 5-3s-2-3-5-3h-8v6z%22 fill=%22%236be6b8%22/></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=JetBrains+Mono:wght@400..600&family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 </head>
 <body>
 
-<a class="skip-link" href="#main">Skip to main content / 跳到主要内容</a>
+<a class="skip-link" href="#main">Skip to content / 跳到内容</a>
 
-<!-- Language Toggle -->
-<div class="lang-bar">
-  <button class="lang-btn active" data-lang="zh" aria-label="切换到中文">中</button>
-  <span class="lang-divider"></span>
-  <button class="lang-btn" data-lang="en" aria-label="Switch to English">EN</button>
-</div>
-
-<header class="topbar">
-  <a class="brand" href="#top" aria-label="ResearchOS home">
-    <span class="brand-mark">R</span>
-    <span>ResearchOS</span>
-    <small>alpha</small>
-  </a>
-  <nav aria-label="主导航 / Main nav">
-    <a href="#why"><span data-zh="为什么" data-en="Why"></span></a>
-    <a href="#workspaces"><span data-zh="工作台" data-en="Workspaces"></span></a>
-    <a href="#harness"><span data-zh="Harness" data-en="Harness"></span></a>
-    <a href="#architecture"><span data-zh="架构" data-en="Architecture"></span></a>
-    <a href="#roadmap"><span data-zh="路线图" data-en="Roadmap"></span></a>
-    <a href="#cli"><span data-zh="CLI" data-en="CLI"></span></a>
-  </nav>
-  <a class="button button-small" href="https://github.com/Chenxxxxxx06/researchos">
-    GitHub <span class="arrow">↗</span>
-  </a>
+<!-- ═══ NAV ═══ -->
+<header class="nav">
+  <div class="nav-inner">
+    <a class="nav-brand" href="#top">
+      <img src="assets/researchos-otter.png" width="32" height="32" alt="" class="nav-otter" />
+      <span class="nav-name">ResearchOS</span>
+      <span class="nav-badge">alpha</span>
+    </a>
+    <nav class="nav-links" aria-label="主导航">
+      <a href="#workspaces"><span data-zh="工作台" data-en="Workspaces"></span></a>
+      <a href="#harness"><span data-zh="Harness" data-en="Harness"></span></a>
+      <a href="#architecture"><span data-zh="架构" data-en="Architecture"></span></a>
+      <a href="#roadmap"><span data-zh="路线图" data-en="Roadmap"></span></a>
+    </nav>
+    <div class="nav-actions">
+      <a class="btn btn-ghost-sm" href="https://github.com/Chenxxxxxx06/researchos">GitHub</a>
+      <a class="btn btn-primary-sm" href="#quickstart">
+        <span data-zh="快速启动 ↓" data-en="Quick Start ↓"></span>
+      </a>
+    </div>
+  </div>
 </header>
 
 <main id="main">
 
-  <!-- ── Hero ── -->
+  <!-- ═══ HERO ═══ -->
   <section class="hero" id="top">
-    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="hero-bg" aria-hidden="true"></div>
 
-    <div class="hero-otter">
-      <img src="assets/researchos-otter.png" width="120" alt="Rho, the ResearchOS research otter" class="otter-img" />
-    </div>
+    <h1 data-zh="构建可追溯的<br/><em>科研操作系统</em>" data-en="Build traceable<br/><em>research systems</em>"></h1>
 
-    <div class="eyebrow"><span></span>
-      <span data-zh="以证据链为核心的科研 Agent Harness" data-en="Provenance-first scientific agent harness"></span>
-    </div>
+    <p class="hero-desc" data-zh="从 Idea 到论文，每一个结论都连接到证据。ResearchOS 将论文、代码、实验和写作编织成可暂停、可恢复、可审计的工作流。" data-en="From idea to paper, every claim connects to evidence. ResearchOS weaves papers, code, experiments, and writing into resumable, auditable workflows."></p>
 
-    <h1>
-      <span data-zh="你的研究闭环，<br/><em>终成一体。</em>" data-en="Your research loop,<br/><em>finally connected.</em>"></span>
-    </h1>
-
-    <p class="hero-copy" data-zh="将论文、Idea、代码、实验、图表、稿件和评审连接成可暂停、可恢复、可审查的科研工作流。模型可以更换，证据链不会丢失。" data-en="Connect papers, ideas, code, experiments, figures, manuscripts, and reviews into resumable, auditable research workflows. Models change — provenance stays."></p>
-
-    <div class="hero-actions">
-      <a class="button" href="#workspaces"><span data-zh="探索工作台" data-en="Explore Workspaces"></span></a>
-      <a class="button button-ghost" href="https://github.com/Chenxxxxxx06/researchos">
-        <span data-zh="GitHub ↗" data-en="View on GitHub ↗"></span>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#quickstart">
+        <span data-zh="快速启动 ↓" data-en="Get Started ↓"></span>
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/Chenxxxxxx06/researchos">
+        <span data-zh="GitHub →" data-en="View on GitHub →"></span>
+      </a>
+      <a class="btn btn-ghost" href="mailto:3653448612@qq.com">
+        <span data-zh="联系我们" data-en="Contact"></span>
       </a>
     </div>
 
-    <div class="terminal-card" aria-label="ResearchOS CLI demo">
-      <div class="terminal-bar">
-        <span></span><span></span><span></span>
-        <b>researchos</b>
+    <!-- Inline terminal demo -->
+    <div class="hero-demo" aria-label="ResearchOS terminal demo">
+      <div class="demo-bar"><span></span><span></span><span></span><span class="demo-tab">researchos</span></div>
+      <div class="demo-body">
+        <pre><code><span class="c-green">$</span> researchos mission run <span class="c-lime">"复现 Paper X 并对比我们的方法"</span>
+
+<span class="c-muted">✓ context</span>  RESEARCHOS.md · 12 memories · git clean
+<span class="c-muted">✓ plan</span>     literature → baseline → ablation → paper
+<span class="c-orange">◇ gate</span>     <span data-zh="执行前需审核 scope → 输入 approve" data-en="scope approval required → type approve"></span>
+
+<span class="c-green">$</span> researchos mission approve 91f2 scope
+<span class="c-muted">◉ running</span>  Agent Research · 12/45 papers · ETA 4m</code></pre>
       </div>
-      <pre><code><span class="prompt">$</span> researchos mission run \
-  <span class="string" data-zh="研究低资源多模态分类并形成可投稿论文" data-en=""Investigate low-resource multimodal classification and prepare a submission-ready paper""></span>
-
-<span class="muted">✓</span> <span data-zh="上下文" data-en="context">  RESEARCHOS.md · verified memory · git state</span>
-<span class="muted">✓</span> <span data-zh="计划" data-en="plan">     literature → baseline → ablation → paper</span>
-<span class="warn">◇</span> <span data-zh="闸门" data-en="gate">     scope approval required before execution</span>
-
-<span class="prompt">$</span> researchos mission approve 91f2… scope</code></pre>
     </div>
   </section>
 
-  <!-- ── Why ── -->
-  <section class="statement reveal" id="why">
-    <p class="section-index">01 <span data-zh="为什么" data-en="WHY"></span></p>
-    <blockquote data-zh="「论文里的这条结论，来自哪篇文献、哪个实验、哪个 commit 和哪份 artifact？」" data-en=""Which paper, experiment, commit, and artifact does this claim come from?""></blockquote>
-    <p data-zh="科研工具彼此割裂，聊天记录无法承担科学证据。ResearchOS 的核心不是生成更多文字，而是让每个公开主张最终指向可核查的工作过程。" data-en="Research tools are fragmented. Chat logs cannot serve as scientific evidence. ResearchOS isn't about generating more text — it's about making every public claim traceable to verifiable work."></p>
-  </section>
+  <!-- ═══ WORKSPACES ═══ -->
+  <section class="section" id="workspaces">
+    <p class="sec-label">01 <span data-zh="核心工作台" data-en="WORKSPACES"></span></p>
+    <h2 data-zh="五个工作台。<br/>一个研究闭环。" data-en="Five workspaces.<br/>One research loop."></h2>
+    <p class="sec-desc" data-zh="数据在后台自动流转，无需手动搬运。从文献调研到论文发表，全链路打通。" data-en="Data flows automatically behind the scenes. From literature survey to paper publication, the full pipeline connected."></p>
 
-  <!-- ── Workspaces ── -->
-  <section class="workspaces-section reveal" id="workspaces">
-    <p class="section-index">02 <span data-zh="核心工作台" data-en="WORKSPACES"></span></p>
-    <div class="section-heading">
-      <div>
-        <h2 data-zh="五个工作台。<br/>一个研究闭环。" data-en="Five workspaces.<br/>One research loop."></h2>
-      </div>
-      <p data-zh="每个工作台聚焦科研流程的一个环节，数据在后台自然流动，无需手动搬运。" data-en="Each workspace focuses on one stage of the research pipeline. Data flows naturally behind the scenes — no manual copying."></p>
-    </div>
-
-    <div class="workspace-grid">
-      <article class="ws-card">
-        <div class="ws-icon">🔍</div>
+    <div class="card-grid cols-5">
+      <div class="card">
+        <div class="card-icon">🔍</div>
         <h3>Research Copilot</h3>
-        <p class="ws-desc-zh">arXiv 论文搜索 · 个人图书馆 · Idea 孵化 · LLM 对话 · 同行评审</p>
-        <p class="ws-desc-en">arXiv search · Personal library · Idea incubation · LLM chat · Peer review</p>
-        <span class="ws-tag">arXiv API · pgvector · LLM</span>
-      </article>
-
-      <article class="ws-card">
-        <div class="ws-icon">🧠</div>
+        <p class="c-zh">arXiv 搜索 · 个人图书馆 · Idea 孵化</p>
+        <p class="c-en">arXiv search · Library · Idea incubation</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧠</div>
         <h3>AI IDE</h3>
-        <p class="ws-desc-zh">文件树 · Monaco 编辑器 · Coding Agent · 可审查 Patch</p>
-        <p class="ws-desc-en">File tree · Monaco editor · Coding Agent · Reviewable patches</p>
-        <span class="ws-tag">Monaco · Git · Agent Patches</span>
-      </article>
-
-      <article class="ws-card">
-        <div class="ws-icon">🧪</div>
+        <p class="c-zh">Monaco 编辑器 · Coding Agent · Patch 审查</p>
+        <p class="c-en">Monaco · Coding Agent · Patch review</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧪</div>
         <h3>Experiments</h3>
-        <p class="ws-desc-zh">实验管理 · 运行追踪 · Recharts 指标 · 日志 · AI 分析</p>
-        <p class="ws-desc-en">Experiment tracking · Run metrics · Recharts · Logs · AI analysis</p>
-        <span class="ws-tag">Recharts · Time-series · Diff</span>
-      </article>
-
-      <article class="ws-card">
-        <div class="ws-icon">📄</div>
-        <h3>Paper Workspace</h3>
-        <p class="ws-desc-zh">三栏 LaTeX 编辑器 · AI 写作助手 · 实时预览</p>
-        <p class="ws-desc-en">Three-panel LaTeX editor · AI writing · Live preview</p>
-        <span class="ws-tag">LaTeX · AI Writing · Compile</span>
-      </article>
-
-      <article class="ws-card">
-        <div class="ws-icon">⚙️</div>
+        <p class="c-zh">实验追踪 · 指标可视化 · AI 分析</p>
+        <p class="c-en">Run tracking · Metrics · AI analysis</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📄</div>
+        <h3>Paper</h3>
+        <p class="c-zh">LaTeX 工作台 · AI 写作 · 实时预览</p>
+        <p class="c-en">LaTeX · AI writing · Live preview</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚙️</div>
         <h3>Settings</h3>
-        <p class="ws-desc-zh">中英文切换 · 项目级 LLM 配置 · OpenAI / Anthropic</p>
-        <p class="ws-desc-en">ZH/EN toggle · Per-project LLM config · OpenAI / Anthropic</p>
-        <span class="ws-tag">i18n · Multi-model · Isolated</span>
-      </article>
+        <p class="c-zh">中英双语 · 多模型 · 项目隔离</p>
+        <p class="c-en">Bilingual · Multi-model · Isolated</p>
+      </div>
     </div>
   </section>
 
-  <!-- ── Harness ── -->
-  <section class="flow-section reveal" id="harness">
-    <p class="section-index">03 <span data-zh="Agent 编排" data-en="HARNESS"></span></p>
-    <div class="section-heading">
-      <div>
-        <h2 data-zh="一个上下文。<br/>多个专项 Agent。" data-en="One context.<br/>Specialist agents."></h2>
+  <!-- ═══ HARNESS ═══ -->
+  <section class="section" id="harness">
+    <p class="sec-label">02 <span data-zh="Agent 编排" data-en="HARNESS"></span></p>
+    <h2 data-zh="一个 Coordinator。<br/>五个专项 Agent。" data-en="One Coordinator.<br/>Five specialist agents."></h2>
+    <p class="sec-desc" data-zh="Coordinator 拆解、调度、验证、合并。专项 Agent 各司其职，高风险动作必经人工闸门。" data-en="The Coordinator decomposes, schedules, verifies, and merges. Every specialist agent owns its artifact. Every high-stakes action passes a human gate."></p>
+
+    <div class="flow-row">
+      <div class="flow-step"><span>01</span><strong data-zh="研究" data-en="Research"></strong><small>Zotero · Evidence</small></div>
+      <i>→</i>
+      <div class="flow-step"><span>02</span><strong data-zh="编码" data-en="Code"></strong><small>Patch · Git</small></div>
+      <i>→</i>
+      <div class="flow-step"><span>03</span><strong data-zh="实验" data-en="Experiment"></strong><small>DAG · Provenance</small></div>
+      <i>→</i>
+      <div class="flow-step"><span>04</span><strong data-zh="论文" data-en="Paper"></strong><small>LaTeX · Claims</small></div>
+      <i>→</i>
+      <div class="flow-step"><span>05</span><strong data-zh="发布" data-en="Release"></strong><small>Review · Story Pack</small></div>
+    </div>
+
+    <div class="card-grid cols-3" style="margin-top:4rem">
+      <div class="card card-feature">
+        <span class="feature-icon">⌁</span>
+        <h4>Provenance-first</h4>
+        <p data-zh="Claim → Evidence → Run → Artifact → Commit。模型输出只是候选。" data-en="Claim → Evidence → Run → Artifact → Commit. Model outputs are candidates."></p>
       </div>
-      <p data-zh="Coordinator 负责拆解、调度、验证和合并。每个专项 Agent 拥有明确的 Artifact，所有高风险动作经过人工闸门。" data-en="The Coordinator decomposes, schedules, verifies, and merges. Each specialist agent owns a clear artifact. Every high-stakes action passes through a human gate."></p>
-    </div>
-
-    <div class="flow" role="list" aria-label="ResearchOS agent workflow">
-      <article role="listitem">
-        <span>01</span>
-        <b data-zh="研究" data-en="Research"></b>
-        <small>Zotero · Evidence</small>
-      </article>
-      <i aria-hidden="true">→</i>
-      <article role="listitem">
-        <span>02</span>
-        <b data-zh="编码" data-en="Code"></b>
-        <small>Patch · Git</small>
-      </article>
-      <i aria-hidden="true">→</i>
-      <article role="listitem">
-        <span>03</span>
-        <b data-zh="实验" data-en="Experiment"></b>
-        <small>DAG · Provenance</small>
-      </article>
-      <i aria-hidden="true">→</i>
-      <article role="listitem">
-        <span>04</span>
-        <b data-zh="论文" data-en="Paper"></b>
-        <small>LaTeX · Claims</small>
-      </article>
-      <i aria-hidden="true">→</i>
-      <article role="listitem">
-        <span>05</span>
-        <b data-zh="发布" data-en="Release"></b>
-        <small>Review · Story Pack</small>
-      </article>
-    </div>
-
-    <div class="principles">
-      <article>
-        <span class="icon">⌁</span>
-        <h3>Provenance-first</h3>
-        <p data-zh="Claim → Evidence → Run → Artifact → Commit。模型输出默认只是候选。" data-en="Claim → Evidence → Run → Artifact → Commit. Model outputs are candidates, not facts."></p>
-      </article>
-      <article>
-        <span class="icon">◫</span>
-        <h3>Context with boundaries</h3>
-        <p data-zh="规则、科学事实、会话和记忆分层管理，不做混乱的「大向量库」。" data-en="Rules, scientific facts, sessions, and memory are layered — not one messy vector soup."></p>
-      </article>
-      <article>
-        <span class="icon">◇</span>
-        <h3>Human-governed</h3>
-        <p data-zh="Scope、Evidence、Release 三道闸门。证据不足、预算耗尽或重复失败就停止。" data-en="Three gates: Scope, Evidence, Release. Stop on insufficient evidence, budget exhaustion, or repeated failure."></p>
-      </article>
+      <div class="card card-feature">
+        <span class="feature-icon">◫</span>
+        <h4>Context with boundaries</h4>
+        <p data-zh="规则、事实、会话和记忆分层管理，不做混乱大向量库。" data-en="Rules, facts, sessions, and memory are layered — no messy vector soup."></p>
+      </div>
+      <div class="card card-feature">
+        <span class="feature-icon">◇</span>
+        <h4>Human-governed</h4>
+        <p data-zh="Scope、Evidence、Release 三道闸门。证据不足即停止。" data-en="Three gates: Scope, Evidence, Release. Stop on insufficient evidence."></p>
+      </div>
     </div>
   </section>
 
-  <!-- ── Architecture ── -->
-  <section class="arch-section reveal" id="architecture">
-    <p class="section-index">04 <span data-zh="架构" data-en="ARCHITECTURE"></span></p>
-    <div class="section-heading">
-      <div>
-        <h2 data-zh="技术栈" data-en="Stack"></h2>
-      </div>
-      <p data-zh="ResearchOS 采用前后端分离架构，Agent 运行时通过 Celery 异步执行，PostgreSQL/pgvector 提供语义搜索与证据溯源。" data-en="Decoupled frontend and backend. Agent runtime via Celery async execution. PostgreSQL/pgvector for semantic search and evidence provenance."></p>
+  <!-- ═══ ARCHITECTURE ═══ -->
+  <section class="section" id="architecture">
+    <p class="sec-label">03 <span data-zh="架构" data-en="ARCHITECTURE"></span></p>
+    <h2 data-zh="技术栈" data-en="Stack"></h2>
+    <p class="sec-desc" data-zh="前后端分离。Agent 运行时通过 Celery 异步执行。PostgreSQL/pgvector 提供语义搜索与证据溯源。" data-en="Decoupled frontend/backend. Celery for async Agent execution. PostgreSQL/pgvector for semantic search and provenance."></p>
+
+    <div class="arch-box">
+      <pre><code><span class="c-green">┌── Frontend</span>   Next.js 15 · React · Monaco · Tailwind
+<span class="c-green">│</span>
+<span class="c-green">├── Backend</span>    FastAPI · Celery Workers
+<span class="c-green">│</span>   ┌─ Research Agent   ┌─ Coding Agent
+<span class="c-green">│</span>   ├─ Experiment Agent └─ Paper Agent
+<span class="c-green">│</span>   └─ Agent Runtime · LLM Provider
+<span class="c-green">│</span>
+<span class="c-green">└── Data</span>       PostgreSQL/pgvector · Redis · MinIO · Docker</code></pre>
     </div>
 
-    <div class="arch-diagram">
-      <pre><code>┌──────────────────────────────────────────────┐
-│          <span class="arch-layer">Frontend</span>  Next.js 15 · React · Monaco  │
-└──────────────────┬───────────────────────────┘
-                   │  REST / WebSocket
-┌──────────────────┴───────────────────────────┐
-│          <span class="arch-layer">Backend</span>   FastAPI · Celery Workers     │
-│  ┌─────────┬─────────┬──────────┬─────────┐  │
-│  │Research │ Coding  │Experiment│  Paper  │  │
-│  │  Agent  │  Agent  │  Agent   │  Agent  │  │
-│  └─────────┴─────────┴──────────┴─────────┘  │
-│          Agent Runtime · LLM Provider        │
-└──────────────────┬───────────────────────────┘
-                   │
-┌──────────────────┴───────────────────────────┐
-│          <span class="arch-layer">Data</span>     PostgreSQL/pgvector · Redis   │
-│                    MinIO · Docker            │
-└──────────────────────────────────────────────┘</code></pre>
-    </div>
-
-    <p class="stack-badges">
+    <div class="badge-row">
       <img src="https://img.shields.io/badge/Python-3.13+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
       <img src="https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
       <img src="https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs&logoColor=white" alt="Next.js" />
-      <img src="https://img.shields.io/badge/Node.js-22+-339933?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js" />
       <img src="https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL" />
       <img src="https://img.shields.io/badge/Redis-7+-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis" />
       <img src="https://img.shields.io/badge/Docker-24+-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" />
-    </p>
+    </div>
   </section>
 
-  <!-- ── Roadmap ── -->
-  <section class="roadmap-section reveal" id="roadmap">
-    <p class="section-index">05 <span data-zh="路线图" data-en="ROADMAP"></span></p>
-    <div class="section-heading">
-      <div>
-        <h2 data-zh="诚实的能力边界" data-en="Honest capability."></h2>
+  <!-- ═══ ROADMAP ═══ -->
+  <section class="section" id="roadmap">
+    <p class="sec-label">04 <span data-zh="路线图" data-en="ROADMAP"></span></p>
+    <h2 data-zh="诚实的能力边界。<br/>不夸大一像素。" data-en="Honest capability.<br/>No inflated claims."></h2>
+    <p class="sec-desc" data-zh="当前 alpha 用于架构验证与共同设计。未完成的能力明确标注，已完成的有验收标准。" data-en="Current alpha is for architecture validation and co-design. Incomplete capabilities are explicitly marked."></p>
+
+    <div class="card-grid cols-3">
+      <div class="card card-done">
+        <span class="status-tag tag-done" data-zh="✅ 可用骨架" data-en="✅ SKELETON"></span>
+        <h4 data-zh="研究 · 编码 · 实验 · 论文" data-en="Research · Code · Experiment · Paper"></h4>
+        <p data-zh="Zotero、Copilot、AI IDE、实验面板、LaTeX、Reviewer Arena、CLI、CCFDDL。" data-en="Zotero, Copilot, AI IDE, experiment dashboard, LaTeX, Reviewer Arena, CLI, CCFDDL."></p>
       </div>
-      <p data-zh="当前版本用于架构验证和共同设计。没有完成的能力会明确标注，不夸大功能。" data-en="Current version is for architecture validation and co-design. Incomplete capabilities are explicitly marked — no inflated feature claims."></p>
+      <div class="card card-building">
+        <span class="status-tag tag-building" data-zh="🟡 深化中" data-en="🟡 BUILDING"></span>
+        <h4 data-zh="持续 Mission · Skill Registry" data-en="Durable Mission · Skill Registry"></h4>
+        <p data-zh="数据库 DAG、Agent lease/heartbeat、Prompt/Skill 版本化、上下文检索评测。" data-en="Database DAG, Agent lease/heartbeat, Prompt/Skill versioning, context retrieval eval."></p>
+      </div>
+      <div class="card card-planned">
+        <span class="status-tag tag-planned" data-zh="⚪ 计划中" data-en="⚪ PLANNED"></span>
+        <h4 data-zh="隔离执行 · GPU 调度 · 多模态" data-en="Sandbox · GPU · Multimodal"></h4>
+        <p data-zh="容器/gVisor、SSH/HPC/Slurm、可复现重跑、多模态论文解析、社区 Registry。" data-en="Container/gVisor, SSH/HPC/Slurm, reproducible reruns, multimodal parsing, community registry."></p>
+      </div>
     </div>
 
-    <div class="status-grid">
-      <article class="done">
-        <span data-zh="✅ 可用骨架" data-en="✅ AVAILABLE SKELETON"></span>
-        <h3 data-zh="研究 · 编码 · 实验 · 论文" data-en="Research · Code · Experiment · Paper"></h3>
-        <p data-zh="Zotero 文献同步、Research Copilot、AI IDE、实验面板、LaTeX 工作台、Reviewer Arena、CLI、CCFDDL。" data-en="Zotero sync, Research Copilot, AI IDE, Experiment Dashboard, LaTeX workspace, Reviewer Arena, CLI, CCFDDL."></p>
-      </article>
-      <article class="building">
-        <span data-zh="🟡 深化中" data-en="🟡 BUILDING"></span>
-        <h3 data-zh="持续 Mission · Skill Registry" data-en="Durable Mission · Skill Registry"></h3>
-        <p data-zh="数据库 DAG、Agent lease/heartbeat、Prompt/Skill Registry、上下文检索评测、Baseline Planner。" data-en="Database DAG, Agent lease/heartbeat, Prompt/Skill Registry, context retrieval evaluation, Baseline Planner."></p>
-      </article>
-      <article class="planned">
-        <span data-zh="⚪ 计划中" data-en="⚪ PLANNED"></span>
-        <h3 data-zh="隔离执行 · GPU 调度 · 多模态" data-en="Isolated execution · GPU scheduling · Multimodal"></h3>
-        <p data-zh="容器/gVisor 沙箱、SSH/HPC/Slurm、真实 LaTeX 编译、可复现重跑、多模态论文解析、社区 Skill Registry。" data-en="Container/gVisor sandbox, SSH/HPC/Slurm, real LaTeX compilation, reproducible reruns, multimodal paper parsing, community Skill Registry."></p>
-      </article>
-    </div>
-
-    <p class="roadmap-link">
+    <p class="more-link">
       <a href="https://github.com/Chenxxxxxx06/researchos/blob/master/docs/TODO_ZH.md">
-        <span data-zh="完整能力清单与验收标准 →" data-en="Full capability checklist & acceptance criteria →"></span>
+        <span data-zh="完整能力清单与验收标准 →" data-en="Full capability checklist →"></span>
       </a>
     </p>
   </section>
 
-  <!-- ── CLI ── -->
-  <section class="cli-section reveal" id="cli">
-    <div>
-      <p class="section-index">06 <span data-zh="终端" data-en="TERMINAL"></span></p>
-      <h2 data-zh="从终端到浏览器，<br/>同一个 Harness。" data-en="One harness.<br/>Terminal to browser."></h2>
-      <p data-zh="同一个 API 服务于 Web、IDE 和 CLI。当前 alpha 已支持登录、项目切换、Agent Turn、交互会话、上下文查看、科研记忆与 Mission scaffold。" data-en="One API serves Web, IDE, and CLI. Alpha supports login, project switching, Agent Turn, interactive sessions, context viewing, scientific memory, and Mission scaffold."></p>
-      <a href="https://github.com/Chenxxxxxx06/researchos/blob/master/docs/HARNESS_CLI_MEMORY_ZH.md">
-        <span data-zh="CLI 与记忆设计 →" data-en="CLI & Memory Design →"></span>
-      </a>
-    </div>
-    <pre class="code-panel"><code><span class="comment"># install the development CLI</span>
-cd apps/api
-uv pip install -e .
+  <!-- ═══ QUICK START ═══ -->
+  <section class="section" id="quickstart">
+    <p class="sec-label">05 <span data-zh="快速启动" data-en="QUICK START"></span></p>
+    <h2 data-zh="30 秒跑起来" data-en="Launch in 30 seconds."></h2>
+    <p class="sec-desc" data-zh="一行命令启动全部服务。Docker Compose 全栈部署。" data-en="One command to launch everything. Docker Compose for the full stack."></p>
 
-researchos login --email you@example.com
-researchos projects
-researchos use &lt;project-id&gt;
-
-researchos ask <span class="string">"Extract innovation gaps"</span>
-researchos chat
-researchos context --render
-researchos adapters doctor</code></pre>
-  </section>
-
-  <!-- ── Quick Start ── -->
-  <section class="quickstart-section reveal" id="quickstart">
-    <p class="section-index">07 <span data-zh="快速启动" data-en="QUICK START"></span></p>
-    <div class="section-heading">
-      <div>
-        <h2 data-zh="30 秒跑起来" data-en="30 seconds to launch."></h2>
-      </div>
-      <p data-zh="一行命令启动全部服务。支持 Docker Compose 全栈部署。" data-en="One command to launch everything. Docker Compose for the full stack."></p>
-    </div>
-
-    <div class="qs-grid">
-      <div class="qs-card">
-        <div class="qs-code">
-          <pre><code>pnpm stack:full
+    <div class="card-grid cols-2">
+      <div class="code-card">
+        <div class="code-card-bar"><span></span><span></span><span></span></div>
+        <pre><code>pnpm stack:full
 open http://localhost:3000</code></pre>
-        </div>
-        <p class="qs-label" data-zh="一行启动全栈" data-en="One command, full stack"></p>
       </div>
-
-      <div class="qs-card">
-        <table class="demo-table">
-          <tr><th colspan="2" data-zh="🔑 Demo 账号" data-en="🔑 Demo Account"></th></tr>
+      <div class="card">
+        <h4 data-zh="🔑 Demo 账号" data-en="🔑 Demo Account"></h4>
+        <table class="kv-table">
           <tr><td data-zh="邮箱" data-en="Email"></td><td><code>demo@researchos.dev</code></td></tr>
           <tr><td data-zh="密码" data-en="Password"></td><td><code>demo-password-123</code></td></tr>
         </table>
@@ -335,34 +234,32 @@ open http://localhost:3000</code></pre>
     </div>
   </section>
 
-  <!-- ── CTA ── -->
-  <section class="cta reveal">
-    <p class="section-index" data-zh="一起建设" data-en="LET'S BUILD"></p>
+  <!-- ═══ CTA ═══ -->
+  <section class="section cta-section">
     <h2 data-zh="模型会迭代。<br/>科研记忆应该留存。" data-en="Models will change.<br/>Research memory should survive."></h2>
-    <p data-zh="欢迎讨论科研 Agent、实验基础设施、论文教育与可复现工作流。" data-en="Open to discussions on research agents, experiment infrastructure, paper education, and reproducible workflows."></p>
-    <div class="hero-actions">
-      <a class="button" href="mailto:3653448612@qq.com">3653448612@qq.com</a>
-      <a class="button button-ghost" href="https://github.com/Chenxxxxxx06/researchos">
+    <p data-zh="欢迎讨论科研 Agent、实验基础设施、论文教育与可复现工作流。" data-en="Open to discussions on research agents, experiment infrastructure, and reproducible workflows."></p>
+    <div class="hero-cta" style="margin-top:2.5rem">
+      <a class="btn btn-primary" href="mailto:3653448612@qq.com">
+        <span data-zh="联系我 →" data-en="Get in touch →"></span>
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/Chenxxxxxx06/researchos">
         <span data-zh="GitHub →" data-en="View on GitHub →"></span>
       </a>
     </div>
-    <div class="otter-cta">
-      <img src="assets/researchos-otter.png" width="140" alt="Rho the research otter" />
-      <p data-zh="Rho 在等你一起做研究 🦦" data-en="Rho is waiting to research with you 🦦"></p>
-    </div>
+    <p class="footer-otter" data-zh="Rho 在等你一起做研究 🦦" data-en="Rho is waiting to research with you 🦦"></p>
   </section>
 
 </main>
 
-<footer>
-  <div class="footer-left">
+<footer class="footer">
+  <div>
     <span>ResearchOS · 0.1.0-alpha.1</span>
-    <span>© 2024–2026 Chenxxxxxx06 · All Rights Reserved</span>
+    <span>© 2024–2026 Chenxxxxxx06</span>
   </div>
-  <div class="footer-right">
-    <a href="https://github.com/Chenxxxxxx06/researchos/blob/master/README_zh.md">
-      <span data-zh="GitHub →" data-en="GitHub →"></span>
-    </a>
+  <div class="lang-toggle">
+    <button data-lang="zh" class="lang-btn active">中文</button>
+    <span>·</span>
+    <button data-lang="en" class="lang-btn">English</button>
   </div>
 </footer>
 
