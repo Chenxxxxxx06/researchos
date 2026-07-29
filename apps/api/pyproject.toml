@@ -1,6 +1,6 @@
 [project]
 name = "researchos-api"
-version = "0.0.0"
+version = "0.1.0a1"
 description = "ResearchOS API — FastAPI backend (Phase 0 infrastructure)."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -34,6 +34,10 @@ dev = [
     "ruff>=0.8",
     "mypy>=1.13",
 ]
+
+[project.scripts]
+researchos = "researchos.cli:main"
+ros = "researchos.cli:main"
 
 [build-system]
 requires = ["hatchling"]

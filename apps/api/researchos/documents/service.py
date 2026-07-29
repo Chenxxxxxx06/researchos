@@ -57,6 +57,69 @@ Present your results.
 \end{document}
 """
 
+_PAPER_TEMPLATES: dict[str, str] = {
+    "article": _DEFAULT_MAIN,
+    "ieee": r"""\documentclass[conference]{IEEEtran}
+\title{Paper Title}
+\author{\IEEEauthorblockN{Author Name}
+\IEEEauthorblockA{Affiliation\\email@example.com}}
+\begin{document}
+\maketitle
+\begin{abstract}
+Summarize the problem, method, results, and significance.
+\end{abstract}
+\section{Introduction}
+\section{Related Work}
+\section{Method}
+\section{Experiments}
+\section{Conclusion}
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+\end{document}
+""",
+    "acm": r"""\documentclass[sigconf]{acmart}
+\title{Paper Title}
+\author{Author Name}
+\affiliation{\institution{Institution}\country{Country}}
+\email{email@example.com}
+\begin{document}
+\begin{abstract}
+Summarize the problem, method, results, and significance.
+\end{abstract}
+\maketitle
+\section{Introduction}
+\section{Related Work}
+\section{Method}
+\section{Evaluation}
+\section{Conclusion}
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+\end{document}
+""",
+    "elsevier": r"""\documentclass[preprint,12pt]{elsarticle}
+\journal{Journal Name}
+\begin{document}
+\begin{frontmatter}
+\title{Paper Title}
+\author{Author Name}
+\begin{abstract}
+Summarize the problem, method, results, and significance.
+\end{abstract}
+\begin{keyword}
+keyword one \sep keyword two
+\end{keyword}
+\end{frontmatter}
+\section{Introduction}
+\section{Related Work}
+\section{Method}
+\section{Experiments}
+\section{Conclusion}
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
+\end{document}
+""",
+}
+
 # Keep at most this many revisions per file (newest retained).
 _REVISION_KEEP = 50
 # Omit server_content from 409 payloads beyond this size.
@@ -73,13 +136,29 @@ class DocumentService:
         self.jobs = CompileJobRepository(db)
 
     async def create_latex_project(
-        self, actor: User, project_id: uuid.UUID, *, name: str
+        self,
+        actor: User,
+        project_id: uuid.UUID,
+        *,
+        name: str,
+        template_id: str = "article",
     ) -> LatexProject:
         await self.projects.ensure_access(actor, project_id, ProjectRole.RESEARCHER)
         lp = await self.latex_projects.add(
             LatexProject(project_id=project_id, name=name, created_by=actor.id)
         )
-        await self.write_file_versioned(actor, lp.id, path="main.tex", content=_DEFAULT_MAIN)
+        await self.write_file_versioned(
+            actor,
+            lp.id,
+            path="main.tex",
+            content=_PAPER_TEMPLATES.get(template_id, _DEFAULT_MAIN),
+        )
+        await self.write_file_versioned(
+            actor,
+            lp.id,
+            path="references.bib",
+            content="% Export project references here.\n",
+        )
         await self.db.commit()
         await self.db.refresh(lp)
         return lp

@@ -63,6 +63,13 @@ async def test_viewer_can_read_but_not_apply(make_client) -> None:
     )
     assert create.status_code == 403
 
+    save = await viewer.put(
+        f"/projects/{project_id}/workspace/files",
+        json={"path": "viewer.txt", "content": "denied", "base_sha": None},
+        headers=csrf_headers(viewer),
+    )
+    assert save.status_code == 403
+
     # Owner creates a patch; viewer cannot apply it.
     patch = (
         await owner.post(
@@ -105,3 +112,36 @@ async def test_researcher_can_create_and_apply(make_client) -> None:
     )
     assert apply.status_code == 200
     assert apply.json()["status"] == "applied"
+
+
+async def test_researcher_can_create_and_cas_save_file(make_client) -> None:
+    owner = make_client()
+    researcher = make_client()
+    await register(owner, email="ide-owner3@example.com")
+    await register(researcher, email="ide-res3@example.com")
+    org_id, project_id = await _org_project(owner)
+    await _add_member(owner, org_id, project_id, "ide-res3@example.com", "researcher")
+
+    created = await researcher.put(
+        f"/projects/{project_id}/workspace/files",
+        json={"path": "src/model.py", "content": "x = 1\n", "base_sha": None},
+        headers=csrf_headers(researcher),
+    )
+    assert created.status_code == 200
+    original_sha = created.json()["sha"]
+
+    saved = await researcher.put(
+        f"/projects/{project_id}/workspace/files",
+        json={"path": "src/model.py", "content": "x = 2\n", "base_sha": original_sha},
+        headers=csrf_headers(researcher),
+    )
+    assert saved.status_code == 200
+    assert saved.json()["content"] == "x = 2\n"
+
+    conflict = await researcher.put(
+        f"/projects/{project_id}/workspace/files",
+        json={"path": "src/model.py", "content": "x = 3\n", "base_sha": original_sha},
+        headers=csrf_headers(researcher),
+    )
+    assert conflict.status_code == 409
+    assert conflict.json()["error"]["code"] == "workspace_file_conflict"

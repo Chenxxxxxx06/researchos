@@ -25,7 +25,7 @@ import {
 import { toast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api/client';
 import { createPatch } from '@/lib/api/patches';
-import { getFile, type FileContent } from '@/lib/api/workspace';
+import { getFile, saveFile, type FileContent } from '@/lib/api/workspace';
 import { languageForPath } from '@/lib/ide/language';
 import { ThemedMonacoDiff, ThemedMonacoEditor } from '@/lib/ide/monaco';
 import { useIdeStore } from '@/lib/ide/store';
@@ -119,6 +119,32 @@ export function EditorPane({ projectId }: { projectId: string }) {
       }),
   });
 
+  const save = useMutation({
+    mutationFn: () => {
+      const buf = buffers[active as string];
+      return saveFile(projectId, {
+        path: active as string,
+        content: buf.content,
+        base_sha: buf.baseSha,
+      });
+    },
+    onSuccess: (saved) => {
+      if (active && saved.content != null) {
+        setBuffer(active, saved.content, saved.content, saved.sha);
+      }
+      void queryClient.invalidateQueries({ queryKey: ['file', projectId, active] });
+      void queryClient.invalidateQueries({ queryKey: ['workspace-tree', projectId] });
+      void queryClient.invalidateQueries({ queryKey: ['git-status', projectId] });
+      toast({ title: t('ide.fileSaved') });
+    },
+    onError: (err) =>
+      toast({
+        title: t('ide.saveFailed'),
+        description: err instanceof Error ? err.message : undefined,
+        variant: 'error',
+      }),
+  });
+
   const buffer = active ? buffers[active] : undefined;
   const value = active ? (buffer?.content ?? file.data?.content ?? '') : '';
   const dirty = buffer !== undefined;
@@ -173,7 +199,16 @@ export function EditorPane({ projectId }: { projectId: string }) {
           })}
         </div>
         {active && !denied && !notFound && (
-          <div className="ml-auto shrink-0 px-3">
+          <div className="ml-auto flex shrink-0 gap-2 px-3">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => save.mutate()}
+              disabled={!dirty || save.isPending}
+              loading={save.isPending}
+            >
+              {t('ide.saveFile')}
+            </Button>
             <Button
               size="sm"
               onClick={() => propose.mutate()}

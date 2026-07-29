@@ -2,18 +2,26 @@
 
 from __future__ import annotations
 
+import asyncio
+import time
 import uuid
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 
+from researchos.agents.llm.base import LLMMessage, LLMProvider, TextDelta, Usage
+from researchos.agents.llm.openai_compatible import OpenAICompatibleProvider
 from researchos.common.deps import CurrentUser, DbSession, require_csrf
 from researchos.common.errors import NotFoundError
 from researchos.common.roles import ProjectRole
 from researchos.projects.service import ProjectService
 
 from .models import LLMProviderConfig
-from .schemas import LLMConfigResponse, SaveLLMConfigRequest
+from .schemas import (
+    LLMConfigResponse,
+    LLMConnectionTestResponse,
+    SaveLLMConfigRequest,
+)
 
 router = APIRouter(prefix="/projects/{project_id}/settings/llm", tags=["settings-llm"])
 
@@ -95,3 +103,87 @@ async def delete_config(
         raise NotFoundError("LLM config not found.")
     await db.delete(cfg)
     await db.commit()
+
+
+@router.post(
+    "/{config_id}/test",
+    response_model=LLMConnectionTestResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def test_config(
+    project_id: uuid.UUID,
+    config_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+) -> LLMConnectionTestResponse:
+    """Perform a minimal real generation to verify endpoint, key and model.
+
+    Returning a typed ``ok=false`` result keeps provider errors visible in the
+    Settings UI without turning expected configuration failures into generic
+    application errors.
+    """
+
+    await ProjectService(db).ensure_access(user, project_id, ProjectRole.ADMIN)
+    cfg = await db.get(LLMProviderConfig, config_id)
+    if cfg is None or cfg.project_id != project_id:
+        raise NotFoundError("LLM config not found.")
+
+    started = time.perf_counter()
+    sample_parts: list[str] = []
+    input_tokens = 0
+    output_tokens = 0
+    try:
+        provider: LLMProvider
+        if cfg.provider_type == "anthropic":
+            from researchos.agents.llm.anthropic import AnthropicProvider
+
+            provider = AnthropicProvider(
+                model=cfg.model or None,
+                api_key=cfg.api_key or None,
+                base_url=cfg.base_url or None,
+            )
+        else:
+            provider = OpenAICompatibleProvider(
+                base_url=cfg.base_url,
+                model=cfg.model,
+                api_key=cfg.api_key,
+            )
+
+        async with asyncio.timeout(30):
+            async for event in provider.stream(
+                messages=[
+                    LLMMessage(
+                        role="user",
+                        content="Reply with exactly: ResearchOS connection OK",
+                    )
+                ],
+                tools=[],
+            ):
+                if isinstance(event, TextDelta):
+                    sample_parts.append(event.text)
+                elif isinstance(event, Usage):
+                    input_tokens += event.input_tokens
+                    output_tokens += event.output_tokens
+    except Exception as exc:  # noqa: BLE001 - this endpoint reports config failures
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        message = str(exc).strip() or exc.__class__.__name__
+        return LLMConnectionTestResponse(
+            ok=False,
+            provider_type=cfg.provider_type,
+            model=cfg.model,
+            latency_ms=latency_ms,
+            message=message[:500],
+        )
+
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    sample = "".join(sample_parts).strip()
+    return LLMConnectionTestResponse(
+        ok=bool(sample),
+        provider_type=cfg.provider_type,
+        model=cfg.model,
+        latency_ms=latency_ms,
+        message="Model connection verified." if sample else "Provider returned an empty response.",
+        sample=sample[:200] or None,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+    )

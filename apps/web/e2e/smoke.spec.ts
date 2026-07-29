@@ -55,31 +55,47 @@ test.describe('ResearchOS smoke', () => {
     await expect(page.getByText(/AI Assistant|Compile|Preview|assistant/i)).toBeVisible({ timeout: 5000 });
     await page.screenshot({ path: 'artifacts/screenshots/7-paper.png' });
 
-    // 7. Skills Marketplace
-    await page.goto(`/projects/${projectId}/skills`);
+    // 7. References + Zotero
+    await page.goto(`/projects/${projectId}/references`);
     await page.waitForLoadState('networkidle');
-    await expect(page.getByText(/Nature Writing|CVPR|skills|Builder/i)).toBeVisible({ timeout: 5000 });
-    await page.screenshot({ path: 'artifacts/screenshots/8-skills.png' });
+    await expect(page.getByText(/Zotero|文献中心|References/i).first()).toBeVisible({ timeout: 5000 });
+    await page.screenshot({ path: 'artifacts/screenshots/8-references.png' });
 
-    // 8. Skill Builder
-    await page.goto(`/projects/${projectId}/skills/builder`);
+    // 8. Research Inbox
+    await page.goto(`/projects/${projectId}/inbox`);
     await page.waitForLoadState('networkidle');
-    await expect(page.getByText(/builder|Builder|skill/i)).toBeVisible({ timeout: 5000 });
-    await page.screenshot({ path: 'artifacts/screenshots/9-skill-builder.png' });
+    await expect(page.getByText(/Research Inbox|科研收件箱/i).first()).toBeVisible({ timeout: 5000 });
+    await page.screenshot({ path: 'artifacts/screenshots/9-inbox.png' });
 
-    // 9. Settings
+    // 9. Agent collaboration
+    await page.goto(`/projects/${projectId}/orchestration`);
+    await expect(page.getByText(/Agent Collaboration|Agent 协作/i).first()).toBeVisible({ timeout: 5000 });
+
+    // 10. Live conference deadlines
+    await page.goto(`/projects/${projectId}/deadlines`);
+    await expect(page.getByText(/会议与期刊 DDL|Deadlines/i).first()).toBeVisible({ timeout: 5000 });
+
+    // 11. Reviewer
+    await page.goto(`/projects/${projectId}/reviewer`);
+    await expect(page.getByText(/Reviewer Arena/i).first()).toBeVisible({ timeout: 5000 });
+
+    // 12. Release Studio
+    await page.goto(`/projects/${projectId}/release`);
+    await expect(page.getByText(/Research Release Studio/i).first()).toBeVisible({ timeout: 5000 });
+
+    // 13. Settings
     await page.goto(`/projects/${projectId}/settings`);
     await page.waitForLoadState('networkidle');
     await expect(page.getByText(/Language|语言|LLM/i)).toBeVisible({ timeout: 5000 });
     await page.screenshot({ path: 'artifacts/screenshots/10-settings.png' });
 
-    // 10. Chinese interface (default)
+    // 14. Chinese interface (default)
     await page.goto(`/projects/${projectId}/overview`);
     await page.waitForLoadState('networkidle');
     await expect(page.getByText(/项目总览|Research Copilot|project/i).first()).toBeVisible({ timeout: 5000 });
     await page.screenshot({ path: 'artifacts/screenshots/11-chinese-default.png' });
 
-    // 11. Switch to English
+    // 15. Switch to English
     const langSelect = page.locator('select[aria-label="语言"], select[aria-label="Language"]').first();
     if (await langSelect.isVisible()) {
       await langSelect.selectOption('en-US');

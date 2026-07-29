@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from researchos.common.celery_app import dispatch_agent_run
 from researchos.common.config import get_settings
 from researchos.common.errors import NotFoundError, ValidationError
+from researchos.common.logging import get_logger
 from researchos.common.pagination import Page
 from researchos.common.rate_limit import enforce_rate_limit
 from researchos.common.roles import ProjectRole
@@ -24,6 +25,8 @@ from .cancellation import request_cancel
 from .enums import AgentRunStatus, AgentType
 from .models import AgentRun, AgentRunEvent
 from .repository import AgentRunEventRepository, AgentRunRepository
+
+logger = get_logger(__name__)
 
 
 class AgentRunService:
@@ -64,7 +67,19 @@ class AgentRunService:
         )
         await self.db.commit()
         # Dispatch only after the row is durable.
-        dispatch_agent_run(str(run.id))
+        try:
+            dispatch_agent_run(str(run.id))
+        except Exception as exc:  # noqa: BLE001 - broker failures must not hide durable handle
+            # Keep the run queued so a reconciler or restarted dispatcher can
+            # retry it. Returning the durable handle prevents clients from
+            # creating duplicates after an ambiguous HTTP 500.
+            run.error_json = {
+                "code": "dispatch_pending",
+                "message": "Run is durable but the worker dispatch is pending.",
+            }
+            await self.db.commit()
+            await self.db.refresh(run)
+            logger.error("agent_dispatch_failed", run_id=str(run.id), error=str(exc))
         return run
 
     async def list_runs(

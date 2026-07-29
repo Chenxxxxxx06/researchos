@@ -27,6 +27,7 @@ from researchos.experiments.models import (
 )
 from researchos.figures.models import Figure, FigureAsset, ResultAnchor
 from researchos.identity.models import User
+from researchos.inbox.models import ResearchInboxItem
 from researchos.llm_config.models import LLMProviderConfig
 from researchos.organizations.models import Organization, OrganizationMembership
 from researchos.patches.models import PatchFile, PatchHunk, PatchProposal
@@ -34,6 +35,7 @@ from researchos.preferences.models import UserPreference
 from researchos.projects.models import Project, ProjectMembership
 from researchos.research.models import Idea, Paper, PaperSection, ResearchCritique, ResearchFeedPref
 from researchos.skills.models import Skill, SkillInstallation, SkillVersion
+from researchos.zotero.models import ZoteroConnection
 
 __all__ = [
     "Base",
@@ -74,4 +76,6 @@ __all__ = [
     "SkillVersion",
     "SkillInstallation",
     "LLMProviderConfig",
+    "ZoteroConnection",
+    "ResearchInboxItem",
 ]

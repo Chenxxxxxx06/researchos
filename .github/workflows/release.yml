@@ -1,0 +1,81 @@
+name: Release ResearchOS
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  verify-build-release:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: researchos
+          POSTGRES_PASSWORD: researchos
+          POSTGRES_DB: researchos_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify tag
+        shell: bash
+        run: |
+          expected="v$(cat VERSION)"
+          test "$GITHUB_REF_NAME" = "$expected" || {
+            echo "Tag $GITHUB_REF_NAME does not match VERSION ($expected)"
+            exit 1
+          }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install and verify backend
+        run: |
+          python -m pip install uv build
+          cd apps/api
+          uv pip install --system -e ".[dev]"
+          ruff check .
+          mypy researchos
+          pytest -q
+        env:
+          POSTGRES_DSN: postgresql+asyncpg://researchos:researchos@localhost:5432/researchos_test
+          REDIS_URL: redis://localhost:6379/15
+          SECRET_KEY: release-ci-secret
+          DB_USE_NULLPOOL: "true"
+          WORKSPACE_ROOT: /tmp/ros-release-workspaces
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "9.15.0"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - name: Verify frontend
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm -r typecheck
+          pnpm --filter web build
+      - name: Build CLI/API package
+        run: python -m build --outdir dist apps/api
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS.txt
+      - name: Publish GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=""
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then prerelease="--prerelease"; fi
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --verify-tag --generate-notes --title "ResearchOS $GITHUB_REF_NAME" \
+            $prerelease

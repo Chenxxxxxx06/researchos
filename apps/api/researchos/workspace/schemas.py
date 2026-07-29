@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TreeNode(BaseModel):
@@ -26,6 +26,28 @@ class FileContentResponse(BaseModel):
     size: int
     sha: str | None
     content: str | None
+
+
+class SaveFileRequest(BaseModel):
+    path: str = Field(min_length=1, max_length=1024)
+    content: str = Field(max_length=1_000_000)
+    base_sha: str | None = Field(default=None, min_length=64, max_length=64)
+
+
+class TerminalRunRequest(BaseModel):
+    argv: list[str] = Field(min_length=1, max_length=64)
+    cwd: str = Field(default=".", min_length=1, max_length=1024)
+    timeout_seconds: int = Field(default=30, ge=1, le=60)
+
+
+class TerminalRunResponse(BaseModel):
+    argv: list[str]
+    cwd: str
+    exit_code: int | None
+    stdout: str
+    stderr: str
+    duration_ms: int
+    timed_out: bool
 
 
 class GrepMatch(BaseModel):

@@ -20,6 +20,7 @@ export interface ExperimentRun {
   git_commit: string | null;
   command: string | null;
   config_json: Record<string, unknown>;
+  progress: number;
   started_at: string | null;
   finished_at: string | null;
   created_at: string;

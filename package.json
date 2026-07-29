@@ -2,6 +2,8 @@
   "name": "researchos",
   "version": "0.0.0",
   "private": true,
+  "license": "UNLICENSED",
+  "author": "Chenxxxxxx06",
   "description": "ResearchOS - AI-native research operating system (monorepo).",
   "packageManager": "pnpm@9.15.0",
   "scripts": {

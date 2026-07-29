@@ -207,8 +207,14 @@ const base = (p: string) => `/projects/${p}/latex-projects`;
 
 export const listLatexProjects = (p: string): Promise<LatexProject[]> => apiRequest(base(p));
 
-export const createLatexProject = (p: string, name: string): Promise<LatexProject> =>
-  apiRequest(base(p), { method: 'POST', body: { name } });
+export type PaperTemplateId = 'article' | 'ieee' | 'acm' | 'elsevier';
+
+export const createLatexProject = (
+  p: string,
+  name: string,
+  templateId: PaperTemplateId = 'article',
+): Promise<LatexProject> =>
+  apiRequest(base(p), { method: 'POST', body: { name, template_id: templateId } });
 
 export const getLatexProject = (p: string, lid: string): Promise<LatexProject> =>
   apiRequest(`${base(p)}/${lid}`);

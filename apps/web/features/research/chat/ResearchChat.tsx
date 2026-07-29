@@ -37,6 +37,7 @@ const PAGE = 20;
 const TEMPLATE_KEY: Record<ChatSeed['kind'], DictKey> = {
   section: 'research.chat.templateSection',
   paper: 'research.chat.templatePaper',
+  innovation: 'research.chat.templateInnovation',
   idea: 'research.chat.templateIdea',
   gap: 'research.chat.templateGap',
 };
@@ -51,6 +52,8 @@ function seedToRequest(
     case 'section':
       return { message, context: { paper_id: seed.paperId, section_seqs: [seed.sectionSeq] } };
     case 'paper':
+      return { message, context: { paper_id: seed.paperId } };
+    case 'innovation':
       return { message, context: { paper_id: seed.paperId } };
     case 'idea':
       return { message, context: { idea_id: seed.ideaId } };

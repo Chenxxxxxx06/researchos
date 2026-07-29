@@ -62,10 +62,13 @@ class CreateRunRequest(BaseModel):
     git_commit: str | None = None
     command: str | None = None
     config: dict = Field(default_factory=dict)
+    progress: float = Field(default=0.0, ge=0.0, le=100.0)
 
 
 class UpdateRunRequest(BaseModel):
     status: ExperimentRunStatus | None = None
+    progress: float | None = Field(default=None, ge=0.0, le=100.0)
+    current_step: str | None = Field(default=None, max_length=200)
 
 
 class RunResponse(BaseModel):
@@ -79,6 +82,7 @@ class RunResponse(BaseModel):
     git_commit: str | None
     command: str | None
     config_json: dict
+    progress: float
     started_at: datetime | None
     finished_at: datetime | None
     created_at: datetime
@@ -177,6 +181,8 @@ class LogLine(BaseModel):
 class StatusLine(BaseModel):
     t: Literal["status"]
     status: ExperimentRunStatus
+    progress: float | None = Field(default=None, ge=0.0, le=100.0)
+    current_step: str | None = Field(default=None, max_length=200)
 
 
 IngestLine = Annotated[MetricLine | LogLine | StatusLine, Field(discriminator="t")]

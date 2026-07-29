@@ -40,6 +40,40 @@ export function getFile(projectId: string, path: string): Promise<FileContent> {
   return apiRequest(`/projects/${projectId}/workspace/files?path=${encodeURIComponent(path)}`);
 }
 
+export function saveFile(
+  projectId: string,
+  input: { path: string; content: string; base_sha: string | null },
+): Promise<FileContent> {
+  return apiRequest(`/projects/${projectId}/workspace/files`, {
+    method: 'PUT',
+    body: input,
+  });
+}
+
+export interface TerminalRunResult {
+  argv: string[];
+  cwd: string;
+  exit_code: number | null;
+  stdout: string;
+  stderr: string;
+  duration_ms: number;
+  timed_out: boolean;
+}
+
+export function runTerminalCommand(
+  projectId: string,
+  input: { argv: string[]; cwd?: string; timeout_seconds?: number },
+): Promise<TerminalRunResult> {
+  return apiRequest(`/projects/${projectId}/workspace/terminal/run`, {
+    method: 'POST',
+    body: {
+      argv: input.argv,
+      cwd: input.cwd ?? '.',
+      timeout_seconds: input.timeout_seconds ?? 30,
+    },
+  });
+}
+
 /**
  * Full-text workspace search. Literal by default; pass `regex:true` for a
  * regular expression (400 `code:'validation_error'` on an invalid pattern).

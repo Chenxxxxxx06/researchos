@@ -9,9 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const MODULES = [
-  { title: 'Running experiments', desc: 'Track ML experiments, metrics, and artifacts' },
-  { title: 'Paper drafts', desc: 'Write LaTeX papers with AI assistance' },
-  { title: 'Installed skills', desc: 'Extend with research skills' },
+  { title: 'Research Mission', desc: 'Durable one-line research-to-paper orchestration with approval gates' },
+  { title: 'Remote SSH executor', desc: 'Host-key verified remote terminal, files, Git, and experiment execution' },
+  { title: 'Audio transcription', desc: 'Versioned recording storage, transcription, and direction extraction' },
 ];
 
 export function ProjectOverview({ projectId }: { projectId: string }) {
@@ -60,11 +60,21 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
           <h3 className="font-semibold text-neutral-900 group-hover:text-neutral-700">Paper Workspace</h3>
           <p className="mt-1 text-sm text-neutral-500">Write LaTeX with AI assistant and live preview.</p>
         </Link>
+        <Link href={`/projects/${project.id}/references`} className="group rounded-xl border border-neutral-200 bg-white p-6 shadow-sm transition-all hover:border-neutral-400 hover:shadow-md">
+          <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-lg text-indigo-600">Z</div>
+          <h3 className="font-semibold text-neutral-900 group-hover:text-neutral-700">References & Zotero</h3>
+          <p className="mt-1 text-sm text-neutral-500">Sync your library and receive personalized paper recommendations.</p>
+        </Link>
+        <Link href={`/projects/${project.id}/inbox`} className="group rounded-xl border border-neutral-200 bg-white p-6 shadow-sm transition-all hover:border-neutral-400 hover:shadow-md">
+          <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-rose-50 text-lg text-rose-600">IN</div>
+          <h3 className="font-semibold text-neutral-900 group-hover:text-neutral-700">Research Inbox</h3>
+          <p className="mt-1 text-sm text-neutral-500">Extract directions and tasks from mentor messages, files, and transcripts.</p>
+        </Link>
       </div>
 
-      {/* Coming soon */}
+      {/* Delivery roadmap */}
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">Coming soon</h2>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-400">Next delivery gates</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {MODULES.map((m) => (
             <Card key={m.title}>

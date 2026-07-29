@@ -14,6 +14,13 @@ export interface Project {
   updated_at: string;
 }
 
+export interface ProjectMember {
+  user_id: string;
+  email: string;
+  display_name: string;
+  role: 'viewer' | 'researcher' | 'admin' | 'owner';
+}
+
 export interface Page<T> {
   items: T[];
   total: number;
@@ -29,6 +36,10 @@ export function listProjects(organizationId: string): Promise<Page<Project>> {
 
 export function getProject(projectId: string): Promise<Project> {
   return apiRequest<Project>(`/projects/${projectId}`);
+}
+
+export function listProjectMembers(projectId: string): Promise<ProjectMember[]> {
+  return apiRequest<ProjectMember[]>(`/projects/${projectId}/members`);
 }
 
 export function createProject(input: {

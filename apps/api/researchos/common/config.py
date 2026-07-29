@@ -116,6 +116,9 @@ class Settings(BaseSettings):
     workspace_read_budget_bytes: int = 262_144
     workspace_grep_max_results: int = 50
     workspace_grep_max_file_bytes: int = 200_000
+    # Local developer convenience only. Staging/production always reject the
+    # browser terminal until execution is moved into an isolated runtime.
+    workspace_terminal_enabled: bool = True
 
     # --- Git (per-project workspace repos) -----------------------------------
     git_enabled: bool = True

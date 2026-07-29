@@ -5,12 +5,20 @@ from __future__ import annotations
 import re
 import uuid
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
-from researchos.common.deps import CurrentUser, DbSession
+from researchos.common.deps import CurrentUser, DbSession, require_csrf
 from researchos.common.errors import ValidationError
 
-from .schemas import FileContentResponse, GrepMatch, GrepResponse, TreeResponse
+from .schemas import (
+    FileContentResponse,
+    GrepMatch,
+    GrepResponse,
+    SaveFileRequest,
+    TerminalRunRequest,
+    TerminalRunResponse,
+    TreeResponse,
+)
 from .service import WorkspaceService
 
 router = APIRouter(prefix="/projects/{project_id}/workspace", tags=["workspace"])
@@ -26,6 +34,46 @@ async def get_file(
     project_id: uuid.UUID, user: CurrentUser, db: DbSession, path: str = Query(...)
 ) -> FileContentResponse:
     return await WorkspaceService(db).read_file(user, project_id, path)
+
+
+@router.put(
+    "/files",
+    response_model=FileContentResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def save_file(
+    project_id: uuid.UUID,
+    payload: SaveFileRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> FileContentResponse:
+    return await WorkspaceService(db).save_file(
+        user,
+        project_id,
+        path=payload.path,
+        content=payload.content,
+        base_sha=payload.base_sha,
+    )
+
+
+@router.post(
+    "/terminal/run",
+    response_model=TerminalRunResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def run_terminal(
+    project_id: uuid.UUID,
+    payload: TerminalRunRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> TerminalRunResponse:
+    return await WorkspaceService(db).run_terminal(
+        user,
+        project_id,
+        argv=payload.argv,
+        cwd=payload.cwd,
+        timeout_seconds=payload.timeout_seconds,
+    )
 
 
 @router.get("/grep", response_model=GrepResponse)

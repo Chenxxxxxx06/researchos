@@ -37,6 +37,27 @@ async def test_create_research_run_returns_handle(client) -> None:
     assert listing["total"] == 1
 
 
+async def test_dispatch_failure_still_returns_durable_handle(client, monkeypatch) -> None:
+    def fail_dispatch(_run_id: str) -> None:
+        raise ConnectionError("broker unavailable")
+
+    monkeypatch.setattr("researchos.agents.service.dispatch_agent_run", fail_dispatch)
+    project_id = await _make_project(client, "dispatch-failure@example.com")
+    resp = await client.post(
+        f"/projects/{project_id}/agents/runs",
+        json={"agent_type": "research", "message": "durable first"},
+        headers=csrf_headers(client),
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["status"] == "queued"
+    detail = await client.get(
+        f"/projects/{project_id}/agents/runs/{body['agent_run_id']}"
+    )
+    assert detail.status_code == 200
+    assert detail.json()["error_json"]["code"] == "dispatch_pending"
+
+
 async def test_events_rest_fallback(client) -> None:
     project_id = await _make_project(client, "ev@example.com")
     run_id = (

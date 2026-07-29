@@ -43,6 +43,8 @@ from researchos.common.redis import close_redis, get_redis  # noqa: E402
 from researchos.main import create_app  # noqa: E402
 
 _TABLES = [
+    "research_inbox_items",
+    "zotero_connections",
     "llm_provider_configs",
     "user_preferences",
     "skill_installations",

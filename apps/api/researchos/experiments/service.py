@@ -165,6 +165,7 @@ class ExperimentService:
                 git_commit=payload.git_commit,
                 command=payload.command,
                 config_json=payload.config,
+                progress=100.0 if payload.status in TERMINAL_STATUSES else payload.progress,
                 started_at=started,
                 finished_at=finished,
                 created_by=actor.id,
@@ -221,6 +222,7 @@ class ExperimentService:
             run.started_at = now
         if status in TERMINAL_STATUSES:
             run.finished_at = now
+            run.progress = 100.0
         return True
 
     async def _fire_terminal_hooks(self, run: ExperimentRun) -> list[uuid.UUID]:
@@ -247,6 +249,8 @@ class ExperimentService:
                 "run_id": str(run.id),
                 "experiment_id": str(run.experiment_id),
                 "status": run.status.value,
+                "progress": run.progress,
+                "current_step": (run.config_json or {}).get("current_step"),
             },
         )
 
@@ -287,6 +291,30 @@ class ExperimentService:
         await self.db.refresh(run)
         await self._publish_run_status(run)
         await self._publish_anchor_staleness(project_id, stale_anchor_ids)
+        return run
+
+    async def update_run_progress(
+        self,
+        actor: User,
+        project_id: uuid.UUID,
+        run_id: uuid.UUID,
+        *,
+        progress: float | None,
+        current_step: str | None,
+    ) -> ExperimentRun:
+        await self.projects.ensure_access(actor, project_id, ProjectRole.RESEARCHER)
+        run = await self.runs.get(project_id, run_id)
+        if run is None:
+            raise NotFoundError("Experiment run not found.")
+        if progress is not None:
+            run.progress = progress
+        if current_step is not None:
+            config = dict(run.config_json or {})
+            config["current_step"] = current_step
+            run.config_json = config
+        await self.db.commit()
+        await self.db.refresh(run)
+        await self._publish_run_status(run)
         return run
 
     # --- metrics / logs / artifacts -----------------------------------------

@@ -8,20 +8,24 @@
 
 import { useParams } from 'next/navigation';
 import {
+  BookOpen,
+  CalendarClock,
   Code2,
   FileText,
   FlaskConical,
   FolderKanban,
-  Hammer,
   Keyboard,
   Languages,
   LayoutDashboard,
   LogOut,
   Monitor,
+  MessagesSquare,
+  Megaphone,
+  Network,
   Moon,
-  Puzzle,
   Search,
   Settings,
+  ShieldCheck,
   Sun,
 } from 'lucide-react';
 
@@ -39,11 +43,15 @@ const PROJECT_NAV: Array<{
 }> = [
   { id: 'nav.overview', key: 'nav.overview', segment: 'overview', shortcut: 'g o', icon: LayoutDashboard },
   { id: 'nav.research', key: 'nav.research', segment: 'research', shortcut: 'g r', icon: Search },
+  { id: 'nav.references', key: 'nav.references', segment: 'references', shortcut: 'g l', icon: BookOpen },
+  { id: 'nav.inbox', key: 'nav.inbox', segment: 'inbox', shortcut: 'g m', icon: MessagesSquare },
+  { id: 'nav.orchestration', key: 'nav.orchestration', segment: 'orchestration', shortcut: 'g a', icon: Network },
+  { id: 'nav.deadlines', key: 'nav.deadlines', segment: 'deadlines', shortcut: 'g d', icon: CalendarClock },
   { id: 'nav.ide', key: 'nav.ide', segment: 'ide', shortcut: 'g i', icon: Code2 },
   { id: 'nav.experiments', key: 'nav.experiments', segment: 'experiments', shortcut: 'g e', icon: FlaskConical },
   { id: 'nav.paper', key: 'nav.paper', segment: 'paper', shortcut: 'g p', icon: FileText },
-  { id: 'nav.skills', key: 'nav.skills', segment: 'skills', shortcut: 'g k', icon: Puzzle },
-  { id: 'nav.skillBuilder', key: 'nav.skillBuilder', segment: 'skills/builder', shortcut: 'g b', icon: Hammer },
+  { id: 'nav.reviewer', key: 'nav.reviewer', segment: 'reviewer', shortcut: 'g v', icon: ShieldCheck },
+  { id: 'nav.release', key: 'nav.release', segment: 'release', shortcut: 'g u', icon: Megaphone },
   { id: 'nav.settings', key: 'nav.settings', segment: 'settings', shortcut: 'g s', icon: Settings },
 ];
 

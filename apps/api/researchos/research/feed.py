@@ -26,6 +26,7 @@ from researchos.projects.service import ProjectService
 
 from .providers.arxiv import ArxivProvider
 from .providers.base import PaperResult, PaperSearchFilters, ProviderError
+from .ranking import rank_results
 from .repository import FeedPrefRepository, PaperRepository
 from .schemas import FeedCategoriesResponse, FeedItem, FeedResponse
 
@@ -141,6 +142,11 @@ class FeedService:
                 )
             except Exception as exc:  # noqa: BLE001 - cache is best-effort
                 logger.warning("feed_cache_write_failed", error=str(exc))
+
+        # Personalize at response time so a freshly synced Zotero library takes
+        # effect immediately even when the provider response came from cache.
+        library_docs = await self.papers.list_library_docs(project_id, limit=500)
+        results = rank_results(list(results), library_docs=library_docs)
 
         # In-library markers are computed at response time (never cached).
         library_keys = await self.papers.list_ids_for_project(project_id)

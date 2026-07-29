@@ -64,6 +64,7 @@ class ExperimentRun(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     git_commit: Mapped[str | None] = mapped_column(String(64), nullable=True)
     command: Mapped[str | None] = mapped_column(Text, nullable=True)
     config_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    progress: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # Next log seq to hand out; blocks are reserved atomically via UPDATE..RETURNING.

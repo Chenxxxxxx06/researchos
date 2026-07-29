@@ -10,12 +10,12 @@
 <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=36&duration=3000&pause=1000&color=6366F1&center=true&vCenter=true&random=false&width=600&lines=ResearchOS;AI+Research+Operating+System;%E5%AE%9E%E9%AA%8C++%E8%AE%BA%E6%96%87+++%E4%BB%A3%E7%A0%81;One+Workspace%2C+End+to+End" alt="ResearchOS" />
 
 <p>
-  <a href="https://github.com/NPUwho/researchos/actions/workflows/ci.yml"><img src="https://github.com/NPUwho/researchos/actions/workflows/ci.yml/badge.svg?label=CI" alt="CI" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat&color=6366F1" alt="License" /></a>
+  <a href="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml"><img src="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml/badge.svg?label=CI" alt="CI" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Proprietary-6366F1?style=flat" alt="Proprietary License" /></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.13+-blue?logo=python&logoColor=white&color=3776AB" alt="Python" /></a>
   <a href="#"><img src="https://img.shields.io/badge/node-22+-green?logo=node.js&logoColor=white&color=339933" alt="Node" /></a>
   <a href="#"><img src="https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-361%20passed-success?logo=pytest&logoColor=white" alt="Tests" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-quality%20gated-blue?logo=pytest&logoColor=white" alt="Tests" /></a>
   <a href="#"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?logo=github&logoColor=white" alt="PRs Welcome" /></a>
 </p>
 
@@ -31,6 +31,10 @@
 </div>
 
 ---
+
+> 一体化科研闭环、Agent 协议、SSH/实验编排边界与能力完成标准见
+> [产品与工程蓝图](docs/PRODUCT_BLUEPRINT_ZH.md)、[Agent 协议](docs/AGENT_PROTOCOL_ZH.md)
+> 和[能力 TODO](docs/TODO_ZH.md)。
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" alt="rainbow" />
@@ -51,13 +55,33 @@ open http://localhost:3000
 | 邮箱 | `demo@researchos.dev` |
 | 密码 | `demo-password-123` |
 
+### 终端 Harness（alpha）
+
+```bash
+cd apps/api
+uv pip install -e .
+
+researchos init
+researchos register --email you@example.com --display-name "Your Name"
+researchos login --email you@example.com
+researchos projects
+researchos projects create --name "My Research"
+researchos use <project-id>
+researchos ask "分析当前工作的创新点与实验缺口"
+researchos chat
+```
+
+CLI 已支持真实 API 登录、项目选择、Agent Run、交互会话、科研记忆、Context
+Manifest、Mission 人工闸门骨架和外部 Harness 发现。详细设计见
+[CLI 与科研记忆](docs/HARNESS_CLI_MEMORY_ZH.md)。
+
 <p align="right">
   <sub><a href="#-手动安装">没有 pnpm？点这里 →</a></sub>
 </p>
 
 ---
 
-## 🎯 六大核心模块
+## 🎯 核心工作台
 
 <table>
 <tr>
@@ -114,19 +138,6 @@ open http://localhost:3000
 
 <tr>
 <td align="center">
-  <h3>🧩</h3>
-  <b>Skills Marketplace</b>
-</td>
-<td>
-  5 个官方 Skill · 一键安装启用 · Skill Builder 自定义
-</td>
-<td>
-  <sub>插件化架构 · 热加载 · 自定义 Skill</sub>
-</td>
-</tr>
-
-<tr>
-<td align="center">
   <h3>⚙️</h3>
   <b>Settings</b>
 </td>
@@ -174,10 +185,10 @@ open http://localhost:3000
 | `pnpm stack:full` | 完整重置：down → up → migrate → seed |
 | `pnpm stack:up` | 启动全部服务 |
 | `pnpm stack:down` | 停止全部服务 |
-| `pnpm test` | 后端 pytest（361 测试） |
+| `pnpm test` | 后端 pytest 测试套件 |
 | `pnpm check` | 全质量门：test + typecheck + build |
 | `pnpm smoke:api` | API 冒烟测试（16 端点） |
-| `pnpm smoke:e2e` | Playwright E2E（10 页面） |
+| `pnpm smoke:e2e` | 核心工作台 Playwright E2E |
 
 ```bash
 # Windows 用户也可以用 PowerShell
@@ -193,71 +204,54 @@ open http://localhost:3000
 |---|---|
 | 🤖 LLM（无 API Key） | Mock 提供者（确定性、零成本）。Settings → LLM 配置真实 Key 后切换到 Anthropic / OpenAI |
 | 📜 LaTeX 编译 | Mock 文本转换（无 shell、无 PDF）。真实隔离 latexmk 编译待实现 |
-| 💻 终端面板 | 仅 UI 外壳（无命令执行） |
+| 💻 终端面板 | 仅 local 环境执行真实 argv；固定开发命令和只读 Git，带目录边界、超时和输出上限；生产环境强制关闭 |
 | 🌐 SSH 运行时 | 仅接口 + 权限模型（无远程连接） |
-| 🧩 Skill 运行时注入 | Skills 可安装启用，Agent 运行时尚未注入 Skill prompt/workflow |
+| 🎙️ 音频 | 当前保存文件来源并分析转写稿；真实 ASR、说话人分离和对象存储待实现 |
 
 ---
 
-## 🗺️ 路线图
+## 🗺️ 能力路线图（不按阶段包装）
 
-> 💡 *有想法？[发起 Discussion](https://github.com/NPUwho/researchos/discussions) 或提 PR！*
+完整状态、边界和验收方式见 [docs/TODO_ZH.md](docs/TODO_ZH.md)。当前重点包括：
 
-### 🔥 第一阶段 — 生产就绪（v0.2）
-
-| 🎯 特性 | 📌 状态 |
+| 能力 | 当前状态 |
 |---|---|
-| 🤖 真实 LLM 提供商（Anthropic Claude · OpenAI GPT · DeepSeek） | 🟡 计划中 |
-| 📜 真实 LaTeX 编译（Docker 隔离 latexmk） | 🟡 计划中 |
-| 🌿 Git 分支可视化 & 合并冲突解决 | 🟡 计划中 |
-| 📊 实验指标对比（多轮并排展示） | 🟡 计划中 |
-| 🔐 OAuth2 / SSO 登录（Google、GitHub、ORCID） | 🟡 计划中 |
-| 📎 聊天文件上传 & 附件 | 🟡 计划中 |
-| 🔔 实时通知（WebSocket 推送） | 🟡 计划中 |
-| 🌓 暗色模式自动切换 | 🟡 计划中 |
+| Zotero 文献同步、推荐入口、独立参考文献中心 | ✅ 可用骨架 |
+| LLM 配置连通性测试、创新点/下一步提取 | ✅ 可用骨架 |
+| 多人归属树、Coordinator/子 Agent 协议 | ✅ 可用骨架 |
+| Research Inbox：方向提取、会议总结、转写稿转论文 | ✅ / 🟡 |
+| 真实受限本地终端、Git 只读状态 | ✅ 可用骨架 |
+| 实验进度、数据输入流概览 | ✅ 可用骨架 |
+| CCFDDL 实时会议 DDL、模拟 Reviewer | ✅ 可用骨架 |
+| 项目页 / README / Poster Release Agent | ✅ 可用骨架 |
+| PDF 标注、实验 DAG、自动标签、多模态、引用图谱、venue 排版、重跑 diff | ⚪ 待实现 |
+| SSH/HPC/Slurm、隔离任意命令、持续 Research Mission | ⚪ 待实现 |
+| `researchos` / `ros` CLI、科研 Context 与 Mission scaffold | ✅ 可用骨架 |
+| Claude / Codex / OpenClaw / nanobot 执行适配器 | ⚪ 待实现（当前只发现并链接） |
+| GitHub Pages 宣传页与 Tag Release 质量门 | ✅ 可用骨架 |
 
-### 🚀 第二阶段 — 协作（v0.3）
+> 功能等你来提供想法！欢迎发送场景、输入输出和验收方式到
+> [3653448612@qq.com](mailto:3653448612@qq.com)。
 
-| 🎯 特性 | 📌 状态 |
-|---|---|
-| 👥 多人实时协作（Y.js CRDT） | ⚪ 待规划 |
-| 💻 真实终端 & 沙箱执行（Firecracker/gVisor） | ⚪ 待规划 |
-| 🌐 SSH 运行时 — 连接 HPC / 云 GPU / Slurm | ⚪ 待规划 |
-| 📚 引用管理器集成（Zotero · Mendeley · Paperpile） | ⚪ 待规划 |
-| 📑 PDF 标注 & 行内高亮 | ⚪ 待规划 |
-| 🧪 自动化实验流水线（DAG 工作流） | ⚪ 待规划 |
-| 📋 科研项目模板（计算机、生物、物理等） | ⚪ 待规划 |
-| 🏷️ 论文自动标签 & 智能分类 | ⚪ 待规划 |
+## 🙏 设计参考与致谢
 
-### 🌌 第三阶段 — 智能化（v1.0）
+- [academic-research-skills](https://github.com/Imbad0202/academic-research-skills)：科研流水线、材料护照和多人交接。
+- [superpowers](https://github.com/obra/superpowers)：需求澄清、worktree、计划执行和双重审查。
+- [Dify](https://github.com/langgenius/dify)：可视化工作流、模型编排与可观测性。
+- [agent-skills](https://github.com/addyosmani/agent-skills)：DEFINE → PLAN → BUILD → VERIFY → REVIEW → SHIP。
+- [nature-skills](https://github.com/Yuan1z0825/nature-skills)：论文、图表、审稿与展示工作流。
+- [CCFA-Skills](https://github.com/mikubaka88/CCFA-Skills)：artifact owner、共享配置与投稿流水线。
+- [ccf-deadlines](https://github.com/ccfddl/ccf-deadlines)：会议数据与 iCal 订阅来源。
+- [CS Paper Review](https://cspaper.org/)：venue-aware 模拟评审交互参考。
+- [LabVLA](https://zjunlp.github.io/LabVLA/) 与 [DiffBIR](https://0x3f3f3f3fun.github.io/projects/diffbir/)：项目宣传页信息结构参考。
+- [Claude Code](https://code.claude.com/docs/en/how-claude-code-works)、[OpenAI Codex](https://github.com/openai/codex)、[OpenClaw](https://github.com/openclaw/openclaw) 与 [nanobot](https://github.com/HKUDS/nanobot)：Harness、CLI、会话、工具、网关和上下文管理参考；未直接复制其实现。
 
-| 🎯 特性 | 📌 状态 |
-|---|---|
-| 🖼️ 多模态 Agent（图片、图表、表格、公式） | ⚪ 待规划 |
-| 🔗 自动文献图谱 & 引用网络可视化 | ⚪ 待规划 |
-| 📝 按会议/期刊自动排版（NeurIPS · ICML · ACL · Nature） | ⚪ 待规划 |
-| ✅ 科研可复现性检查（重跑 + diff 输出） | ⚪ 待规划 |
-| 🧩 社区 Skill 市场（发布 & 分享 Skill） | ⚪ 待规划 |
-| 📈 学术影响力看板（引用、altmetrics、下载量） | ⚪ 待规划 |
-| 🎙️ 语音转论文 & 会议总结 | ⚪ 待规划 |
-| 🌍 跨源联合检索（arXiv · Semantic Scholar · PubMed · OpenAlex） | ⚪ 待规划 |
-| 🧠 主动学习实验建议 | ⚪ 待规划 |
-| 📦 一键论文到代码可复现包 | ⚪ 待规划 |
+## 📖 新增设计文档
 
-### 🧪 实验性 / 可能做
-
-| 🎯 想法 | 💭 为什么 |
-|---|---|
-| 🎮 游戏化同行评审（评审对战、声誉积分） | 让评审有趣且有激励 |
-| 🔮 研究方向预测器（来自 arXiv 的趋势预测） | 早期发现热门方向 |
-| 🧬 Protocol.io / Protocols.io 集成 | 可复现湿实验方案 |
-| 📊 实时会议看板（接收率、关键词趋势） | 会议季利器 |
-| 🤝 "实验室搭子匹配" — 按研究兴趣找合作者 | 构建研究网络 |
-| 🪄 "给 5 岁小孩讲这篇论文" — 分层摘要 | 科学传播 |
-| 🔐 区块链时间戳研究声明 | 优先权 & 溯源 |
-| 📱 移动 App — 随时检查实验 & 审批 Patch | 真正的随时随地访问 |
-| 🎨 论文插图生成器（DALL·E / Stable Diffusion 集成） | 自动生成配图 |
-| 🌐 自托管 arXiv 覆盖层（不离开 App 浏览批注） | 一站式工作流 |
+- [ResearchOS Harness、CLI 与科研记忆设计](docs/HARNESS_CLI_MEMORY_ZH.md)
+- [科研教育 Harness 建设手册](docs/RESEARCH_EDUCATION_HARNESS_ROADMAP_ZH.md)
+- [统一宣传文案包](docs/PROMOTION_COPY_ZH.md)
+- [GitHub Pages 宣传站](https://chenxxxxxx06.github.io/researchos/)
 
 ---
 
@@ -282,7 +276,7 @@ open http://localhost:3000
 ```bash
 cd apps/api
 
-# 全部 361 测试
+# 全部后端测试
 pytest -q
 
 # 指定模块
@@ -297,7 +291,7 @@ pnpm check
 ## 📊 CI / 质量
 
 <p align="center">
-  <a href="https://github.com/NPUwho/researchos/actions/workflows/ci.yml"><img src="https://github.com/NPUwho/researchos/actions/workflows/ci.yml/badge.svg?label=CI%20Status" alt="CI" /></a>
+  <a href="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml"><img src="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml/badge.svg?label=CI%20Status" alt="CI" /></a>
 </p>
 
 GitHub Actions (`.github/workflows/ci.yml`) · push / PR 自动触发：
@@ -305,7 +299,7 @@ GitHub Actions (`.github/workflows/ci.yml`) · push / PR 自动触发：
 | 🧪 阶段 | ⚙️ 命令 | 🟢 状态 |
 |---|---|---|
 | Backend Lint | `ruff check .` + `mypy researchos` | ✅ |
-| Backend Test | `pytest -q`（PostgreSQL + Redis，361 tests） | ✅ |
+| Backend Test | `pytest -q`（PostgreSQL + Redis） | ✅ |
 | Frontend Typecheck | `pnpm -r typecheck` | ✅ |
 | Frontend Build | `pnpm --filter web build` | ✅ |
 
@@ -328,9 +322,11 @@ GitHub Actions (`.github/workflows/ci.yml`) · push / PR 自动触发：
 
 ---
 
-## 🤝 参与贡献
+## 🔒 项目归属与贡献
 
-我们欢迎一切形式的贡献！提 Issue、PR、或者直接在 Discussions 里聊想法。
+ResearchOS 为 **Chenxxxxxx06** 所有的专有项目。获得源码访问权限不代表获得复制、传播、
+商业化、再授权或提供托管服务的许可。任何贡献均须事先获得授权并另行签署书面贡献协议。
+具体条款见 [LICENSE](LICENSE) 与 [NOTICE.md](NOTICE.md)。
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" alt="rainbow" />
@@ -338,7 +334,7 @@ GitHub Actions (`.github/workflows/ci.yml`) · push / PR 自动触发：
 
 <p align="center">
   <sub>Made with 🔬 by researchers, for researchers</sub><br/>
-  <sub>© 2024–2026 ResearchOS · <a href="LICENSE">MIT License</a></sub>
+  <sub>© 2024–2026 Chenxxxxxx06 · <a href="LICENSE">保留所有权利</a></sub>
 </p>
 
 ---

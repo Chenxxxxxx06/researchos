@@ -9,6 +9,7 @@ import { useI18n } from '@/lib/i18n';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { RunDetail } from './RunDetail';
+import { ExperimentFlowOverview } from './ExperimentFlowOverview';
 
 const STATUS_COLORS: Record<string, string> = { completed: 'bg-emerald-100 text-emerald-700', running: 'bg-amber-100 text-amber-700', failed: 'bg-red-100 text-red-700', queued: 'bg-neutral-100 text-neutral-500', cancelled: 'bg-neutral-100 text-neutral-500' };
 
@@ -40,7 +41,7 @@ export function ExperimentsDashboard({ projectId }: { projectId: string }) {
 
       <main className="flex-1 overflow-y-auto p-6">
         {selectedRunId ? <RunDetail projectId={projectId} runId={selectedRunId} /> : (
-          <div className="flex h-full items-center justify-center text-sm text-neutral-400">{t('experiments.selectRun')}</div>
+          <ExperimentFlowOverview projectId={projectId} />
         )}
       </main>
     </div>
@@ -49,7 +50,15 @@ export function ExperimentsDashboard({ projectId }: { projectId: string }) {
 
 function ExperimentItem({ projectId, experiment, selectedRunId, onSelectRun }: { projectId: string; experiment: Experiment; selectedRunId: string | null; onSelectRun: (id: string) => void }) {
   const [open, setOpen] = useState(true);
-  const { data, isLoading } = useQuery<ExperimentRun[], ApiError>({ queryKey: ['exp-runs', projectId, experiment.id], queryFn: () => listRuns(projectId, experiment.id), enabled: open });
+  const { data, isLoading } = useQuery<ExperimentRun[], ApiError>({
+    queryKey: ['exp-runs', projectId, experiment.id],
+    queryFn: () => listRuns(projectId, experiment.id),
+    enabled: open,
+    refetchInterval: (query) =>
+      query.state.data?.some((run) => run.status === 'running' || run.status === 'queued')
+        ? 3000
+        : false,
+  });
   return (
     <div className="rounded-lg border border-neutral-200 bg-white">
       <button className="flex w-full items-center justify-between px-3 py-2 text-left" onClick={() => setOpen(!open)}>
@@ -62,9 +71,14 @@ function ExperimentItem({ projectId, experiment, selectedRunId, onSelectRun }: {
           {data?.length === 0 && <p className="text-xs text-neutral-400 py-1">No runs</p>}
           {data?.map((run) => (
             <button key={run.id} onClick={() => onSelectRun(run.id)}
-              className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-xs ${selectedRunId === run.id ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-50'}`}>
-              <span>{run.name}</span>
-              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLORS[run.status] ?? ''}`}>{run.status}</span>
+              className={`w-full rounded px-2 py-1.5 text-left text-xs ${selectedRunId === run.id ? 'bg-neutral-900 text-white' : 'text-neutral-700 hover:bg-neutral-50'}`}>
+              <div className="flex items-center justify-between">
+                <span>{run.name}</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${STATUS_COLORS[run.status] ?? ''}`}>{run.status}</span>
+              </div>
+              <div className="mt-1 h-1 overflow-hidden rounded-full bg-neutral-200">
+                <div className="h-full rounded-full bg-indigo-500" style={{ width: `${Math.max(0, Math.min(100, run.progress ?? 0))}%` }} />
+              </div>
             </button>
           ))}
         </div>

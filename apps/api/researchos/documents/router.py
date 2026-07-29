@@ -74,7 +74,12 @@ async def list_latex_projects(
 async def create_latex_project(
     project_id: uuid.UUID, payload: CreateLatexProjectRequest, user: CurrentUser, db: DbSession
 ) -> LatexProjectResponse:
-    lp = await DocumentService(db).create_latex_project(user, project_id, name=payload.name)
+    lp = await DocumentService(db).create_latex_project(
+        user,
+        project_id,
+        name=payload.name,
+        template_id=payload.template_id,
+    )
     return LatexProjectResponse.model_validate(lp)
 
 

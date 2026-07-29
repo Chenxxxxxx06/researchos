@@ -16,7 +16,7 @@ import type { Monaco, OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { FileText } from 'lucide-react';
+import { BookOpen, FileText, Newspaper, ScrollText } from 'lucide-react';
 
 import { ApiError } from '@/lib/api/client';
 import {
@@ -30,11 +30,11 @@ import {
   rejectSuggestion,
   saveFile,
   type DocRange,
+  type PaperTemplateId,
   type Suggestion,
   type SuggestionOp,
 } from '@/lib/api/documents';
 import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/toast';
@@ -69,7 +69,8 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
   const lid = lp?.id;
 
   const create = useMutation({
-    mutationFn: () => createLatexProject(projectId, 'Paper'),
+    mutationFn: (templateId: PaperTemplateId) =>
+      createLatexProject(projectId, 'Paper', templateId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['latex-projects', projectId] }),
   });
 
@@ -324,17 +325,63 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
     );
   }
   if (!lp) {
+    const templates: {
+      id: PaperTemplateId;
+      icon: typeof FileText;
+      title: string;
+      description: string;
+    }[] = [
+      {
+        id: 'article',
+        icon: FileText,
+        title: t('paper.template.article'),
+        description: t('paper.template.articleDescription'),
+      },
+      {
+        id: 'ieee',
+        icon: ScrollText,
+        title: 'IEEE',
+        description: t('paper.template.ieeeDescription'),
+      },
+      {
+        id: 'acm',
+        icon: BookOpen,
+        title: 'ACM',
+        description: t('paper.template.acmDescription'),
+      },
+      {
+        id: 'elsevier',
+        icon: Newspaper,
+        title: 'Elsevier',
+        description: t('paper.template.elsevierDescription'),
+      },
+    ];
     return (
-      <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center">
-        <EmptyState
-          icon={FileText}
-          title={t('paper.empty')}
-          actions={
-            <Button onClick={() => create.mutate()} loading={create.isPending}>
-              {t('paper.newPaper')}
-            </Button>
-          }
-        />
+      <div className="mx-auto flex min-h-[calc(100vh-7rem)] max-w-5xl flex-col justify-center p-6">
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-semibold text-foreground">{t('paper.empty')}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{t('paper.template.choose')}</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {templates.map((template) => {
+            const Icon = template.icon;
+            return (
+              <button
+                key={template.id}
+                type="button"
+                className="group rounded-xl border border-border bg-surface p-5 text-left transition hover:border-primary hover:shadow-sm disabled:opacity-50"
+                disabled={create.isPending}
+                onClick={() => create.mutate(template.id)}
+              >
+                <Icon className="mb-4 size-7 text-primary" />
+                <div className="font-medium text-foreground">{template.title}</div>
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                  {template.description}
+                </p>
+              </button>
+            );
+          })}
+        </div>
       </div>
     );
   }

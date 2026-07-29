@@ -24,3 +24,14 @@ class SaveLLMConfigRequest(BaseModel):
     api_key: str = Field(default="", max_length=512)
     is_active: bool = True
     description: str | None = Field(default=None, max_length=500)
+
+
+class LLMConnectionTestResponse(BaseModel):
+    ok: bool
+    provider_type: str
+    model: str
+    latency_ms: int
+    message: str
+    sample: str | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0

@@ -29,6 +29,7 @@ from researchos.figures.router import router as figures_router
 from researchos.git.router import router as git_router
 from researchos.health.router import router as health_router
 from researchos.identity.router import router as auth_router
+from researchos.inbox.router import router as inbox_router
 from researchos.llm_config.router import router as llm_config_router
 from researchos.organizations.router import router as organizations_router
 from researchos.patches.router import router as patches_router
@@ -37,8 +38,10 @@ from researchos.preferences.router import project_router as preferences_project_
 from researchos.projects.router import router as projects_router
 from researchos.research.router import router as research_router
 from researchos.skills.router import router as skills_router
+from researchos.venues.router import router as venues_router
 from researchos.websocket.router import router as websocket_router
 from researchos.workspace.router import router as workspace_router
+from researchos.zotero.router import router as zotero_router
 
 
 @asynccontextmanager
@@ -74,6 +77,11 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="ResearchOS API",
         version=__version__,
+        description="Proprietary research operating system owned by Chenxxxxxx06.",
+        license_info={
+            "name": "Proprietary — All Rights Reserved",
+            "url": "https://github.com/Chenxxxxxx06/researchos/blob/main/LICENSE",
+        },
         debug=settings.debug,
         lifespan=lifespan,
     )
@@ -109,6 +117,9 @@ def create_app() -> FastAPI:
     app.include_router(skills_router)
     app.include_router(llm_config_router)
     app.include_router(websocket_router)
+    app.include_router(zotero_router)
+    app.include_router(inbox_router)
+    app.include_router(venues_router)
 
     return app
 

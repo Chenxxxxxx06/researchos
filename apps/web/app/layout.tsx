@@ -7,6 +7,14 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'ResearchOS',
   description: 'AI-native research operating system.',
+  applicationName: 'ResearchOS',
+  authors: [{ name: 'Chenxxxxxx06', url: 'https://github.com/Chenxxxxxx06' }],
+  creator: 'Chenxxxxxx06',
+  publisher: 'Chenxxxxxx06',
+  other: {
+    copyright: 'Copyright (c) 2024-2026 Chenxxxxxx06. All rights reserved.',
+    license: 'Proprietary',
+  },
 };
 
 /**

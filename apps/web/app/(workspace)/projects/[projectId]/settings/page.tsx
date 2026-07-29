@@ -7,7 +7,9 @@ import {
   deleteLLMConfig,
   listLLMConfigs,
   saveLLMConfig,
+  testLLMConfig,
   type LLMConfig,
+  type LLMConnectionTest,
 } from '@/lib/api/llmConfig';
 import { useI18n } from '@/lib/i18n';
 import { useTheme, type ThemePreference } from '@/lib/theme';
@@ -90,6 +92,10 @@ export default function SettingsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['llm-configs', projectId] }),
   });
 
+  const test = useMutation({
+    mutationFn: (id: string) => testLLMConfig(projectId, id),
+  });
+
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     name: 'default',
@@ -167,11 +173,31 @@ export default function SettingsPage() {
                   <span className="ml-2 rounded bg-surface-2 px-2 py-0.5 font-mono text-xs text-muted">{cfg.provider_type}</span>
                   {cfg.is_active && <span className="ml-2 rounded bg-success-bg px-2 py-0.5 text-xs text-success">active</span>}
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => del.mutate(cfg.id)} disabled={del.isPending}>
-                  {t('common.delete')}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => test.mutate(cfg.id)}
+                    disabled={test.isPending}
+                  >
+                    {test.isPending && test.variables === cfg.id
+                      ? t('settings.llmTesting')
+                      : t('settings.llmTest')}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => del.mutate(cfg.id)} disabled={del.isPending}>
+                    {t('common.delete')}
+                  </Button>
+                </div>
               </div>
               <p className="mt-1 text-xs text-muted">Model: {cfg.model} · URL: {cfg.base_url} · Key: {cfg.api_key_masked}</p>
+              {test.variables === cfg.id && test.data && (
+                <ConnectionResult result={test.data} />
+              )}
+              {test.variables === cfg.id && test.error instanceof ApiError && (
+                <p className="mt-2 rounded bg-danger-bg px-3 py-2 text-xs text-danger">
+                  {test.error.message}
+                </p>
+              )}
             </div>
           ))}
 
@@ -202,6 +228,28 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function ConnectionResult({ result }: { result: LLMConnectionTest }) {
+  return (
+    <div
+      className={cn(
+        'mt-3 rounded-md border px-3 py-2 text-xs',
+        result.ok
+          ? 'border-success/30 bg-success-bg text-success'
+          : 'border-danger/30 bg-danger-bg text-danger',
+      )}
+    >
+      <div className="font-medium">
+        {result.ok ? '✓' : '✕'} {result.message} · {result.latency_ms} ms
+      </div>
+      {result.sample && (
+        <div className="mt-1 break-words font-mono text-[11px] opacity-80">
+          {result.sample}
+        </div>
+      )}
     </div>
   );
 }

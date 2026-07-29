@@ -3,15 +3,19 @@
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import {
+  BookOpen,
+  CalendarClock,
   Code2,
   FileText,
   FlaskConical,
   FolderKanban,
-  Hammer,
   LayoutDashboard,
-  Puzzle,
+  MessagesSquare,
+  Megaphone,
+  Network,
   Search,
   Settings,
+  ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -29,11 +33,15 @@ interface NavItem {
 const ITEMS: NavItem[] = [
   { key: 'nav.overview', segment: 'overview', icon: LayoutDashboard, shortcut: 'g o' },
   { key: 'nav.research', segment: 'research', icon: Search, shortcut: 'g r' },
+  { key: 'nav.references', segment: 'references', icon: BookOpen, shortcut: 'g l' },
+  { key: 'nav.inbox', segment: 'inbox', icon: MessagesSquare, shortcut: 'g m' },
+  { key: 'nav.orchestration', segment: 'orchestration', icon: Network, shortcut: 'g a' },
+  { key: 'nav.deadlines', segment: 'deadlines', icon: CalendarClock, shortcut: 'g d' },
   { key: 'nav.ide', segment: 'ide', icon: Code2, shortcut: 'g i' },
   { key: 'nav.experiments', segment: 'experiments', icon: FlaskConical, shortcut: 'g e' },
   { key: 'nav.paper', segment: 'paper', icon: FileText, shortcut: 'g p' },
-  { key: 'nav.skills', segment: 'skills', icon: Puzzle, shortcut: 'g k' },
-  { key: 'nav.skillBuilder', segment: 'skills/builder', icon: Hammer, shortcut: 'g b' },
+  { key: 'nav.reviewer', segment: 'reviewer', icon: ShieldCheck, shortcut: 'g v' },
+  { key: 'nav.release', segment: 'release', icon: Megaphone, shortcut: 'g u' },
   { key: 'nav.settings', segment: 'settings', icon: Settings, shortcut: 'g s' },
 ];
 
@@ -43,8 +51,7 @@ export function SideRail() {
   const pathname = usePathname();
   const projectId = params?.projectId;
 
-  // Path-boundary matching, longest match wins: /skills/builder must light
-  // "Skill Builder" and NOT "Skills".
+  // Path-boundary matching keeps nested routes attached to their parent item.
   const activeHref = ITEMS.reduce<string | null>((best, item) => {
     if (!projectId) return best;
     const href = `/projects/${projectId}/${item.segment}`;

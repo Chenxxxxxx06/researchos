@@ -1,0 +1,5 @@
+{
+  "schema": "researchos.project/v1",
+  "project_id": null,
+  "memory_policy": "provenance-first"
+}

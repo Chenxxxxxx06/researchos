@@ -116,6 +116,10 @@ export function ReadingRoom({ projectId, paperId }: { projectId: string; paperId
     setSeed({ kind: 'paper', paperId: p.id, paperTitle: p.title, citationKey: key });
     router.push(backHref);
   };
+  const extractInnovation = () => {
+    setSeed({ kind: 'innovation', paperId: p.id, paperTitle: p.title, citationKey: key });
+    router.push(backHref);
+  };
   const explainSection = (section: PaperSection) => {
     setSeed({
       kind: 'section',
@@ -150,10 +154,16 @@ export function ReadingRoom({ projectId, paperId }: { projectId: string; paperId
         </Link>
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-xl font-semibold leading-tight text-text">{p.title}</h1>
-          <Button size="sm" variant="secondary" className="shrink-0" onClick={explainPaper}>
-            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-            {t('research.reading.explainPaper')}
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            <Button size="sm" variant="secondary" onClick={explainPaper}>
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+              {t('research.reading.explainPaper')}
+            </Button>
+            <Button size="sm" onClick={extractInnovation}>
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+              {t('research.reading.extractInnovation')}
+            </Button>
+          </div>
         </div>
         {(p.authors_json.length > 0 || p.venue || date) && (
           <p className="mt-1.5 text-sm text-muted">

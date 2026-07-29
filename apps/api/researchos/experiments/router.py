@@ -181,6 +181,14 @@ async def update_run(
     run = await svc.get_run(user, project_id, run_id)
     if payload.status is not None:
         run = await svc.update_run_status(user, project_id, run_id, payload.status)
+    if payload.progress is not None or payload.current_step is not None:
+        run = await svc.update_run_progress(
+            user,
+            project_id,
+            run_id,
+            progress=payload.progress,
+            current_step=payload.current_step,
+        )
     return RunResponse.model_validate(run)
 
 

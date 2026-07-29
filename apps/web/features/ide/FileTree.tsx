@@ -6,13 +6,15 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight, File, FileCode2, FileText, Folder } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { ChevronDown, ChevronRight, File, FileCode2, FilePlus2, FileText, Folder } from 'lucide-react';
 import { useState } from 'react';
 
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api/client';
-import { getTree, type TreeNode, type TreeResponse } from '@/lib/api/workspace';
+import { getTree, saveFile, type TreeNode, type TreeResponse } from '@/lib/api/workspace';
 import { useIdeStore } from '@/lib/ide/store';
 import { useI18n } from '@/lib/i18n';
 
@@ -69,6 +71,10 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
 
 export function FileTree({ projectId }: { projectId: string }) {
   const { t } = useI18n();
+  const queryClient = useQueryClient();
+  const openTab = useIdeStore((s) => s.openTab);
+  const [creating, setCreating] = useState(false);
+  const [newPath, setNewPath] = useState('');
   const { data, isLoading, isError, refetch } = useQuery<TreeResponse, ApiError>({
     queryKey: ['workspace-tree', projectId],
     queryFn: () => getTree(projectId),
@@ -76,6 +82,52 @@ export function FileTree({ projectId }: { projectId: string }) {
 
   return (
     <div className="py-1">
+      <div className="flex items-center justify-between px-3 py-1">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-faint">
+          {t('ide.explorer')}
+        </span>
+        <button
+          type="button"
+          className="rounded p-1 text-muted hover:bg-surface-2 hover:text-text"
+          aria-label={t('ide.newFile')}
+          onClick={() => setCreating(true)}
+        >
+          <FilePlus2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {creating && (
+        <form
+          className="mx-2 mb-2 space-y-2 rounded-md border border-border bg-surface-2 p-2"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const path = newPath.trim().replaceAll('\\', '/');
+            if (!path) return;
+            try {
+              await saveFile(projectId, { path, content: '', base_sha: null });
+              await queryClient.invalidateQueries({ queryKey: ['workspace-tree', projectId] });
+              setCreating(false);
+              setNewPath('');
+              openTab(path);
+            } catch {
+              // The editor will surface read failures; keep the form open for correction.
+            }
+          }}
+        >
+          <input
+            autoFocus
+            value={newPath}
+            onChange={(event) => setNewPath(event.target.value)}
+            placeholder={t('ide.newFilePlaceholder')}
+            className="h-8 w-full rounded border border-border-strong bg-surface px-2 text-xs text-text outline-none focus:ring-2 focus:ring-focus/60"
+          />
+          <div className="flex gap-1">
+            <Button type="submit" size="sm">{t('common.create')}</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setCreating(false)}>
+              {t('common.cancel')}
+            </Button>
+          </div>
+        </form>
+      )}
       {isLoading && <Skeleton className="mx-3 my-2 h-16" />}
       {isError && (
         <div className="px-3 py-4 text-center">

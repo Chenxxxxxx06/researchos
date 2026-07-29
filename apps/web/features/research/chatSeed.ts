@@ -16,6 +16,7 @@ export type ChatSeed =
       sectionHeading: string;
     }
   | { kind: 'paper'; paperId: string; paperTitle: string; citationKey: string }
+  | { kind: 'innovation'; paperId: string; paperTitle: string; citationKey: string }
   | { kind: 'idea'; ideaId: string; ideaTitle: string }
   | { kind: 'gap'; problem: string; method: string; paperKeys: string[] };
 

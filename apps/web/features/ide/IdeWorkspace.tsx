@@ -126,7 +126,7 @@ export function IdeWorkspace({ projectId }: { projectId: string }) {
             <EditorPane projectId={projectId} />
           </div>
           <div className="h-40 shrink-0 border-t border-border">
-            <TerminalPanel />
+            <TerminalPanel projectId={projectId} />
           </div>
         </div>
 

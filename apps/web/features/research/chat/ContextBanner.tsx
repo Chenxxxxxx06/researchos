@@ -16,6 +16,8 @@ function describe(seed: ChatSeed): { icon: LucideIcon; key: DictKey; params: Rec
       };
     case 'paper':
       return { icon: BookOpen, key: 'research.chat.contextPaper', params: { title: seed.paperTitle } };
+    case 'innovation':
+      return { icon: Lightbulb, key: 'research.chat.contextPaper', params: { title: seed.paperTitle } };
     case 'idea':
       return { icon: Lightbulb, key: 'research.chat.contextIdea', params: { title: seed.ideaTitle } };
     case 'gap':

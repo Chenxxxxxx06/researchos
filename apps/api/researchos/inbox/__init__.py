@@ -1,0 +1,1 @@
+"""Research Inbox bounded context."""

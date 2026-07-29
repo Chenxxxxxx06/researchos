@@ -154,6 +154,14 @@ class IngestService:
         status_applied = False
         for lineno, status_line in status_items:
             try:
+                if status_line.progress is not None:
+                    run.progress = status_line.progress
+                    status_applied = True
+                if status_line.current_step is not None:
+                    config = dict(run.config_json or {})
+                    config["current_step"] = status_line.current_step
+                    run.config_json = config
+                    status_applied = True
                 if run.status == status_line.status:
                     accepted += 1  # idempotent no-op
                     continue
