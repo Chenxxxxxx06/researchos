@@ -40,6 +40,10 @@
 </p>
 
 <p>
+  <sub>The author is actively studying and building Agent Harness architecture, context engineering, Skill protocols, durable execution, and evaluation. Designs will keep evolving alongside verified implementations.</sub>
+</p>
+
+<p>
   <a href="README_zh.md">中文文档</a>
 </p>
 
@@ -48,7 +52,9 @@
 ---
 
 > See the [Chinese product and engineering blueprint](docs/PRODUCT_BLUEPRINT_ZH.md),
-> [agent protocol](docs/AGENT_PROTOCOL_ZH.md), and [capability TODO](docs/TODO_ZH.md)
+> [agent protocol](docs/AGENT_PROTOCOL_ZH.md),
+> [Harness implementation guide](docs/HARNESS_ARCHITECTURE_GUIDE_ZH.md), and
+> [capability TODO](docs/TODO_ZH.md)
 > for the unified research pipeline and execution boundaries.
 
 <p align="center">
@@ -89,7 +95,8 @@ researchos chat
 The CLI uses the real ResearchOS API and includes project selection, agent runs,
 interactive sessions, provenance-aware memory, context manifests, and a local
 Mission approval scaffold. See the
-[CLI and scientific memory design](docs/HARNESS_CLI_MEMORY_ZH.md).
+[CLI and scientific memory design](docs/HARNESS_CLI_MEMORY_ZH.md) and
+[Harness implementation guide](docs/HARNESS_ARCHITECTURE_GUIDE_ZH.md).
 
 <p align="right">
   <sub><a href="#-manual-setup">Don't have pnpm? Click here →</a></sub>
@@ -237,9 +244,14 @@ The roadmap is maintained by honest capability state rather than release phases.
 | Ownership tree and coordinator/worker agent protocol | ✅ usable skeleton |
 | Research Inbox direction/meeting/transcript-to-paper flows | ✅ / 🟡 |
 | Restricted real terminal, experiment progress/dataflow | ✅ usable skeleton |
-| Live CCFDDL deadlines, simulated reviewer, release studio | ✅ usable skeleton |
+| Live CCFDDL deadlines | ✅ usable skeleton: Chinese iCal search/filter/subscription; verify the official venue site before submission |
+| Reviewer Arena | ✅ usable skeleton: real Agent Run; paper-version binding, structured rubrics, citation/code checks, and review diff are backlog |
 | PDF annotation, experiment DAG, tagging, multimodal parsing, citation graph, venue formatting, rerun diff | ⚪ backlog |
 | SSH/HPC/Slurm, isolated arbitrary commands, continuous Research Mission | ⚪ backlog |
+| Disconnect-safe execution, Mission isolation, Server Lab, GPU-aware scheduling | ⚪ backlog |
+| Skill/System Prompt registry, context compaction, and evaluations | ⚪ backlog |
+| Signed community Skill/Prompt/Workflow registry | ⚪ backlog |
+| Venue-aware idea gate and structured reviewer revision loop | ⚪ backlog |
 | `researchos` / `ros` CLI, scientific context, Mission scaffold | ✅ usable skeleton |
 | Claude / Codex / OpenClaw / nanobot execution adapters | ⚪ backlog; discovery and links only |
 | GitHub Pages site and gated tag-release workflow | ✅ site deployed; release gate ready |
@@ -270,6 +282,7 @@ claim their implementations as ResearchOS code.
 
 Design documents:
 [Harness, CLI, and scientific memory](docs/HARNESS_CLI_MEMORY_ZH.md) ·
+[Harness implementation guide: Skills, prompts, context, durable execution, and GPU scheduling](docs/HARNESS_ARCHITECTURE_GUIDE_ZH.md) ·
 [Research education harness roadmap](docs/RESEARCH_EDUCATION_HARNESS_ROADMAP_ZH.md) ·
 [promotion copy kit](docs/PROMOTION_COPY_ZH.md) ·
 [GitHub Pages site](https://chenxxxxxx06.github.io/researchos/).

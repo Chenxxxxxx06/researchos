@@ -39,12 +39,17 @@
   <sub>ResearchOS 正在持续维护。当前 Alpha 更重视可验证的进展、诚实的能力边界和能够恢复的科研闭环，而不是夸大的功能数量。</sub>
 </p>
 
+<p>
+  <sub>作者近期正在系统学习与实践 Agent Harness、上下文工程、Skill 协议、持续执行与评测体系；相关设计会随可验证实现持续更新。</sub>
+</p>
+
 </div>
 
 ---
 
 > 一体化科研闭环、Agent 协议、SSH/实验编排边界与能力完成标准见
 > [产品与工程蓝图](docs/PRODUCT_BLUEPRINT_ZH.md)、[Agent 协议](docs/AGENT_PROTOCOL_ZH.md)
+> 、[Harness 架构实施指南](docs/HARNESS_ARCHITECTURE_GUIDE_ZH.md)
 > 和[能力 TODO](docs/TODO_ZH.md)。
 
 <p align="center">
@@ -84,7 +89,8 @@ researchos chat
 
 CLI 已支持真实 API 登录、项目选择、Agent Run、交互会话、科研记忆、Context
 Manifest、Mission 人工闸门骨架和外部 Harness 发现。详细设计见
-[CLI 与科研记忆](docs/HARNESS_CLI_MEMORY_ZH.md)。
+[CLI 与科研记忆](docs/HARNESS_CLI_MEMORY_ZH.md)和
+[Harness 架构实施指南](docs/HARNESS_ARCHITECTURE_GUIDE_ZH.md)。
 
 <p align="right">
   <sub><a href="#-手动安装">没有 pnpm？点这里 →</a></sub>
@@ -233,10 +239,15 @@ Manifest、Mission 人工闸门骨架和外部 Harness 发现。详细设计见
 | Research Inbox：方向提取、会议总结、转写稿转论文 | ✅ / 🟡 |
 | 真实受限本地终端、Git 只读状态 | ✅ 可用骨架 |
 | 实验进度、数据输入流概览 | ✅ 可用骨架 |
-| CCFDDL 实时会议 DDL、模拟 Reviewer | ✅ 可用骨架 |
+| CCFDDL 实时会议 DDL | ✅ 可用骨架：读取中文 iCal、搜索/筛选/订阅；投稿前仍需核对官网 |
+| Reviewer Arena | ✅ 可用骨架：真实 Agent Run；论文版本绑定、结构化 rubric、引用/代码检查与复审 diff 待实现 |
 | 项目页 / README / Poster Release Agent | ✅ 可用骨架 |
 | PDF 标注、实验 DAG、自动标签、多模态、引用图谱、venue 排版、重跑 diff | ⚪ 待实现 |
 | SSH/HPC/Slurm、隔离任意命令、持续 Research Mission | ⚪ 待实现 |
+| 断线持续执行、Mission 隔离、Server Lab 与 GPU 感知调度 | ⚪ 待实现 |
+| Skill/System Prompt Registry、上下文压缩与评测 | ⚪ 待实现 |
+| 社区 Skill/Prompt/Workflow Registry 与签名信任机制 | ⚪ 待实现 |
+| Venue-aware Idea Gate 与结构化 Reviewer 复审闭环 | ⚪ 待实现 |
 | `researchos` / `ros` CLI、科研 Context 与 Mission scaffold | ✅ 可用骨架 |
 | Claude / Codex / OpenClaw / nanobot 执行适配器 | ⚪ 待实现（当前只发现并链接） |
 | GitHub Pages 宣传页与 Tag Release 质量门 | ✅ 站点已部署；Release 质量门就绪 |
@@ -260,6 +271,7 @@ Manifest、Mission 人工闸门骨架和外部 Harness 发现。详细设计见
 ## 📖 新增设计文档
 
 - [ResearchOS Harness、CLI 与科研记忆设计](docs/HARNESS_CLI_MEMORY_ZH.md)
+- [ResearchOS Harness 架构实施指南：Skill、Prompt、上下文、持续执行与 GPU 调度](docs/HARNESS_ARCHITECTURE_GUIDE_ZH.md)
 - [科研教育 Harness 建设手册](docs/RESEARCH_EDUCATION_HARNESS_ROADMAP_ZH.md)
 - [统一宣传文案包](docs/PROMOTION_COPY_ZH.md)
 - [GitHub Pages 宣传站](https://chenxxxxxx06.github.io/researchos/)
