@@ -1,5 +1,11 @@
 # ResearchOS Architecture Map
 
+> **Historical architecture snapshot.** This document describes the repository before
+> the `5ee2354` Harness/CLI update and is retained as audit evidence. Some statements
+> about the terminal, routes, Skills UI, and product surface are no longer current.
+> Use [README.md](../README.md) and [TODO_ZH.md](TODO_ZH.md) for the current capability
+> ledger; regenerate this map before using it for implementation decisions.
+
 Synthesized from parallel subsystem readings of the full monorepo (2026-07). Covers: `apps/api` (FastAPI backend, 14 routers), `apps/worker` (Celery), `apps/web` (Next.js 15 / React 19 client-only frontend), `packages/shared-schemas`, `infra/docker`, `scripts/`, `docs/`.
 
 ---

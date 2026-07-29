@@ -9,14 +9,21 @@
 
 <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=36&duration=3000&pause=1000&color=6366F1&center=true&vCenter=true&random=false&width=600&lines=ResearchOS;AI+Research+Operating+System;%E5%AE%9E%E9%AA%8C++%E8%AE%BA%E6%96%87+++%E4%BB%A3%E7%A0%81;One+Workspace%2C+End+to+End" alt="ResearchOS" />
 
+<img src="docs/assets/researchos-otter.png" width="240" alt="ResearchOS 科研小獭 Rho，连接论文与代码" />
+
+<p>
+  <sub><b>这是 Rho，ResearchOS 的科研小獭。</b>保持好奇、善用工具，并认真把每条结论连接到证据。</sub>
+</p>
+
 <p>
   <a href="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml"><img src="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml/badge.svg?label=CI" alt="CI" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Proprietary-6366F1?style=flat" alt="Proprietary License" /></a>
+  <a href="docs/TODO_ZH.md"><img src="https://img.shields.io/badge/maintenance-active-61E6B2?style=flat" alt="持续维护中" /></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.13+-blue?logo=python&logoColor=white&color=3776AB" alt="Python" /></a>
   <a href="#"><img src="https://img.shields.io/badge/node-22+-green?logo=node.js&logoColor=white&color=339933" alt="Node" /></a>
   <a href="#"><img src="https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
   <a href="#"><img src="https://img.shields.io/badge/tests-quality%20gated-blue?logo=pytest&logoColor=white" alt="Tests" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?logo=github&logoColor=white" alt="PRs Welcome" /></a>
+  <a href="mailto:3653448612@qq.com"><img src="https://img.shields.io/badge/ideas-welcome-brightgreen" alt="欢迎提供想法" /></a>
 </p>
 
 <blockquote>
@@ -26,6 +33,10 @@
 
 <p>
   <sub>Built with ❤️ using <b>FastAPI</b> + <b>Next.js</b> + <b>PostgreSQL/pgvector</b> + <b>Redis</b> + <b>Docker</b></sub>
+</p>
+
+<p>
+  <sub>ResearchOS 正在持续维护。当前 Alpha 更重视可验证的进展、诚实的能力边界和能够恢复的科研闭环，而不是夸大的功能数量。</sub>
 </p>
 
 </div>
@@ -228,7 +239,7 @@ Manifest、Mission 人工闸门骨架和外部 Harness 发现。详细设计见
 | SSH/HPC/Slurm、隔离任意命令、持续 Research Mission | ⚪ 待实现 |
 | `researchos` / `ros` CLI、科研 Context 与 Mission scaffold | ✅ 可用骨架 |
 | Claude / Codex / OpenClaw / nanobot 执行适配器 | ⚪ 待实现（当前只发现并链接） |
-| GitHub Pages 宣传页与 Tag Release 质量门 | ✅ 可用骨架 |
+| GitHub Pages 宣传页与 Tag Release 质量门 | ✅ 站点已部署；Release 质量门就绪 |
 
 > 功能等你来提供想法！欢迎发送场景、输入输出和验收方式到
 > [3653448612@qq.com](mailto:3653448612@qq.com)。

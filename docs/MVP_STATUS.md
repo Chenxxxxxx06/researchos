@@ -1,5 +1,11 @@
 # ResearchOS MVP Status
 
+> **Archived snapshot (2026-06-25).** This file predates the Harness/CLI update,
+> removal of the Skills Marketplace UI, the local-only terminal runner, and the new
+> Zotero/Inbox/Deadline/Reviewer/Release workspaces. It is retained for history and
+> must not be used as the current capability ledger. See [TODO_ZH.md](TODO_ZH.md)
+> and the repository README files for current status.
+
 Last updated: 2026-06-25
 
 ## Completed modules (real, working)

@@ -9,14 +9,21 @@
 
 <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=36&duration=3000&pause=1000&color=6366F1&center=true&vCenter=true&random=false&width=600&lines=ResearchOS;AI+Research+Operating+System;Experiment+%E2%86%92+Paper+%E2%86%92+Code;One+Workspace%2C+End+to+End" alt="ResearchOS" />
 
+<img src="docs/assets/researchos-otter.png" width="240" alt="Rho, the ResearchOS research otter, connecting papers and code" />
+
+<p>
+  <sub><b>Meet Rho, the Research Otter.</b> Curious, tool-using, and serious about connecting every claim to its evidence.</sub>
+</p>
+
 <p>
   <a href="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml"><img src="https://github.com/Chenxxxxxx06/researchos/actions/workflows/ci.yml/badge.svg?label=CI" alt="CI" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Proprietary-6366F1?style=flat" alt="Proprietary License" /></a>
+  <a href="docs/TODO_ZH.md"><img src="https://img.shields.io/badge/maintenance-active-61E6B2?style=flat" alt="Actively maintained" /></a>
   <a href="#"><img src="https://img.shields.io/badge/python-3.13+-blue?logo=python&logoColor=white&color=3776AB" alt="Python" /></a>
   <a href="#"><img src="https://img.shields.io/badge/node-22+-green?logo=node.js&logoColor=white&color=339933" alt="Node" /></a>
   <a href="#"><img src="https://img.shields.io/badge/PostgreSQL-pgvector-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
   <a href="#"><img src="https://img.shields.io/badge/tests-quality%20gated-blue?logo=pytest&logoColor=white" alt="Tests" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?logo=github&logoColor=white" alt="PRs Welcome" /></a>
+  <a href="mailto:3653448612@qq.com"><img src="https://img.shields.io/badge/ideas-welcome-brightgreen" alt="Ideas welcome" /></a>
 </p>
 
 <blockquote>
@@ -26,6 +33,10 @@
 
 <p>
   <sub>Built with ❤️ using <b>FastAPI</b> + <b>Next.js</b> + <b>PostgreSQL/pgvector</b> + <b>Redis</b> + <b>Docker</b></sub>
+</p>
+
+<p>
+  <sub>ResearchOS is actively maintained. The current alpha favors verifiable progress, explicit limitations, and a durable research loop over inflated feature claims.</sub>
 </p>
 
 <p>
@@ -231,7 +242,7 @@ The roadmap is maintained by honest capability state rather than release phases.
 | SSH/HPC/Slurm, isolated arbitrary commands, continuous Research Mission | ⚪ backlog |
 | `researchos` / `ros` CLI, scientific context, Mission scaffold | ✅ usable skeleton |
 | Claude / Codex / OpenClaw / nanobot execution adapters | ⚪ backlog; discovery and links only |
-| GitHub Pages site and gated tag-release workflow | ✅ usable skeleton |
+| GitHub Pages site and gated tag-release workflow | ✅ site deployed; release gate ready |
 
 Have an idea for the next capability? Email
 [3653448612@qq.com](mailto:3653448612@qq.com) with the use case, inputs, expected outputs, and acceptance criteria.

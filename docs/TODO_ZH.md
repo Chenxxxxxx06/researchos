@@ -65,7 +65,7 @@
 | 项目宣传页面 Agent | ✅ 可用骨架 | 生成可审查代码提案；下一步加截图回归、可访问性与自动部署审批 |
 | GitHub README Agent | ✅ 可用骨架 | 从 Story Pack 生成补丁；保留安装、复现、引用和许可证 |
 | Poster Agent | ✅ 可用骨架 | 复用论文图表与结果卡；下一步接入 PDF/PPTX 导出和印刷检查 |
-| GitHub Pages 宣传页 | ✅ 可用骨架 | `docs/site` 零运行时依赖；待 Pages 权限启用、域名和可访问性回归 |
+| GitHub Pages 宣传页 | ✅ 已部署 | `docs/site` 零运行时依赖；当前由 `gh-pages` 发布，合并默认分支后统一切换到 Pages Workflow 并补可访问性回归 |
 | GitHub Tag Release | ✅ 可用骨架 | Tag 必须匹配 VERSION，后端/前端全绿后才生成包、校验和与 prerelease |
 
 ## 科研收件箱
