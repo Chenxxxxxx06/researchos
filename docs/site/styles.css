@@ -142,3 +142,135 @@ footer { display: flex; justify-content: space-between; padding: 30px 0 45px; bo
   .principles, .status-grid { grid-template-columns: 1fr; }
   footer { flex-direction: column; gap: .5rem; }
 }
+
+/* ═══════════════════════════════════════════════
+   Visual Editor Demo (Cursor-style Design Mode)
+   ═══════════════════════════════════════════════ */
+
+.demo-section { padding: 120px 0; border-top: 1px solid var(--line); }
+
+.veditor {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #091510;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,.3);
+}
+
+/* -- Tabs -- */
+.ve-tabs {
+  display: flex; align-items: center; gap: 2px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  background: #0c1a14;
+}
+.ve-tab {
+  padding: 7px 16px;
+  border: none; border-radius: 7px;
+  background: transparent;
+  color: var(--muted); font: 600 .78rem/1 system-ui, sans-serif;
+  cursor: pointer; transition: all .2s;
+}
+.ve-tab:hover { color: var(--text); background: rgba(255,255,255,.03); }
+.ve-tab.active { color: var(--green); background: rgba(107,230,184,.08); }
+.ve-badge {
+  margin-left: auto;
+  padding: 3px 10px; border-radius: 999px;
+  background: rgba(107,230,184,.1); color: var(--green);
+  font: 600 .62rem/1 system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase;
+}
+
+/* -- Body split -- */
+.ve-body { display: grid; grid-template-columns: 1fr 300px; min-height: 420px; }
+
+/* -- Canvas -- */
+.ve-canvas { padding: 20px; overflow-y: auto; }
+.ve-panel { display: none; }
+.ve-panel.ve-panel-active { display: block; }
+.ve-canvas-header {
+  display: flex; align-items: center; gap: .8rem; margin-bottom: 16px; padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  color: var(--text); font: 700 .82rem/1 system-ui, sans-serif;
+}
+.ve-canvas-header small { color: var(--muted); font-weight: 400; font-size: .72rem; }
+
+/* -- Draggable cards -- */
+.ve-cards { display: flex; flex-direction: column; gap: 8px; }
+.ve-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface);
+  cursor: grab; user-select: none;
+  transition: border-color .2s, box-shadow .2s, transform .15s, background .2s;
+}
+.ve-card:hover { border-color: var(--green); }
+.ve-card:active { cursor: grabbing; }
+.ve-card.selected {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(107,230,184,.15);
+  background: #0e211a;
+}
+.ve-card.dragging { opacity: .5; transform: scale(.98); }
+.ve-card.drag-over { border-color: var(--lime); border-style: dashed; background: rgba(199,243,107,.04); }
+.ve-card-drag {
+  color: var(--muted); font-size: 1.2rem; cursor: grab; flex-shrink: 0;
+  transition: color .2s;
+}
+.ve-card:hover .ve-card-drag { color: var(--green); }
+.ve-card-body { flex: 1; min-width: 0; }
+.ve-card-body strong { display: block; font-size: .88rem; margin-bottom: 2px; }
+.ve-card-body small { display: block; color: var(--muted); font-size: .75rem; margin-bottom: 3px; }
+.ve-card-status { font: .68rem/1 system-ui, sans-serif; }
+.ve-card-status.running { color: var(--lime); }
+.ve-card-status.queued  { color: var(--muted); }
+.ve-card-status.done    { color: var(--green); }
+.ve-card-status.paused  { color: var(--orange); }
+
+/* -- Outline -- */
+.ve-outline { display: flex; flex-direction: column; gap: 4px; }
+.ve-section-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-radius: 8px;
+  color: var(--text); font: 600 .82rem/1 system-ui, sans-serif;
+  cursor: pointer; transition: background .2s;
+}
+.ve-section-head:hover { background: rgba(255,255,255,.02); }
+.ve-section-head small { color: var(--muted); font-weight: 400; font-size: .72rem; margin-left: auto; }
+.ve-fold { color: var(--green); font-size: .65rem; width: 16px; }
+
+/* -- Mini Terminal -- */
+.ve-terminal {
+  font: .78rem/1.8 'SF Mono', ui-monospace, monospace;
+  color: var(--text-2);
+}
+.ve-term-line { white-space: pre; }
+.ve-cursor { display: inline-block; animation: blink 1s step-end infinite; color: var(--green); }
+
+@keyframes blink { 50% { opacity: 0; } }
+
+/* -- Inspector -- */
+.ve-inspector {
+  border-left: 1px solid var(--line); background: #060f0c;
+  display: flex; flex-direction: column;
+}
+.ve-inspector-header {
+  padding: 12px 16px; border-bottom: 1px solid var(--line);
+  color: var(--text); font: 700 .8rem/1 system-ui, sans-serif;
+}
+.ve-inspector-body { padding: 20px 16px; flex: 1; }
+.ve-hint { color: var(--muted); font-size: .8rem; text-align: center; line-height: 1.7; }
+.ve-inspector-field { margin-bottom: 16px; }
+.ve-inspector-field label {
+  display: block; color: var(--muted); font: 600 .68rem/1 system-ui, sans-serif;
+  letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px;
+}
+.ve-inspector-field input[type=range] {
+  width: 100%; accent-color: var(--green);
+}
+.ve-inspector-field input[type=text] {
+  width: 100%; padding: 6px 10px; border: 1px solid var(--line); border-radius: 5px;
+  background: var(--surface); color: var(--text); font: .8rem system-ui, sans-serif;
+}
+.ve-inspector-field input[type=text]:focus { outline: none; border-color: var(--green); }
+.ve-inspector-value { color: var(--green); font: .75rem system-ui, sans-serif; }

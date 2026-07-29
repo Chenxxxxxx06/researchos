@@ -23,6 +23,7 @@
       <nav aria-label="主导航">
         <a href="#why">为什么</a>
         <a href="#harness">Harness</a>
+        <a href="#demo">Demo</a>
         <a href="#cli">CLI</a>
         <a href="#status">状态</a>
       </nav>
@@ -61,7 +62,7 @@
       <section class="statement reveal" id="why">
         <p class="section-index">01 / WHY</p>
         <blockquote>
-          “论文里的这条结论，来自哪篇文献、哪个实验、哪个 commit 和哪份 artifact？”
+          "论文里的这条结论，来自哪篇文献、哪个实验、哪个 commit 和哪份 artifact？"
         </blockquote>
         <p>
           科研工具彼此割裂，聊天记录又无法承担科学证据。ResearchOS 的核心不是生成更多文字，
@@ -102,7 +103,7 @@
         <article>
           <span class="icon">◫</span>
           <h3>Context with boundaries</h3>
-          <p>规则、科学事实、会话和学习者记忆分层管理，不做一个混乱的“大向量库”。</p>
+          <p>规则、科学事实、会话和学习者记忆分层管理，不做一个混乱的"大向量库"。</p>
         </article>
         <article>
           <span class="icon">◇</span>
@@ -111,9 +112,128 @@
         </article>
       </section>
 
+      <!-- ═══ VISUAL EDITOR DEMO ═══ -->
+      <section class="demo-section reveal" id="demo">
+        <p class="section-index">03 / VISUAL EDITOR</p>
+        <h2>Design mode.<br/>Drag. Click. Edit.</h2>
+        <p style="color:var(--muted);max-width:600px;margin-bottom:2.5rem">
+          像操作 Figma 一样管理你的研究工作流。拖拽卡片调整优先级，点击选中编辑内容，
+          AI 根据你的操作实时更新实验配置和论文结构。
+        </p>
+
+        <div class="veditor" id="veditor">
+          <!-- Tab bar -->
+          <div class="ve-tabs">
+            <button class="ve-tab active" data-panel="canvas">Experiment Canvas</button>
+            <button class="ve-tab" data-panel="papers">Paper Outline</button>
+            <button class="ve-tab" data-panel="terminal">Terminal</button>
+            <span class="ve-badge">Design Mode</span>
+          </div>
+
+          <!-- Split layout -->
+          <div class="ve-body">
+            <!-- Left: Canvas -->
+            <div class="ve-canvas" id="ve-canvas">
+              <div class="ve-panel ve-panel-active" id="panel-canvas">
+                <div class="ve-canvas-header">
+                  <span>📋 Experiment Queue</span>
+                  <small>drag to reorder · click to inspect</small>
+                </div>
+                <div class="ve-cards" id="ve-cards">
+                  <div class="ve-card" draggable="true" data-id="1" data-name="Baseline BERT" data-status="running" data-gpu="A100-1" data-eta="12m">
+                    <div class="ve-card-drag">⠿</div>
+                    <div class="ve-card-body">
+                      <strong>Baseline BERT</strong>
+                      <small>GLUE benchmark · 3 seeds · batch=32</small>
+                      <span class="ve-card-status running">● running · 67% · ETA 12m</span>
+                    </div>
+                  </div>
+                  <div class="ve-card" draggable="true" data-id="2" data-name="LoRA Fine-tune" data-status="queued" data-gpu="A100-2" data-eta="45m">
+                    <div class="ve-card-drag">⠿</div>
+                    <div class="ve-card-body">
+                      <strong>LoRA Fine-tune r=16</strong>
+                      <small>SST-2 · MNLI · QQP · rank=16 · lr=3e-4</small>
+                      <span class="ve-card-status queued">○ queued · A100-2 · ETA 45m</span>
+                    </div>
+                  </div>
+                  <div class="ve-card" draggable="true" data-id="3" data-name="Ablation: dropout" data-status="done" data-gpu="A100-1" data-eta="—">
+                    <div class="ve-card-drag">⠿</div>
+                    <div class="ve-card-body">
+                      <strong>Ablation: dropout rate</strong>
+                      <small>p ∈ {0.1, 0.2, 0.3, 0.5} · 4 runs · acc=91.2%</small>
+                      <span class="ve-card-status done">✓ done · acc 91.2% · 3h ago</span>
+                    </div>
+                  </div>
+                  <div class="ve-card" draggable="true" data-id="4" data-name="Our Method" data-status="paused" data-gpu="A100-2" data-eta="2h">
+                    <div class="ve-card-drag">⠿</div>
+                    <div class="ve-card-body">
+                      <strong>Our Method: Multi-Scale Fusion</strong>
+                      <small>custom arch · 5 seeds · waiting approval</small>
+                      <span class="ve-card-status paused">⏸ paused · gate: scope approval</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ve-panel" id="panel-papers">
+                <div class="ve-canvas-header">
+                  <span>📝 Paper Outline</span>
+                  <small>click section to expand</small>
+                </div>
+                <div class="ve-outline">
+                  <div class="ve-section-head" data-section="abstract">
+                    <span class="ve-fold">▾</span> 1. Abstract
+                    <small>4 paragraphs · last edit 2h ago</small>
+                  </div>
+                  <div class="ve-section-head" data-section="intro">
+                    <span class="ve-fold">▸</span> 2. Introduction
+                    <small>gap identified · needs baseline results</small>
+                  </div>
+                  <div class="ve-section-head" data-section="method">
+                    <span class="ve-fold">▸</span> 3. Method
+                    <small>diagram pending · architecture defined</small>
+                  </div>
+                  <div class="ve-section-head" data-section="experiments">
+                    <span class="ve-fold">▸</span> 4. Experiments
+                    <small>3/5 baselines complete</small>
+                  </div>
+                  <div class="ve-section-head" data-section="conclusion">
+                    <span class="ve-fold">▸</span> 5. Conclusion
+                    <small>draft · pending full results</small>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ve-panel" id="panel-terminal">
+                <div class="ve-canvas-header">
+                  <span>⬛ Terminal</span>
+                  <small>researchos agent log</small>
+                </div>
+                <div class="ve-terminal" id="ve-terminal">
+                  <div class="ve-term-line"><span class="c-green">$</span> researchos experiment run baseline-bert --seed 42</div>
+                  <div class="ve-term-line"><span class="c-muted">[14:02:03]</span> ✓ container started · gpu:0 · 22GB free</div>
+                  <div class="ve-term-line"><span class="c-muted">[14:02:05]</span> ✓ data loaded · 392,702 samples</div>
+                  <div class="ve-term-line"><span class="c-muted">[14:02:10]</span> ◉ epoch 1/3 · loss 0.423 · acc 0.874</div>
+                  <div class="ve-term-line"><span class="c-muted">[14:14:32]</span> ◉ epoch 2/3 · loss 0.218 · acc 0.903</div>
+                  <div class="ve-term-line typing"><span class="c-muted">[14:26:51]</span> ◉ epoch 3/3 · loss 0.147 · acc <span class="ve-cursor">▌</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Inspector -->
+            <div class="ve-inspector" id="ve-inspector">
+              <div class="ve-inspector-header">🔍 Inspector</div>
+              <div class="ve-inspector-body" id="ve-inspector-body">
+                <p class="ve-hint">← 点击左侧卡片查看详情<br/>拖拽卡片调整实验优先级</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="cli-section reveal" id="cli">
         <div>
-          <p class="section-index">03 / TERMINAL</p>
+          <p class="section-index">04 / TERMINAL</p>
           <h2>A research harness<br />from your terminal.</h2>
           <p>
             同一个 API 服务于 Web、IDE 和 CLI。当前 alpha 已支持登录、项目切换、
@@ -138,7 +258,7 @@ researchos adapters doctor</code></pre>
       <section class="status-section reveal" id="status">
         <div class="section-heading">
           <div>
-            <p class="section-index">04 / ALPHA STATUS</p>
+            <p class="section-index">05 / ALPHA STATUS</p>
             <h2>Built honestly.</h2>
           </div>
           <p>当前版本用于架构验证和共同设计。没有完成的能力会明确进入 TODO。</p>
