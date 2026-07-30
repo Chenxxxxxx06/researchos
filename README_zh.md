@@ -128,6 +128,33 @@ docker compose -f infra/docker/docker-compose.yml exec -T api python -m research
 
 ---
 
+## 🦦 寻找共建者
+
+ResearchOS 处于 alpha 阶段——骨架已跑通，但**一个人根本做不完**。
+如果你对以下方向感兴趣，**欢迎一起来做：**
+
+| 技能方向 | 你来做的事 |
+|---|---|
+| React / Next.js | UI 打磨、工作台组件、响应式优化 |
+| Python / FastAPI | API 端点、Agent 工具、实验分析 |
+| DevOps / Docker | 容器沙箱、CI/CD、部署管线 |
+| LaTeX / 编译器 | 真实 LaTeX 编译服务、模板系统 |
+| 测试 | E2E (Playwright)、后端 (pytest)、集成测试 |
+| 文档 / 内容 | 教程、README 翻译、视频讲解 |
+| ML / Agent 系统 | Agent 运行时、技能系统、LLM 适配器 |
+
+**参与收获：**
+- 完整全栈项目经验——FastAPI + Next.js + PostgreSQL + Redis
+- 代码 Review 与架构讨论
+- 简历亮点：_"参与开源科研 OS 的核心模块开发"_
+- 每行代码都会 Review，你的名字会留在 commit 历史里
+
+→ **[Good First Issues](https://github.com/Chenxxxxxx06/researchos/issues)**
+
+📧 3653448612@qq.com — 直接联系我，随时聊。
+
+---
+
 ## 🏗️ 架构
 
 ```

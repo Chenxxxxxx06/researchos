@@ -132,6 +132,33 @@ docker compose -f infra/docker/docker-compose.yml exec -T api python -m research
 
 ---
 
+## 🦦 Looking for Collaborators
+
+ResearchOS is at alpha — the skeleton works, but there's **way too much**
+for one person. If any of these interest you, **let's build together:**
+
+| Skill | What You'll Work On |
+|---|---|
+| React / Next.js | UI polish, workspace components, responsive layout |
+| Python / FastAPI | API endpoints, agent tools, experiment analysis |
+| DevOps / Docker | Container sandbox, CI/CD, deployment pipeline |
+| LaTeX / Compilers | Real LaTeX compilation service, template system |
+| Testing | E2E (Playwright), backend (pytest), integration tests |
+| Docs / Content | Tutorials, README translations, video walkthroughs |
+| ML / Agent Systems | Agent runtime, skills system, LLM provider adapters |
+
+**Why contribute?**
+- Real full-stack project — FastAPI + Next.js + PostgreSQL + Redis
+- Code review and architecture discussions
+- Strong resume item: _"built core modules for an open-source research OS"_
+- Every PR gets reviewed and merged with your name in the history
+
+→ **[Good First Issues](https://github.com/Chenxxxxxx06/researchos/issues)**
+
+📧 3653448612@qq.com — reach out directly, happy to chat.
+
+---
+
 ## 🏗️ Architecture
 
 ```
