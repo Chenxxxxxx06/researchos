@@ -31,6 +31,15 @@ SECTIONS_HEADER = "## Referenced paper sections"
 
 _SECTION_PAPER_RE = re.compile(r"^Paper: (\S+)", re.MULTILINE)
 _SECTION_HEADING_RE = re.compile(r"^### \[S\d+\] (.+)$", re.MULTILINE)
+_READING_SECTION_RE = re.compile(
+    r"\[SECTION id=([0-9a-f-]+)[^\]]*\]\n(.*?)(?=\n\[SECTION|\Z)",
+    re.DOTALL,
+)
+_REVIEW_EVIDENCE_RE = re.compile(
+    r"\[EVIDENCE paper_id=([0-9a-f-]+) section_id=([0-9a-f-]+)[^\]]*\]\n"
+    r"(.*?)(?=\n\[EVIDENCE|\Z)",
+    re.DOTALL,
+)
 _SELECTION_OP_PREFIX = "SELECTION_OP_INPUT: "
 
 
@@ -193,8 +202,7 @@ def _coding_answer(messages: list[LLMMessage]) -> dict:
                 "change_type": "create",
                 "base_sha": None,
                 "new_content": (
-                    "# Agent Notes\n\n"
-                    "This file was proposed by the coding agent for review.\n"
+                    "# Agent Notes\n\nThis file was proposed by the coding agent for review.\n"
                 ),
             }
         ],
@@ -317,9 +325,7 @@ class MockLLMProvider:
                 return
 
         cited = _cited_keys_from_tools(messages)
-        skills_active = any(
-            m.role == "system" and SKILLS_HEADER in m.content for m in messages
-        )
+        skills_active = any(m.role == "system" and SKILLS_HEADER in m.content for m in messages)
 
         if response_schema is not None:
             props = (response_schema or {}).get("properties", {})
@@ -333,14 +339,146 @@ class MockLLMProvider:
                     "ideas": [
                         {
                             "title": f"Bridge gap: {first_line[:60]}",
-                            "description": (
-                                "Deterministic mock idea grounded in provided papers."
-                            ),
+                            "description": ("Deterministic mock idea grounded in provided papers."),
                             "hypothesis": "H1",
                             "gap_type": "coverage",
                             "supporting_paper_keys": cited[:2],
                         }
                     ]
+                }
+            elif "research_question" in props:
+                source = _last_user_text(messages)
+                section = _READING_SECTION_RE.search(source)
+                section_id = section.group(1) if section else ""
+                body = " ".join((section.group(2) if section else "").split())
+                quote = body[: min(120, len(body))]
+                obj = {
+                    "summary": "A deterministic, source-grounded reading-card summary.",
+                    "research_question": "What problem does the supplied paper address?",
+                    "method_flow": ["Define the task", "Apply the proposed method", "Evaluate"],
+                    "strengths": ["The method is described in the supplied sections"],
+                    "limitations": ["Only supplied sections were available for this card"],
+                    "reproducibility": ["Verify data splits, hyperparameters, and random seeds"],
+                    "claims": [
+                        {
+                            "text": "The card is grounded in a supplied paper section.",
+                            "section_id": section_id,
+                            "quote": quote,
+                            "inference": False,
+                        }
+                    ],
+                }
+            elif "body" in props and "claims" in props:
+                source = _last_user_text(messages)
+                evidence = _REVIEW_EVIDENCE_RE.search(source)
+                paper_id = evidence.group(1) if evidence else ""
+                section_id = evidence.group(2) if evidence else ""
+                evidence_body = " ".join((evidence.group(3) if evidence else "").split())
+                quote = evidence_body[: min(120, len(evidence_body))]
+                obj = {
+                    "body": (
+                        "The supplied literature provides evidence relevant to this section. "
+                        "This deterministic draft is ready for human synthesis and review."
+                    ),
+                    "claims": [
+                        {
+                            "text": (
+                                "The section draft uses evidence from a selected mission paper."
+                            ),
+                            "paper_id": paper_id,
+                            "section_id": section_id,
+                            "quote": quote,
+                            "inference": False,
+                        }
+                    ],
+                }
+            elif "variables" in props and "matrix" in props:
+                source = _last_user_text(messages)
+                evidence = _REVIEW_EVIDENCE_RE.search(source)
+                paper_id = evidence.group(1) if evidence else None
+                section_id = evidence.group(2) if evidence else None
+                evidence_body = " ".join((evidence.group(3) if evidence else "").split())
+                quote = evidence_body[: min(120, len(evidence_body))]
+                grounded = bool(paper_id and section_id and quote)
+                obj = {
+                    "title": "Evidence-bound primary experiment",
+                    "research_gap": "The reviewed literature leaves a testable performance gap.",
+                    "hypothesis": (
+                        "The proposed treatment improves the primary metric over the baseline."
+                    ),
+                    "variables": [
+                        {
+                            "name": "Treatment",
+                            "role": "independent",
+                            "operational_definition": "Enable the proposed method.",
+                            "levels_or_measurement": "off / on",
+                        },
+                        {
+                            "name": "Primary score",
+                            "role": "dependent",
+                            "operational_definition": "Held-out evaluation score.",
+                            "levels_or_measurement": "continuous",
+                        },
+                        {
+                            "name": "Training budget",
+                            "role": "control",
+                            "operational_definition": "Equal compute for all groups.",
+                            "levels_or_measurement": "fixed",
+                        },
+                    ],
+                    "baselines": [
+                        {
+                            "name": "Literature baseline",
+                            "rationale": "Selected from mission evidence.",
+                            "source_paper_id": paper_id,
+                            "evidence_section_id": section_id,
+                            "evidence_quote": quote,
+                            "evidence_status": "grounded" if grounded else "needs_evidence",
+                        }
+                    ],
+                    "datasets": [
+                        {
+                            "name": "Evaluation dataset",
+                            "split": "train/validation/test with a held-out test set",
+                            "preprocessing": "Fit preprocessing on training data only.",
+                            "license_or_access": "Verify before execution.",
+                        }
+                    ],
+                    "metrics": [
+                        {"name": "primary_score", "direction": "max", "primary": True, "unit": ""}
+                    ],
+                    "matrix": [
+                        {
+                            "name": "Main comparison",
+                            "factors": {"method": ["baseline", "proposed"]},
+                            "repetitions": 3,
+                            "seed_policy": "Use the same three declared seeds.",
+                            "compute_budget": "Equal budget per arm.",
+                        }
+                    ],
+                    "decision_rules": [
+                        "Accept the hypothesis only when the primary score improves consistently."
+                    ],
+                    "stop_conditions": [
+                        "Stop after the predeclared matrix and repetitions finish."
+                    ],
+                    "risks": [
+                        {
+                            "risk": "Dataset leakage",
+                            "mitigation": "Keep the test set inaccessible during development.",
+                            "severity": "high",
+                        }
+                    ],
+                    "reproducibility": [
+                        "Record code revision, environment, data version, seeds, and full config."
+                    ],
+                }
+            elif "sql" in props and "explanation" in props:
+                obj = {
+                    "sql": "SELECT * FROM dataset LIMIT 20",
+                    "explanation": (
+                        "Read-only preview generated from the registered dataset schema."
+                    ),
                 }
             else:
                 # Critic agent: citations reference real retrieved papers.

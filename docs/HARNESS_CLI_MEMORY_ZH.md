@@ -91,7 +91,53 @@ researchos memory list --status verified
 researchos context --render
 ```
 
-Mission 骨架：
+服务端持久化 Research Mission（与网页工作台共享同一份数据）：
+
+```bash
+researchos missions create "研究低资源多模态分类" \
+  --objective "形成带引用的综述与可复现实验方案" \
+  --scope-json '{"minimum_papers":8,"year_from":2021}'
+researchos missions list --status active
+researchos missions show <mission-id>
+
+# 保存阶段产物；不写 --version 时，CLI 会先读取最新版本并使用乐观并发控制
+researchos missions step-save <mission-id> literature \
+  --summary "已纳入 8 篇核心论文，形成 3 个主题簇" \
+  --status needs_review
+researchos missions approve <mission-id> literature --note "纳入标准与聚类已复核"
+researchos missions timeline <mission-id>
+
+# 阅读卡 Agent：生成结果写入 ReadingCardVersion，并可等待 AgentRun 完成
+researchos missions generate-card <mission-id> <paper-id> --regenerate
+researchos missions card-versions <mission-id> <paper-id>
+
+# 综述：聚类大纲、章节证据 Agent、人工编辑与不可变历史
+researchos missions review-outline <mission-id>
+researchos missions review-generate <mission-id> <section-id> --regenerate
+researchos missions review-save <mission-id> <section-id> --body-file review-section.md
+researchos missions review-versions <mission-id>
+
+# 实验方案：由综述生成、JSON 往返编辑、门禁校验并发布到 Experiment
+researchos missions plan-generate <mission-id>
+researchos missions plan-show <mission-id>
+researchos missions plan-save <mission-id> --file experiment-plan.json
+researchos missions plan-publish <mission-id>
+researchos missions plan-versions <mission-id>
+
+# 只读 SQL：先注册 JSON 快照，再让 SQL Agent 生成并执行受限查询
+researchos missions dataset-register <mission-id> --file dataset.json
+researchos missions dataset-list <mission-id>
+researchos missions sql-query <mission-id> <dataset-id> "比较各方法的 macro-F1 均值"
+researchos missions sql-results <mission-id>
+
+# 引用整理：审计缺失元数据和重复项，并输出持久化 BibTeX
+researchos missions citation-audit <mission-id>
+researchos missions citation-show <mission-id>
+```
+
+`missions`（复数）调用正式 REST API；创建、阶段保存、人工确认、解锁和审计事件都由后端事务处理。`--input-json`、`--output-json` 与 `--scope-json` 均支持内联 JSON 或 `@path/to/file.json`，适合从 Harness 脚本提交结构化产物。
+
+旧版单协调器 Mission 骨架（兼容保留）：
 
 ```bash
 researchos mission run "研究低资源多模态分类并形成可投稿论文"
@@ -99,8 +145,7 @@ researchos mission status <mission-id>
 researchos mission approve <mission-id> scope --note "指标和预算已确认"
 ```
 
-当前 Mission 命令只创建一个持久化协调器记录，并派发一个已有 Research Agent。
-它还没有真正创建数据库级 Mission DAG 或自动派生多个 Worker Agent。
+单数 `mission` 命令只创建本地协调器记录，并派发一个已有 Research Agent；它不等同于复数 `missions` 的数据库五阶段任务，也不会自动派生多个 Worker Agent。
 
 外部 Harness 适配器：
 

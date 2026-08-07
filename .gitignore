@@ -27,6 +27,10 @@ out/
 
 # --- Docker / data volumes ---------------------------------------------------
 infra/docker/.data/
+data/workspaces/
+
+# --- Local CLI demo state ----------------------------------------------------
+.researchos-cli-demo/
 
 # --- Artifacts / screenshots / test reports ----------------------------------
 artifacts/

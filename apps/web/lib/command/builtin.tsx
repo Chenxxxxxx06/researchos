@@ -22,6 +22,7 @@ import {
   MessagesSquare,
   Megaphone,
   Network,
+  Route,
   Moon,
   Search,
   Settings,
@@ -42,6 +43,7 @@ const PROJECT_NAV: Array<{
   icon: Command['icon'];
 }> = [
   { id: 'nav.overview', key: 'nav.overview', segment: 'overview', shortcut: 'g o', icon: LayoutDashboard },
+  { id: 'nav.missions', key: 'nav.missions', segment: 'missions', shortcut: 'g t', icon: Route },
   { id: 'nav.research', key: 'nav.research', segment: 'research', shortcut: 'g r', icon: Search },
   { id: 'nav.references', key: 'nav.references', segment: 'references', shortcut: 'g l', icon: BookOpen },
   { id: 'nav.inbox', key: 'nav.inbox', segment: 'inbox', shortcut: 'g m', icon: MessagesSquare },

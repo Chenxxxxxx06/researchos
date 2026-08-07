@@ -43,6 +43,23 @@ from researchos.common.redis import close_redis, get_redis  # noqa: E402
 from researchos.main import create_app  # noqa: E402
 
 _TABLES = [
+    "mission_citation_audits",
+    "sql_query_results",
+    "dataset_sources",
+    "experiment_plan_versions",
+    "experiment_plans",
+    "review_versions",
+    "review_sections",
+    "review_documents",
+    "paper_chunks",
+    "reading_notes",
+    "reading_card_versions",
+    "reading_cards",
+    "mission_papers",
+    "mission_topic_clusters",
+    "mission_events",
+    "mission_steps",
+    "research_missions",
     "research_inbox_items",
     "zotero_connections",
     "llm_provider_configs",
@@ -101,6 +118,7 @@ async def _ensure_database() -> None:
 
     engine = create_async_engine(dsn)
     async with engine.begin() as conn:
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(models.Base.metadata.drop_all)
         await conn.run_sync(models.Base.metadata.create_all)
     await engine.dispose()

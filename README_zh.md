@@ -43,13 +43,20 @@
 
 ## 🚀 快速启动
 
-```bash
-# 一行命令启动全部服务
-pnpm stack:full
+```powershell
+# Windows 快速展示：仅基础设施使用缓存 Docker 镜像，代码直接从当前磁盘启动
+pnpm site:up
 
-# 打开浏览器
-open http://localhost:3000
+# 检查依赖、登录和 16 条核心 API 链路
+pnpm site:verify
+
+# 查看状态 / 日志 / 停止
+pnpm site:status
+pnpm site:logs
+pnpm site:down
 ```
+
+启动成功后打开 [http://localhost:3000/login](http://localhost:3000/login)。这条快速路径不会重新构建应用镜像，也不会占用本机常见的 PostgreSQL/Redis 端口；详细说明见 [`docs/SITE_DEPLOYMENT_ZH.md`](docs/SITE_DEPLOYMENT_ZH.md)。完整容器构建仍可使用 `pnpm stack:full`。
 
 | 🔑 Demo 账号 | |
 |---|---|
@@ -70,12 +77,16 @@ researchos projects create --name "My Research"
 researchos use <project-id>
 researchos ask "分析当前工作的创新点与实验缺口"
 researchos chat
+researchos missions create "弱监督医学图像分割中的不确定性建模" \
+  --objective "形成带引用的综述和可复现实验方案" \
+  --scope-json '{"minimum_papers":8}'
+researchos missions list
 ```
 
-CLI 已支持真实 API 登录、项目选择、Agent Run、交互会话、科研记忆和 Mission 人工闸门骨架。
+CLI 已支持真实 API 登录、项目选择、Agent Run、交互会话、科研记忆，以及与网页共用数据库、权限、版本控制和时间线的五阶段 Research Mission。原有单次协调器 `mission` 命令仍保留兼容。
 
 <details>
-<summary><b>📦 手动安装（没有 pnpm）</b></summary>
+<summary><b>📦 完整容器构建（较慢，适合部署验证）</b></summary>
 
 ```bash
 docker compose -f infra/docker/docker-compose.yml up -d --build

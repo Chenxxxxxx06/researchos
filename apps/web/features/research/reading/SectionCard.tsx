@@ -1,6 +1,6 @@
 'use client';
 
-import { Sparkles } from 'lucide-react';
+import { NotebookPen, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 import type { PaperSection } from '@/lib/api/papers';
@@ -19,11 +19,13 @@ const CLAMP_TO = 1600;
 export function SectionCard({
   section,
   onExplain,
+  onNote,
 }: {
   section: PaperSection;
   onExplain: () => void;
+  onNote?: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const long = section.char_count > CLAMP_CHARS;
   const shown = long && !expanded ? `${section.body.slice(0, CLAMP_TO)}…` : section.body;
@@ -41,18 +43,25 @@ export function SectionCard({
         >
           {section.heading}
         </Heading>
-        <button
-          type="button"
-          onClick={onExplain}
-          className={cn(
-            'inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-accent',
-            'opacity-0 transition-opacity hover:bg-surface-2 focus-visible:opacity-100 group-hover:opacity-100',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60',
+        <div className="flex shrink-0 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+          {onNote && (
+            <button type="button" onClick={onNote} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-muted hover:bg-surface-2 hover:text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60">
+              <NotebookPen className="h-3 w-3" aria-hidden="true" />
+              {locale === 'zh-CN' ? '笔记' : 'Note'}
+            </button>
           )}
-        >
-          <Sparkles className="h-3 w-3" aria-hidden="true" />
-          {t('research.reading.explainSection')}
-        </button>
+          <button
+            type="button"
+            onClick={onExplain}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-accent',
+              'hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60',
+            )}
+          >
+            <Sparkles className="h-3 w-3" aria-hidden="true" />
+            {t('research.reading.explainSection')}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-2 text-sm leading-relaxed text-muted">

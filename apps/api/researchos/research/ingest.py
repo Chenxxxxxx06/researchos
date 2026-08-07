@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from researchos.common.config import get_settings
 from researchos.common.db import get_sessionmaker
 from researchos.common.pubsub import publish_event
+from researchos.knowledge.indexing import index_paper_sections
 from researchos.websocket.envelopes import EventEnvelope
 
 from .enums import PaperIngestStatus, PaperSectionKind
@@ -114,9 +115,7 @@ def parse_ar5iv_html(html: str, *, max_chars: int) -> list[ParsedSection]:
         _clean_subtree(abstract_node)
         body = _node_body(abstract_node, max_chars=max_chars)
         if body:
-            sections.append(
-                ParsedSection(0, 1, "Abstract", body, PaperSectionKind.ABSTRACT)
-            )
+            sections.append(ParsedSection(0, 1, "Abstract", body, PaperSectionKind.ABSTRACT))
             seq = 1
 
     if not sections:
@@ -140,9 +139,7 @@ def parse_ar5iv_html(html: str, *, max_chars: int) -> list[ParsedSection]:
         if not body and not heading:
             continue
         sections.append(
-            ParsedSection(
-                seq, 2, heading[:500], body, classify_kind(heading, appendix=is_appendix)
-            )
+            ParsedSection(seq, 2, heading[:500], body, classify_kind(heading, appendix=is_appendix))
         )
         seq += 1
 
@@ -164,15 +161,11 @@ async def _publish_ingest_event(
         ).model_dump()
         await publish_event(str(project_id), envelope)
     except Exception as exc:  # noqa: BLE001 - events must never fail ingestion
-        logger.warning(
-            "paper_ingest_event_publish_failed", paper_id=str(paper_id), error=str(exc)
-        )
+        logger.warning("paper_ingest_event_publish_failed", paper_id=str(paper_id), error=str(exc))
 
 
 # --- Fetch chain -------------------------------------------------------------
-async def _get_html(
-    client: httpx.AsyncClient, url: str
-) -> tuple[str | None, str | None]:
+async def _get_html(client: httpx.AsyncClient, url: str) -> tuple[str | None, str | None]:
     try:
         resp = await fetch_with_retry(
             lambda: client.get(url, follow_redirects=True),
@@ -288,6 +281,7 @@ async def ingest_paper_with_session(
                     )
                 ],
             )
+            await index_paper_sections(db, paper)
             return await _finish(PaperIngestStatus.ABSTRACT_ONLY, section_count=1)
         return await _finish(
             PaperIngestStatus.FAILED,
@@ -327,4 +321,5 @@ async def ingest_paper_with_session(
         for section in parsed
     ]
     await sections_repo.replace_for_paper(paper.id, rows)
+    await index_paper_sections(db, paper)
     return await _finish(PaperIngestStatus.SUCCEEDED, section_count=len(rows))

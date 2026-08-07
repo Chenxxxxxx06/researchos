@@ -119,6 +119,7 @@ export interface ImportResponse {
 }
 
 export interface PaperSection {
+  id?: string;
   seq: number;
   level: number;
   kind: SectionKind;

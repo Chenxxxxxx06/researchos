@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from researchos import __version__
 from researchos.agents.router import router as agents_router
+from researchos.citations.router import router as citations_audit_router
 from researchos.coding_agent.router import router as coding_agent_router
 from researchos.coding_chat.router import router as coding_chat_router
 from researchos.common.config import get_settings
@@ -22,7 +23,9 @@ from researchos.common.errors import register_exception_handlers
 from researchos.common.logging import configure_logging, get_logger
 from researchos.common.middleware import RequestContextMiddleware
 from researchos.common.redis import close_redis
+from researchos.data_lab.router import router as data_lab_router
 from researchos.documents.router import router as documents_router
+from researchos.experiment_plans.router import router as experiment_plans_router
 from researchos.experiments.ingest_router import router as experiments_ingest_router
 from researchos.experiments.router import router as experiments_router
 from researchos.figures.router import router as figures_router
@@ -30,13 +33,17 @@ from researchos.git.router import router as git_router
 from researchos.health.router import router as health_router
 from researchos.identity.router import router as auth_router
 from researchos.inbox.router import router as inbox_router
+from researchos.knowledge.router import router as knowledge_router
 from researchos.llm_config.router import router as llm_config_router
+from researchos.management.router import router as management_router
+from researchos.missions.router import router as missions_router
 from researchos.organizations.router import router as organizations_router
 from researchos.patches.router import router as patches_router
 from researchos.preferences.router import me_router as preferences_me_router
 from researchos.preferences.router import project_router as preferences_project_router
 from researchos.projects.router import router as projects_router
 from researchos.research.router import router as research_router
+from researchos.reviews.router import router as reviews_router
 from researchos.skills.router import router as skills_router
 from researchos.venues.router import router as venues_router
 from researchos.websocket.router import router as websocket_router
@@ -101,6 +108,13 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(organizations_router)
     app.include_router(projects_router)
+    app.include_router(missions_router)
+    app.include_router(knowledge_router)
+    app.include_router(data_lab_router)
+    app.include_router(management_router)
+    app.include_router(reviews_router)
+    app.include_router(citations_audit_router)
+    app.include_router(experiment_plans_router)
     app.include_router(research_router)
     app.include_router(agents_router)
     app.include_router(workspace_router)

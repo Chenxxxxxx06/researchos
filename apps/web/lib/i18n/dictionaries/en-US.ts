@@ -69,6 +69,7 @@ export const enUS: Record<DictKey, string> = {
   'emptyState.defaultTitle': 'Nothing here yet',
 
   'nav.overview': 'Overview',
+  'nav.missions': 'Research Missions',
   'nav.research': 'Research Copilot',
   'nav.references': 'References',
   'nav.inbox': 'Research Inbox',
@@ -82,7 +83,13 @@ export const enUS: Record<DictKey, string> = {
   'nav.skills': 'Skills',
   'nav.skillBuilder': 'Skill Builder',
   'nav.settings': 'Settings',
+  'nav.manage': 'Manage',
   'nav.projects': 'Projects',
+  'nav.groupCore': 'Project flow',
+  'nav.groupResearch': 'Research & evidence',
+  'nav.groupBuild': 'Build & experiment',
+  'nav.groupPublish': 'Write & publish',
+  'nav.groupManage': 'Manage',
 
   'auth.signInTitle': 'Sign in',
   'auth.email': 'Email',

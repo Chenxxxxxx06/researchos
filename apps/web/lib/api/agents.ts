@@ -6,7 +6,7 @@ import { apiRequest } from './client';
  * consumers (coding chat fallback, research chat) need no casts. There is
  * deliberately no `ideate` member — idea generation is a synchronous REST call.
  */
-export type AgentType = 'research' | 'critic' | 'coding' | 'latex' | 'experiment';
+export type AgentType = 'research' | 'critic' | 'coding' | 'latex' | 'experiment' | 'reading_card' | 'review_section' | 'experiment_planner' | 'sql_analyst' | 'citation_organizer';
 export type AgentRunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 export interface AgentRun {

@@ -11,6 +11,11 @@ class AgentType(StrEnum):
     CODING = "coding"
     EXPERIMENT = "experiment"
     LATEX = "latex"
+    READING_CARD = "reading_card"
+    REVIEW_SECTION = "review_section"
+    EXPERIMENT_PLANNER = "experiment_planner"
+    SQL_ANALYST = "sql_analyst"
+    CITATION_ORGANIZER = "citation_organizer"
 
 
 class AgentRunStatus(StrEnum):

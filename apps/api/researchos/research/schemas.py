@@ -87,6 +87,7 @@ class ImportPapersResponse(BaseModel):
 class PaperSectionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id: uuid.UUID
     seq: int
     level: int
     kind: PaperSectionKind

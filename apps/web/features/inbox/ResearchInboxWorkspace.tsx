@@ -27,6 +27,8 @@ import {
   type InboxSourceType,
 } from '@/lib/api/inbox';
 
+import { StreamingVoiceCapture } from './StreamingVoiceCapture';
+
 const READABLE_EXTENSIONS = /\.(txt|md|markdown|csv|json|yaml|yml|log|tex)$/i;
 
 export function ResearchInboxWorkspace({ projectId }: { projectId: string }) {
@@ -143,6 +145,17 @@ export function ResearchInboxWorkspace({ projectId }: { projectId: string }) {
               </div>
               <div>
                 <Label>消息、笔记或转写文本</Label>
+                <div className="mb-2 mt-1.5">
+                  <StreamingVoiceCapture
+                    value={form.content_text}
+                    onChange={(content_text) => setForm({
+                      ...form,
+                      source_type: 'audio_transcript',
+                      content_text,
+                      media_type: 'text/x-live-transcript',
+                    })}
+                  />
+                </div>
                 <textarea
                   required
                   value={form.content_text}

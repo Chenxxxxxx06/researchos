@@ -1,11 +1,13 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ExternalLink, FileText, Sparkles } from 'lucide-react';
+import { ArrowLeft, ExternalLink, FileText, NotebookPen, Sparkles, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 
 import { ApiError } from '@/lib/api/client';
+import { createReadingNote, deleteReadingNote, listReadingNotes } from '@/lib/api/knowledge';
 import {
   citationKey,
   getPaper,
@@ -19,6 +21,7 @@ import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/components/ui/toast';
 
 import { useChatSeedStore } from '../chatSeed';
 import { IngestionStatusChip } from '../search/IngestionStatusChip';
@@ -46,6 +49,8 @@ function shortDate(iso: string | null): string | null {
 export function ReadingRoom({ projectId, paperId }: { projectId: string; paperId: string }) {
   const { t } = useI18n();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const missionId = searchParams.get('mission');
   const queryClient = useQueryClient();
   const setSeed = useChatSeedStore((s) => s.setSeed);
 
@@ -145,7 +150,7 @@ export function ReadingRoom({ projectId, paperId }: { projectId: string; paperId
     status === 'abstract_only' ? [abstractSection] : (sections.data?.sections ?? []);
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
+    <div className="mx-auto max-w-[1480px] p-6">
       {/* Header */}
       <header className="mb-6 border-b border-border pb-4">
         <Link href={backHref} className="mb-3 inline-flex items-center gap-1 text-xs text-muted hover:text-text">
@@ -223,11 +228,120 @@ export function ReadingRoom({ projectId, paperId }: { projectId: string; paperId
               </p>
             )}
             {stream.map((s) => (
-              <SectionCard key={s.seq} section={s} onExplain={() => explainSection(s)} />
+              <SectionWithNote
+                key={s.seq}
+                section={s}
+                projectId={projectId}
+                paperId={paperId}
+                missionId={missionId}
+                onExplain={() => explainSection(s)}
+              />
             ))}
           </div>
+          <ReadingNotesPanel projectId={projectId} paperId={paperId} missionId={missionId} />
         </div>
       )}
     </div>
+  );
+}
+
+function SectionWithNote({
+  section,
+  projectId,
+  paperId,
+  missionId,
+  onExplain,
+}: {
+  section: PaperSection;
+  projectId: string;
+  paperId: string;
+  missionId: string | null;
+  onExplain: () => void;
+}) {
+  const [draft, setDraft] = useState(false);
+  return (
+    <div>
+      <SectionCard section={section} onExplain={onExplain} onNote={() => setDraft(true)} />
+      {draft && (
+        <InlineNoteComposer
+          projectId={projectId}
+          paperId={paperId}
+          missionId={missionId}
+          section={section}
+          onClose={() => setDraft(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function InlineNoteComposer({
+  projectId,
+  paperId,
+  missionId,
+  section,
+  onClose,
+}: {
+  projectId: string;
+  paperId: string;
+  missionId: string | null;
+  section: PaperSection;
+  onClose: () => void;
+}) {
+  const { locale } = useI18n();
+  const zh = locale === 'zh-CN';
+  const queryClient = useQueryClient();
+  const [quote, setQuote] = useState('');
+  const [content, setContent] = useState('');
+  const [tags, setTags] = useState('');
+  const save = useMutation({
+    mutationFn: () => createReadingNote(projectId, paperId, {
+      mission_id: missionId,
+      section_id: section.id ?? null,
+      quote,
+      content,
+      tags: tags.split(/[,，]/).map((item) => item.trim()).filter(Boolean),
+    }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['reading-notes', projectId, paperId, missionId] });
+      toast({ title: zh ? '笔记已保存并绑定原文位置' : 'Note saved with its source section' });
+      onClose();
+    },
+    onError: (error) => toast({ title: zh ? '笔记保存失败' : 'Could not save note', description: error instanceof Error ? error.message : undefined, variant: 'error' }),
+  });
+  return (
+    <div className="-mt-2 mb-5 border-l-2 border-info bg-info-bg/45 p-4">
+      <div className="mb-3 flex items-center justify-between"><p className="text-xs font-semibold text-text">{zh ? `记录到「${section.heading}」` : `Note on “${section.heading}”`}</p><button type="button" onClick={onClose} className="text-[11px] text-muted hover:text-text">{zh ? '取消' : 'Cancel'}</button></div>
+      <textarea value={quote} onChange={(event) => setQuote(event.target.value)} rows={2} className="w-full resize-y rounded-md border border-border-strong bg-bg p-2.5 text-xs leading-5 text-muted outline-none focus:ring-2 focus:ring-focus/60" placeholder={zh ? '粘贴需要保留的原文引句（可选）' : 'Paste the exact source quote (optional)'} />
+      <textarea value={content} onChange={(event) => setContent(event.target.value)} rows={3} className="mt-2 w-full resize-y rounded-md border border-border-strong bg-bg p-2.5 text-sm leading-6 text-text outline-none focus:ring-2 focus:ring-focus/60" placeholder={zh ? '写下理解、疑问或与其他论文的联系' : 'Write an interpretation, question, or connection'} />
+      <div className="mt-2 flex gap-2"><input value={tags} onChange={(event) => setTags(event.target.value)} className="h-8 min-w-0 flex-1 rounded-md border border-border-strong bg-bg px-2.5 text-xs text-text outline-none focus:ring-2 focus:ring-focus/60" placeholder={zh ? '标签，用逗号分隔' : 'Tags, comma separated'} /><Button size="sm" onClick={() => save.mutate()} loading={save.isPending} disabled={!content.trim()}>{zh ? '保存笔记' : 'Save note'}</Button></div>
+    </div>
+  );
+}
+
+function ReadingNotesPanel({ projectId, paperId, missionId }: { projectId: string; paperId: string; missionId: string | null }) {
+  const { locale } = useI18n();
+  const zh = locale === 'zh-CN';
+  const queryClient = useQueryClient();
+  const notes = useQuery({ queryKey: ['reading-notes', projectId, paperId, missionId], queryFn: () => listReadingNotes(projectId, paperId, missionId) });
+  const remove = useMutation({
+    mutationFn: (noteId: string) => deleteReadingNote(projectId, noteId),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['reading-notes', projectId, paperId, missionId] }),
+  });
+  return (
+    <aside className="sticky top-4 hidden h-fit w-72 shrink-0 border-l border-border pl-5 xl:block">
+      <div className="flex items-center justify-between"><h2 className="flex items-center gap-2 text-xs font-semibold text-text"><NotebookPen className="h-3.5 w-3.5 text-info" />{zh ? '页内笔记' : 'Reading notes'}</h2><span className="font-mono text-[10px] text-faint">{notes.data?.length ?? 0}</span></div>
+      {missionId && <p className="mt-2 border-l-2 border-info/35 pl-2 text-[10px] leading-4 text-muted">{zh ? '当前只显示本研究任务的笔记。' : 'Filtered to this research mission.'}</p>}
+      <div className="mt-4 max-h-[calc(100dvh-10rem)] space-y-3 overflow-y-auto pr-1">
+        {(notes.data ?? []).map((note) => (
+          <article key={note.id} className="group bg-surface-2 p-3">
+            {note.quote && <p className="line-clamp-3 border-l border-border-strong pl-2 text-[10px] italic leading-4 text-faint">“{note.quote}”</p>}
+            <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-text">{note.content}</p>
+            <div className="mt-2 flex items-center justify-between gap-2"><p className="truncate text-[9px] text-faint">{note.tags_json.join(' · ')} · {new Date(note.updated_at).toLocaleDateString()}</p><button type="button" onClick={() => remove.mutate(note.id)} className="opacity-0 transition-opacity group-hover:opacity-100"><Trash2 className="h-3 w-3 text-danger" /></button></div>
+          </article>
+        ))}
+        {!notes.isLoading && (notes.data?.length ?? 0) === 0 && <p className="py-5 text-xs leading-5 text-muted">{zh ? '将鼠标移到任意章节标题，点击“笔记”即可在原文位置记录。' : 'Hover a section heading and choose Note to capture grounded reading notes.'}</p>}
+      </div>
+    </aside>
   );
 }

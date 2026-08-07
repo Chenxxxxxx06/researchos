@@ -67,6 +67,7 @@ export const zhCN = {
   'emptyState.defaultTitle': '暂无内容',
 
   'nav.overview': '项目总览',
+  'nav.missions': '科研任务',
   'nav.research': 'Research Copilot',
   'nav.references': '文献中心',
   'nav.inbox': '科研收件箱',
@@ -80,7 +81,13 @@ export const zhCN = {
   'nav.skills': '技能市场',
   'nav.skillBuilder': '技能构建器',
   'nav.settings': '设置',
+  'nav.manage': '管理中心',
   'nav.projects': '项目',
+  'nav.groupCore': '项目主线',
+  'nav.groupResearch': '调研与证据',
+  'nav.groupBuild': '实现与实验',
+  'nav.groupPublish': '写作与交付',
+  'nav.groupManage': '管理',
 
   'auth.signInTitle': '登录',
   'auth.email': '邮箱',

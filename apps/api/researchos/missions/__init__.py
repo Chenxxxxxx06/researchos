@@ -1,0 +1,1 @@
+"""Research Mission bounded context."""

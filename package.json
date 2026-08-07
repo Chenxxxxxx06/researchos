@@ -7,6 +7,12 @@
   "description": "ResearchOS - AI-native research operating system (monorepo).",
   "packageManager": "pnpm@9.15.0",
   "scripts": {
+    "site:up": "powershell -ExecutionPolicy Bypass -File scripts/site.ps1 up",
+    "site:down": "powershell -ExecutionPolicy Bypass -File scripts/site.ps1 down",
+    "site:restart": "powershell -ExecutionPolicy Bypass -File scripts/site.ps1 restart",
+    "site:status": "powershell -ExecutionPolicy Bypass -File scripts/site.ps1 status",
+    "site:verify": "powershell -ExecutionPolicy Bypass -File scripts/site.ps1 verify",
+    "site:logs": "powershell -ExecutionPolicy Bypass -File scripts/site.ps1 logs",
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",
     "typecheck": "pnpm -r typecheck",

@@ -9,10 +9,12 @@ import {
   FileText,
   FlaskConical,
   FolderKanban,
+  FolderCog,
   LayoutDashboard,
   MessagesSquare,
   Megaphone,
   Network,
+  Route,
   Search,
   Settings,
   ShieldCheck,
@@ -32,6 +34,7 @@ interface NavItem {
 
 const ITEMS: NavItem[] = [
   { key: 'nav.overview', segment: 'overview', icon: LayoutDashboard, shortcut: 'g o' },
+  { key: 'nav.missions', segment: 'missions', icon: Route, shortcut: 'g t' },
   { key: 'nav.research', segment: 'research', icon: Search, shortcut: 'g r' },
   { key: 'nav.references', segment: 'references', icon: BookOpen, shortcut: 'g l' },
   { key: 'nav.inbox', segment: 'inbox', icon: MessagesSquare, shortcut: 'g m' },
@@ -43,6 +46,15 @@ const ITEMS: NavItem[] = [
   { key: 'nav.reviewer', segment: 'reviewer', icon: ShieldCheck, shortcut: 'g v' },
   { key: 'nav.release', segment: 'release', icon: Megaphone, shortcut: 'g u' },
   { key: 'nav.settings', segment: 'settings', icon: Settings, shortcut: 'g s' },
+  { key: 'nav.manage', segment: 'manage', icon: FolderCog, shortcut: 'g n' },
+];
+
+const GROUPS: Array<{ key: DictKey; items: string[] }> = [
+  { key: 'nav.groupCore', items: ['overview', 'missions'] },
+  { key: 'nav.groupResearch', items: ['research', 'references', 'inbox'] },
+  { key: 'nav.groupBuild', items: ['ide', 'experiments'] },
+  { key: 'nav.groupPublish', items: ['paper', 'reviewer', 'release'] },
+  { key: 'nav.groupManage', items: ['manage', 'orchestration', 'deadlines', 'settings'] },
 ];
 
 export function SideRail() {
@@ -61,15 +73,21 @@ export function SideRail() {
   }, null);
 
   return (
-    <nav className="w-52 shrink-0 border-r border-border bg-surface/80 py-3">
+    <nav className="w-56 shrink-0 border-r border-border bg-surface/90 py-3">
       <Link
         href="/projects"
         className="mx-3 mb-4 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-text hover:bg-surface-2"
       >
         <FolderKanban className="h-4 w-4" aria-hidden="true" /> {t('nav.projects')}
       </Link>
-      <ul className="space-y-0.5 px-2">
-        {ITEMS.map((item) => {
+      <div className="space-y-4 px-2">
+        {GROUPS.map((group) => (
+          <section key={group.key} aria-labelledby={`nav-${group.key}`}>
+            <h2 id={`nav-${group.key}`} className="mb-1.5 px-3 text-[10px] font-semibold tracking-[0.12em] text-faint">
+              {t(group.key).toUpperCase()}
+            </h2>
+            <ul className="space-y-0.5">
+              {ITEMS.filter((item) => group.items.includes(item.segment)).map((item) => {
           const href = projectId ? `/projects/${projectId}/${item.segment}` : null;
           const active = href !== null && href === activeHref;
           const Icon = item.icon;
@@ -98,8 +116,11 @@ export function SideRail() {
               )}
             </li>
           );
-        })}
-      </ul>
+              })}
+            </ul>
+          </section>
+        ))}
+      </div>
     </nav>
   );
 }

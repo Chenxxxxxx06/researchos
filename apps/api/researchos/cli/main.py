@@ -25,6 +25,9 @@ TERMINAL_STATUSES = {"completed", "failed", "cancelled"}
 AGENT_TYPES = ("research", "coding", "latex", "experiment")
 MEMORY_KINDS = ("decision", "claim", "experiment", "preference", "failure", "handoff")
 MEMORY_STATUSES = ("candidate", "verified", "rejected", "superseded")
+MISSION_STATUSES = ("draft", "active", "paused", "completed", "archived")
+MISSION_STEP_KINDS = ("scope", "literature", "reading", "review", "experiment_plan")
+MISSION_STEP_STATUSES = ("locked", "ready", "in_progress", "needs_review", "completed")
 
 
 class ExternalAdapter(TypedDict):
@@ -160,6 +163,161 @@ def build_parser() -> argparse.ArgumentParser:
     mission_approve.add_argument("gate", choices=("scope", "evidence", "release"))
     mission_approve.add_argument("--note", default="")
 
+    missions = sub.add_parser(
+        "missions",
+        help="Manage server-backed research missions shared with the web workspace.",
+    )
+    missions_sub = missions.add_subparsers(dest="missions_command", required=True)
+    missions_list = missions_sub.add_parser("list", help="List research missions.")
+    missions_list.add_argument("--status", choices=MISSION_STATUSES)
+    missions_list.add_argument("--limit", type=int, default=50)
+    missions_create = missions_sub.add_parser("create", help="Create a five-step mission.")
+    missions_create.add_argument("topic")
+    missions_create.add_argument("--objective", default="")
+    missions_create.add_argument("--field")
+    missions_create.add_argument(
+        "--scope-json",
+        default="{}",
+        help="JSON object or @path containing search scope and evidence targets.",
+    )
+    missions_show = missions_sub.add_parser("show", help="Show a mission and its steps.")
+    missions_show.add_argument("mission_id")
+    missions_update = missions_sub.add_parser("update", help="Update mission metadata or status.")
+    missions_update.add_argument("mission_id")
+    missions_update.add_argument("--version", type=int)
+    missions_update.add_argument("--topic")
+    missions_update.add_argument("--objective")
+    missions_update.add_argument("--field")
+    missions_update.add_argument("--status", choices=MISSION_STATUSES)
+    missions_update.add_argument("--scope-json")
+    missions_step = missions_sub.add_parser(
+        "step-save", help="Persist inputs, outputs, or state for one mission step."
+    )
+    missions_step.add_argument("mission_id")
+    missions_step.add_argument("step", choices=MISSION_STEP_KINDS)
+    missions_step.add_argument("--version", type=int)
+    missions_step.add_argument("--input-json")
+    missions_step.add_argument("--output-json")
+    missions_step.add_argument("--summary", help="Shortcut for output_json.summary.")
+    missions_step.add_argument("--status", choices=MISSION_STEP_STATUSES)
+    missions_approve_step = missions_sub.add_parser(
+        "approve", help="Approve a step and unlock the next one."
+    )
+    missions_approve_step.add_argument("mission_id")
+    missions_approve_step.add_argument("step", choices=MISSION_STEP_KINDS)
+    missions_approve_step.add_argument("--version", type=int)
+    missions_approve_step.add_argument("--note", default="")
+    missions_timeline = missions_sub.add_parser(
+        "timeline", help="Show the mission evidence and approval timeline."
+    )
+    missions_timeline.add_argument("mission_id")
+    missions_timeline.add_argument("--limit", type=int, default=50)
+    missions_generate_card = missions_sub.add_parser(
+        "generate-card",
+        help="Run the section-grounded reading-card agent and wait for its result.",
+    )
+    missions_generate_card.add_argument("mission_id")
+    missions_generate_card.add_argument("paper_id")
+    missions_generate_card.add_argument("--regenerate", action="store_true")
+    missions_generate_card.add_argument("--timeout", type=int, default=180)
+    missions_generate_card.add_argument("--no-wait", action="store_true")
+    missions_card_versions = missions_sub.add_parser(
+        "card-versions", help="List immutable reading-card versions for a paper."
+    )
+    missions_card_versions.add_argument("mission_id")
+    missions_card_versions.add_argument("paper_id")
+    missions_review_show = missions_sub.add_parser(
+        "review-show", help="Show the structured review and citation coverage."
+    )
+    missions_review_show.add_argument("mission_id")
+    missions_review_outline = missions_sub.add_parser(
+        "review-outline", help="Generate or rebuild the source-bound review outline."
+    )
+    missions_review_outline.add_argument("mission_id")
+    missions_review_outline.add_argument("--regenerate", action="store_true")
+    missions_review_generate = missions_sub.add_parser(
+        "review-generate", help="Run the evidence-bound agent for one review section."
+    )
+    missions_review_generate.add_argument("mission_id")
+    missions_review_generate.add_argument("section_id")
+    missions_review_generate.add_argument("--version", type=int)
+    missions_review_generate.add_argument("--regenerate", action="store_true")
+    missions_review_generate.add_argument("--timeout", type=int, default=180)
+    missions_review_generate.add_argument("--no-wait", action="store_true")
+    missions_review_save = missions_sub.add_parser(
+        "review-save", help="Save one review section and create an immutable version."
+    )
+    missions_review_save.add_argument("mission_id")
+    missions_review_save.add_argument("section_id")
+    missions_review_save.add_argument("--version", type=int)
+    missions_review_save.add_argument("--title")
+    missions_review_save.add_argument("--purpose")
+    missions_review_save.add_argument("--body")
+    missions_review_save.add_argument("--body-file")
+    missions_review_save.add_argument("--citation", action="append", default=[])
+    missions_review_save.add_argument(
+        "--status", choices=("outline", "draft", "needs_review", "approved")
+    )
+    missions_review_versions = missions_sub.add_parser(
+        "review-versions", help="List immutable review versions."
+    )
+    missions_review_versions.add_argument("mission_id")
+    missions_plan_show = missions_sub.add_parser(
+        "plan-show", help="Show the mission's structured experiment plan."
+    )
+    missions_plan_show.add_argument("mission_id")
+    missions_plan_generate = missions_sub.add_parser(
+        "plan-generate", help="Generate an evidence-bound experiment plan and wait."
+    )
+    missions_plan_generate.add_argument("mission_id")
+    missions_plan_generate.add_argument("--regenerate", action="store_true")
+    missions_plan_generate.add_argument("--timeout", type=int, default=180)
+    missions_plan_generate.add_argument("--no-wait", action="store_true")
+    missions_plan_save = missions_sub.add_parser(
+        "plan-save", help="Save a structured plan from a UTF-8 JSON object."
+    )
+    missions_plan_save.add_argument("mission_id")
+    missions_plan_save.add_argument("--file", required=True)
+    missions_plan_publish = missions_sub.add_parser(
+        "plan-publish", help="Validate and publish the plan into Experiments."
+    )
+    missions_plan_publish.add_argument("mission_id")
+    missions_plan_versions = missions_sub.add_parser(
+        "plan-versions", help="List immutable experiment-plan versions."
+    )
+    missions_plan_versions.add_argument("mission_id")
+    missions_dataset_list = missions_sub.add_parser(
+        "dataset-list", help="List registered read-only dataset snapshots."
+    )
+    missions_dataset_list.add_argument("mission_id")
+    missions_dataset_register = missions_sub.add_parser(
+        "dataset-register", help="Register a dataset from a JSON request file."
+    )
+    missions_dataset_register.add_argument("mission_id")
+    missions_dataset_register.add_argument("--file", required=True)
+    missions_sql_query = missions_sub.add_parser(
+        "sql-query", help="Ask the read-only SQL Agent a question and wait."
+    )
+    missions_sql_query.add_argument("mission_id")
+    missions_sql_query.add_argument("dataset_source_id")
+    missions_sql_query.add_argument("question")
+    missions_sql_query.add_argument("--timeout", type=int, default=180)
+    missions_sql_query.add_argument("--no-wait", action="store_true")
+    missions_sql_results = missions_sub.add_parser(
+        "sql-results", help="List persisted SQL Agent results for a mission."
+    )
+    missions_sql_results.add_argument("mission_id")
+    missions_citation_audit = missions_sub.add_parser(
+        "citation-audit", help="Run the citation organizer and wait."
+    )
+    missions_citation_audit.add_argument("mission_id")
+    missions_citation_audit.add_argument("--timeout", type=int, default=180)
+    missions_citation_audit.add_argument("--no-wait", action="store_true")
+    missions_citation_show = missions_sub.add_parser(
+        "citation-show", help="Show the latest citation audit."
+    )
+    missions_citation_show.add_argument("mission_id")
+
     adapters = sub.add_parser("adapters", help="Inspect optional external harness adapters.")
     adapters.add_argument("action", choices=("list", "doctor"), default="list", nargs="?")
 
@@ -247,6 +405,8 @@ def dispatch(args: argparse.Namespace) -> int:
         return command_runs(client, project_id, args)
     if args.command == "mission":
         return command_mission(client, project_id, root, args)
+    if args.command == "missions":
+        return command_missions(client, project_id, args)
     raise RuntimeError(f"Unsupported command: {args.command}")
 
 
@@ -287,9 +447,7 @@ def command_config(config: CLIConfig, args: argparse.Namespace) -> int:
     return 0
 
 
-def command_doctor(
-    client: ResearchOSClient, config: CLIConfig, args: argparse.Namespace
-) -> int:
+def command_doctor(client: ResearchOSClient, config: CLIConfig, args: argparse.Namespace) -> int:
     checks: list[dict[str, Any]] = []
     for name, path in (("api", "/healthz"), ("dependencies", "/readyz"), ("auth", "/auth/me")):
         try:
@@ -370,11 +528,13 @@ def command_memory(root: Path, args: argparse.Namespace) -> int:
         }
         for item in records
     ]
-    text = "\n".join(
-        f"{item.id[:8]} {item.status:10} {item.kind:10} "
-        f"{item.confidence:.2f} {item.content}"
-        for item in records
-    ) or "No memory records."
+    text = (
+        "\n".join(
+            f"{item.id[:8]} {item.status:10} {item.kind:10} {item.confidence:.2f} {item.content}"
+            for item in records
+        )
+        or "No memory records."
+    )
     return emit(args, payload, text)
 
 
@@ -385,7 +545,7 @@ def command_adapters(args: argparse.Namespace) -> int:
         payload.append({**adapter, "installed": executable is not None, "path": executable})
     text = "\n".join(
         f"{'READY' if item['installed'] else 'LINK ':5} {item['project']}: "
-        f"{item['path'] or item['url']} — {item['integration']}"
+        f"{item['path'] or item['url']} - {item['integration']}"
         for item in payload
     )
     return emit(args, payload, text)
@@ -404,8 +564,7 @@ def command_release_preflight(root: Path, args: argparse.Namespace) -> int:
         ".github/workflows/release.yml",
     )
     checks = [
-        {"name": path, "ok": (root / path).exists(), "detail": "present"}
-        for path in required
+        {"name": path, "ok": (root / path).exists(), "detail": "present"} for path in required
     ]
     try:
         status = subprocess.run(
@@ -445,6 +604,252 @@ def command_runs(client: ResearchOSClient, project_id: str, args: argparse.Names
         return emit(args, run, _format_run(run))
     run = client.request("POST", f"{base}/{args.run_id}/cancel")
     return emit(args, run, _format_run(run))
+
+
+def command_missions(client: ResearchOSClient, project_id: str, args: argparse.Namespace) -> int:
+    """Operate the durable mission API used by the web workspace."""
+
+    base = f"/projects/{project_id}/missions"
+    command = args.missions_command
+    if command == "list":
+        page = client.request("GET", base, query={"status": args.status, "limit": args.limit})
+        return emit(args, page, _format_missions(page))
+    if command == "create":
+        mission = client.request(
+            "POST",
+            base,
+            body={
+                "topic": args.topic,
+                "objective": args.objective,
+                "field": args.field,
+                "scope": _parse_json_object(args.scope_json, label="scope"),
+            },
+        )
+        return emit(args, mission, _format_mission(mission))
+    mission_path = f"{base}/{args.mission_id}"
+    if command == "show":
+        mission = client.request("GET", mission_path)
+        return emit(args, mission, _format_mission(mission))
+    if command == "timeline":
+        page = client.request("GET", f"{mission_path}/timeline", query={"limit": args.limit})
+        return emit(args, page, _format_mission_timeline(page))
+    if command == "card-versions":
+        versions = client.request(
+            "GET",
+            f"{base.rsplit('/missions', 1)[0]}/papers/{args.paper_id}/reading-card/versions",
+            query={"mission_id": args.mission_id},
+        )
+        return emit(args, versions, _format_card_versions(versions))
+    if command == "generate-card":
+        created = client.request(
+            "POST",
+            f"{base.rsplit('/missions', 1)[0]}/papers/{args.paper_id}/reading-card/generate",
+            body={"mission_id": args.mission_id, "regenerate": args.regenerate},
+        )
+        if args.no_wait:
+            return emit(args, created, f"{created['agent_run_id']} [{created['status']}]")
+        run = wait_for_run(
+            client,
+            project_id,
+            str(created["agent_run_id"]),
+            timeout=args.timeout,
+        )
+        return emit(args, run, _format_run(run))
+    review_path = f"{mission_path}/review"
+    if command == "review-show":
+        review = client.request("GET", review_path)
+        return emit(args, review, _format_review(review))
+    if command == "review-outline":
+        review = client.request(
+            "POST", f"{review_path}/outline", body={"regenerate": args.regenerate}
+        )
+        return emit(args, review, _format_review(review))
+    if command == "review-versions":
+        versions = client.request("GET", f"{review_path}/versions")
+        return emit(args, versions, _format_review_versions(versions))
+    if command == "review-generate":
+        review = client.request("GET", review_path)
+        section = next(
+            (item for item in review.get("sections", []) if item.get("id") == args.section_id),
+            None,
+        )
+        if section is None:
+            raise ValueError(f"Review section not found: {args.section_id}")
+        created = client.request(
+            "POST",
+            f"{review_path}/sections/{args.section_id}/generate",
+            body={
+                "expected_version": args.version or section["version"],
+                "regenerate": args.regenerate,
+            },
+        )
+        if args.no_wait:
+            return emit(args, created, f"{created['agent_run_id']} [{created['status']}]")
+        run = wait_for_run(
+            client,
+            project_id,
+            str(created["agent_run_id"]),
+            timeout=args.timeout,
+        )
+        return emit(args, run, _format_run(run))
+    if command == "review-save":
+        if args.body is not None and args.body_file is not None:
+            raise ValueError("Use either --body or --body-file, not both.")
+        review = client.request("GET", review_path)
+        section = next(
+            (item for item in review.get("sections", []) if item.get("id") == args.section_id),
+            None,
+        )
+        if section is None:
+            raise ValueError(f"Review section not found: {args.section_id}")
+        review_body: dict[str, Any] = {"expected_version": args.version or section["version"]}
+        for key in ("title", "purpose", "status"):
+            value = getattr(args, key)
+            if value is not None:
+                review_body[key] = value
+        if args.body is not None:
+            review_body["body"] = args.body
+        elif args.body_file is not None:
+            review_body["body"] = Path(args.body_file).read_text(encoding="utf-8")
+        if args.citation:
+            review_body["citations"] = args.citation
+        if len(review_body) == 1:
+            raise ValueError("review-save requires a title, purpose, body, citation, or status.")
+        updated = client.request(
+            "PUT", f"{review_path}/sections/{args.section_id}", body=review_body
+        )
+        return emit(args, updated, _format_review(updated))
+    plan_path = f"{mission_path}/experiment-plan"
+    if command == "plan-show":
+        plan = client.request("GET", plan_path)
+        return emit(args, plan, _format_experiment_plan(plan))
+    if command == "plan-generate":
+        current: dict[str, Any] | None
+        try:
+            current = client.request("GET", plan_path)
+        except APIError as exc:
+            if exc.status != 404:
+                raise
+            current = None
+        created = client.request(
+            "POST",
+            f"{plan_path}/generate",
+            body={
+                "expected_version": current.get("version", 0) if current else 0,
+                "regenerate": args.regenerate,
+            },
+        )
+        if args.no_wait:
+            return emit(args, created, f"{created['agent_run_id']} [{created['status']}]")
+        run = wait_for_run(
+            client,
+            project_id,
+            str(created["agent_run_id"]),
+            timeout=args.timeout,
+        )
+        return emit(args, run, _format_run(run))
+    if command == "plan-save":
+        body = json.loads(Path(args.file).read_text(encoding="utf-8"))
+        if not isinstance(body, dict):
+            raise ValueError("plan-save --file must contain a JSON object.")
+        if "expected_version" not in body:
+            try:
+                current = client.request("GET", plan_path)
+            except APIError as exc:
+                if exc.status != 404:
+                    raise
+            else:
+                body["expected_version"] = current["version"]
+        plan = client.request("PUT", plan_path, body=body)
+        return emit(args, plan, _format_experiment_plan(plan))
+    if command == "plan-publish":
+        result = client.request("POST", f"{plan_path}/publish")
+        return emit(args, result, _format_experiment_plan(result["plan"]))
+    if command == "plan-versions":
+        versions = client.request("GET", f"{plan_path}/versions")
+        return emit(args, versions, _format_plan_versions(versions))
+    project_path = base.rsplit("/missions", 1)[0]
+    if command == "dataset-list":
+        sources = client.request("GET", f"{project_path}/datasets")
+        return emit(args, sources, _format_datasets(sources))
+    if command == "dataset-register":
+        body = json.loads(Path(args.file).read_text(encoding="utf-8"))
+        if not isinstance(body, dict):
+            raise ValueError("dataset-register --file must contain a JSON object.")
+        source = client.request("POST", f"{project_path}/datasets", body=body)
+        return emit(args, source, _format_datasets([source]))
+    if command == "sql-query":
+        created = client.request(
+            "POST",
+            f"{mission_path}/sql-query",
+            body={"dataset_source_id": args.dataset_source_id, "question": args.question},
+        )
+        if args.no_wait:
+            return emit(args, created, f"{created['agent_run_id']} [{created['status']}]")
+        run = wait_for_run(
+            client,
+            project_id,
+            str(created["agent_run_id"]),
+            timeout=args.timeout,
+        )
+        return emit(args, run, _format_run(run))
+    if command == "sql-results":
+        results = client.request("GET", f"{mission_path}/sql-results")
+        return emit(args, results, _format_sql_results(results))
+    citation_path = f"{mission_path}/citation-audits"
+    if command == "citation-audit":
+        created = client.request("POST", citation_path)
+        if args.no_wait:
+            return emit(args, created, f"{created['agent_run_id']} [{created['status']}]")
+        run = wait_for_run(
+            client,
+            project_id,
+            str(created["agent_run_id"]),
+            timeout=args.timeout,
+        )
+        return emit(args, run, _format_run(run))
+    if command == "citation-show":
+        audits = client.request("GET", citation_path)
+        latest = audits[0] if audits else None
+        return emit(args, latest, _format_citation_audit(latest))
+    if command == "update":
+        update_body: dict[str, Any] = {
+            "expected_version": args.version or _mission_version(client, mission_path)
+        }
+        for key in ("topic", "objective", "field", "status"):
+            value = getattr(args, key)
+            if value is not None:
+                update_body[key] = value
+        if args.scope_json is not None:
+            update_body["scope"] = _parse_json_object(args.scope_json, label="scope")
+        if len(update_body) == 1:
+            raise ValueError("missions update requires at least one field option.")
+        mission = client.request("PATCH", mission_path, body=update_body)
+        return emit(args, mission, _format_mission(mission))
+    step_path = f"{mission_path}/steps/{args.step}"
+    expected_version = args.version or _mission_step_version(client, mission_path, args.step)
+    if command == "step-save":
+        step_body: dict[str, Any] = {"expected_version": expected_version}
+        if args.input_json is not None:
+            step_body["input"] = _parse_json_object(args.input_json, label="step input")
+        if args.output_json is not None:
+            step_body["output"] = _parse_json_object(args.output_json, label="step output")
+        if args.summary is not None:
+            if "output" in step_body:
+                raise ValueError("Use either --summary or --output-json, not both.")
+            step_body["output"] = {"summary": args.summary}
+        if args.status is not None:
+            step_body["status"] = args.status
+        if len(step_body) == 1:
+            raise ValueError("missions step-save requires input, output, summary, or status.")
+        mission = client.request("PUT", step_path, body=step_body)
+        return emit(args, mission, _format_mission(mission))
+    mission = client.request(
+        "POST",
+        f"{step_path}/approve",
+        body={"expected_version": expected_version, "note": args.note or None},
+    )
+    return emit(args, mission, _format_mission(mission))
 
 
 def command_chat(
@@ -570,6 +975,14 @@ def run_turn(
     run_id = created["agent_run_id"]
     if not wait:
         return dict(created)
+    return wait_for_run(client, project_id, str(run_id), timeout=timeout)
+
+
+def wait_for_run(
+    client: ResearchOSClient, project_id: str, run_id: str, *, timeout: int
+) -> dict[str, Any]:
+    """Wait for an already-created AgentRun and return its terminal representation."""
+
     deadline = time.monotonic() + max(1, timeout)
     while time.monotonic() < deadline:
         run = client.request("GET", f"/projects/{project_id}/agents/runs/{run_id}")
@@ -624,17 +1037,161 @@ def emit(args: argparse.Namespace, payload: Any, text: str) -> int:
 
 
 def _format_projects(page: dict[str, Any]) -> str:
-    return "\n".join(
-        f"{item['id']}  {item.get('name', '')}  [{item.get('role', item.get('status', ''))}]"
-        for item in page.get("items", [])
-    ) or "No projects."
+    return (
+        "\n".join(
+            f"{item['id']}  {item.get('name', '')}  [{item.get('role', item.get('status', ''))}]"
+            for item in page.get("items", [])
+        )
+        or "No projects."
+    )
 
 
 def _format_runs(page: dict[str, Any]) -> str:
+    return (
+        "\n".join(
+            f"{item['id']}  {item['status']:10}  {item['agent_type']}"
+            for item in page.get("items", [])
+        )
+        or "No runs."
+    )
+
+
+def _format_missions(page: dict[str, Any]) -> str:
+    return (
+        "\n".join(
+            f"{item['id']}  {item.get('progress', 0):5.1f}%  "
+            f"{item.get('status', ''):9}  {item.get('current_step', ''):15}  "
+            f"{item.get('topic', '')}"
+            for item in page.get("items", [])
+        )
+        or "No research missions."
+    )
+
+
+def _format_mission(mission: dict[str, Any]) -> str:
+    lines = [
+        f"{mission.get('id')}  [{mission.get('status')}]  {mission.get('progress', 0):.1f}%",
+        str(mission.get("topic", "")),
+    ]
+    objective = mission.get("objective")
+    if objective:
+        lines.append(str(objective))
+    for step in mission.get("steps", []):
+        marker = "[x]" if step.get("status") == "completed" else "[ ]"
+        lines.append(
+            f"  {marker} {step.get('step_kind', ''):15} "
+            f"{step.get('status', ''):14} v{step.get('version', '')}"
+        )
+    return "\n".join(lines)
+
+
+def _format_mission_timeline(page: dict[str, Any]) -> str:
+    return (
+        "\n".join(
+            f"{item.get('created_at', '')}  {item.get('event_type', ''):18}  "
+            f"{item.get('summary', '')}"
+            for item in page.get("items", [])
+        )
+        or "No mission events."
+    )
+
+
+def _format_card_versions(versions: list[dict[str, Any]]) -> str:
+    return (
+        "\n".join(
+            f"v{item.get('version', ''):<4} {item.get('source_type', ''):8} "
+            f"{item.get('created_at', '')}  run={item.get('source_run_id') or '-'}"
+            for item in versions
+        )
+        or "No reading-card versions."
+    )
+
+
+def _format_review(review: dict[str, Any]) -> str:
+    lines = [
+        f"{review.get('id')} [v{review.get('version')}] {review.get('status')}  "
+        f"coverage={review.get('citation_coverage', 0):.1f}%  "
+        f"unsupported={review.get('unsupported_claims', 0)}",
+        str(review.get("title", "")),
+    ]
+    lines.extend(
+        f"  {item.get('id')}  {item.get('position', 0) + 1}. "
+        f"{item.get('title', '')}  [{item.get('status')}, "
+        f"v{item.get('version')}, {len(item.get('citations_json', []))} cites]"
+        for item in review.get("sections", [])
+    )
+    return "\n".join(lines)
+
+
+def _format_review_versions(versions: list[dict[str, Any]]) -> str:
+    return (
+        "\n".join(
+            f"v{item.get('version', ''):<4} {item.get('source_type', ''):8} "
+            f"{item.get('created_at', '')}"
+            for item in versions
+        )
+        or "No review versions."
+    )
+
+
+def _format_experiment_plan(plan: dict[str, Any]) -> str:
     return "\n".join(
-        f"{item['id']}  {item['status']:10}  {item['agent_type']}"
-        for item in page.get("items", [])
-    ) or "No runs."
+        [
+            f"{plan.get('id')} [v{plan.get('version')}] {plan.get('status')}",
+            str(plan.get("title", "")),
+            f"hypothesis: {plan.get('hypothesis', '')}",
+            f"variables={len(plan.get('variables_json', []))}  "
+            f"baselines={len(plan.get('baselines_json', []))}  "
+            f"datasets={len(plan.get('datasets_json', []))}  "
+            f"metrics={len(plan.get('metrics_json', []))}  "
+            f"matrix={len(plan.get('matrix_json', []))}",
+            f"published_experiment={plan.get('published_experiment_id') or '-'}",
+        ]
+    )
+
+
+def _format_plan_versions(versions: list[dict[str, Any]]) -> str:
+    return (
+        "\n".join(
+            f"v{item.get('version', ''):<4} {item.get('source_type', ''):8} "
+            f"{item.get('created_at', '')}  run={item.get('source_run_id') or '-'}"
+            for item in versions
+        )
+        or "No experiment-plan versions."
+    )
+
+
+def _format_datasets(items: list[dict[str, Any]]) -> str:
+    return (
+        "\n".join(
+            f"{item.get('id')}  {item.get('name')}  "
+            f"[{len(item.get('rows_json', []))} rows, "
+            f"{len(item.get('columns_json', []))} columns]"
+            for item in items
+        )
+        or "No registered datasets."
+    )
+
+
+def _format_sql_results(items: list[dict[str, Any]]) -> str:
+    return (
+        "\n".join(
+            f"{item.get('id')}  rows={item.get('row_count', 0)}  "
+            f"{item.get('question', '')}\n  {item.get('sql', '')}"
+            for item in items
+        )
+        or "No SQL results."
+    )
+
+
+def _format_citation_audit(audit: dict[str, Any] | None) -> str:
+    if audit is None:
+        return "No citation audits."
+    return (
+        f"{audit.get('id')}  papers={len(audit.get('items_json', []))}  "
+        f"missing={audit.get('missing_field_count', 0)}  "
+        f"duplicates={len(audit.get('duplicate_groups_json', []))}"
+    )
 
 
 def _format_run(run: dict[str, Any]) -> str:
@@ -646,6 +1203,34 @@ def _run_message(run: dict[str, Any]) -> str:
     output = run.get("output_json") or {}
     error = run.get("error_json") or {}
     return str(output.get("message") or error.get("message") or "")
+
+
+def _parse_json_object(raw: str, *, label: str) -> dict[str, Any]:
+    """Read a JSON object from an inline value or an @file argument."""
+
+    if raw.startswith("@"):
+        path = Path(raw[1:]).expanduser()
+        raw = path.read_text(encoding="utf-8")
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid {label} JSON: {exc.msg}.") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{label.capitalize()} JSON must be an object.")
+    return value
+
+
+def _mission_version(client: ResearchOSClient, mission_path: str) -> int:
+    mission = client.request("GET", mission_path)
+    return int(mission["version"])
+
+
+def _mission_step_version(client: ResearchOSClient, mission_path: str, step_kind: str) -> int:
+    mission = client.request("GET", mission_path)
+    for step in mission.get("steps", []):
+        if step.get("step_kind") == step_kind:
+            return int(step["version"])
+    raise RuntimeError(f"Mission does not contain step: {step_kind}")
 
 
 def _mission_prompt(objective: str) -> str:

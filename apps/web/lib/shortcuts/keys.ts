@@ -117,7 +117,7 @@ export function matchesChord(
   e: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey'>,
   chord: Chord,
 ): boolean {
-  if (e.key.toLowerCase() !== chord.key) return false;
+  if (!e.key || e.key.toLowerCase() !== chord.key) return false;
   if (e.ctrlKey !== chord.ctrl || e.metaKey !== chord.meta || e.altKey !== chord.alt) {
     return false;
   }

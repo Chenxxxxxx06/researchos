@@ -36,13 +36,18 @@ from researchos.identity.repository import UserRepository
 from researchos.skills.service import RuntimeSkill
 
 from .base import Agent, AgentContext
+from .citation_organizer_agent import CitationOrganizerAgent
 from .coding_agent import CodingAgent
 from .critic_agent import CriticAgent
 from .events import EventEmitter
 from .experiment_agent import ExperimentAgent
+from .experiment_planner_agent import ExperimentPlannerAgent
 from .latex_agent import LatexAgent
+from .reading_card_agent import ReadingCardAgent
 from .research_agent import ResearchAgent
+from .review_section_agent import ReviewSectionAgent
 from .skills_injection import load_skills, skill_tool_grants
+from .sql_analyst_agent import SqlAnalystAgent
 from .tools import TOOL_REGISTRY, ToolBroker, ToolContext, ToolDenied
 
 logger = structlog.get_logger(__name__)
@@ -52,7 +57,12 @@ _AGENTS: dict[AgentType, type[Agent]] = {
     AgentType.CRITIC: CriticAgent,
     AgentType.CODING: CodingAgent,
     AgentType.EXPERIMENT: ExperimentAgent,
+    AgentType.EXPERIMENT_PLANNER: ExperimentPlannerAgent,
+    AgentType.SQL_ANALYST: SqlAnalystAgent,
+    AgentType.CITATION_ORGANIZER: CitationOrganizerAgent,
     AgentType.LATEX: LatexAgent,
+    AgentType.READING_CARD: ReadingCardAgent,
+    AgentType.REVIEW_SECTION: ReviewSectionAgent,
 }
 
 _SYNTHESIS_NUDGE = (
@@ -130,9 +140,7 @@ class AgentRuntime:
         effective_tools = _effective_tools(agent, skills)
         grants = skill_tool_grants(skills)
         if grants:
-            logger.info(
-                "skill_tool_grants", run_id=str(run.id), grants=grants
-            )
+            logger.info("skill_tool_grants", run_id=str(run.id), grants=grants)
         tool_ctx = ToolContext(
             db=self.db,
             actor=actor,
@@ -285,9 +293,7 @@ class AgentRuntime:
                         continue
                 return iter_text, usage_total
 
-            messages.append(
-                LLMMessage(role="assistant", content=iter_text, tool_calls=requested)
-            )
+            messages.append(LLMMessage(role="assistant", content=iter_text, tool_calls=requested))
             # Sequential execution: the shared AsyncSession forbids concurrent
             # DB use; parallel safety comes from the seq allocator, not here.
             for call in requested:
