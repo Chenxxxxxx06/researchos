@@ -12,6 +12,14 @@ export interface TreeResponse {
   nodes: TreeNode[];
 }
 
+export interface LocalWorkspaceConfig {
+  root: string;
+  default_root: string;
+  uses_default: boolean;
+  available: boolean;
+  recent_roots: string[];
+}
+
 export interface FileContent {
   path: string;
   binary: boolean;
@@ -34,6 +42,24 @@ export interface GrepResponse {
 
 export function getTree(projectId: string): Promise<TreeResponse> {
   return apiRequest(`/projects/${projectId}/workspace/tree`);
+}
+
+export function getLocalWorkspaceConfig(projectId: string): Promise<LocalWorkspaceConfig> {
+  return apiRequest(`/projects/${projectId}/workspace/local`);
+}
+
+export function setLocalWorkspace(
+  projectId: string,
+  rootPath: string,
+): Promise<LocalWorkspaceConfig> {
+  return apiRequest(`/projects/${projectId}/workspace/local`, {
+    method: 'PUT',
+    body: { root_path: rootPath },
+  });
+}
+
+export function resetLocalWorkspace(projectId: string): Promise<LocalWorkspaceConfig> {
+  return apiRequest(`/projects/${projectId}/workspace/local`, { method: 'DELETE' });
 }
 
 export function getFile(projectId: string, path: string): Promise<FileContent> {

@@ -18,10 +18,10 @@
   --color-text: 23 23 23;
   --color-text-muted: 115 115 115;
   --color-text-faint: 163 163 163;
-  --color-accent: 15 23 42;
+  --color-accent: 20 83 45;
   --color-accent-fg: 255 255 255;
-  --color-accent-hover: 30 41 59;
-  --color-focus: 59 130 246;
+  --color-accent-hover: 22 101 52;
+  --color-focus: 22 163 74;
   --color-success: 22 163 74;
   --color-success-bg: 240 253 244;
   --color-warn: 217 119 6;
@@ -71,10 +71,10 @@
   --color-text: 244 244 245;
   --color-text-muted: 161 161 170;
   --color-text-faint: 113 113 122;
-  --color-accent: 226 232 240;
-  --color-accent-fg: 15 23 42;
-  --color-accent-hover: 203 213 225;
-  --color-focus: 96 165 250;
+  --color-accent: 134 239 172;
+  --color-accent-fg: 8 35 20;
+  --color-accent-hover: 187 247 208;
+  --color-focus: 74 222 128;
   --color-success: 74 222 128;
   --color-success-bg: 20 45 31;
   --color-warn: 251 191 36;
@@ -118,7 +118,7 @@ html {
 
 .mission-grid {
   background-image:
-    radial-gradient(circle at 78% 22%, rgb(var(--color-info) / 0.09), transparent 34%),
+    radial-gradient(circle at 78% 22%, rgb(var(--color-success) / 0.1), transparent 34%),
     linear-gradient(rgb(var(--color-border) / 0.42) 1px, transparent 1px),
     linear-gradient(90deg, rgb(var(--color-border) / 0.42) 1px, transparent 1px);
   background-size: auto, 32px 32px, 32px 32px;

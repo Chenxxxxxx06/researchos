@@ -39,6 +39,7 @@ export interface IdeState {
   clearHighlight: () => void;
   selectCommit: (sha: string | null) => void;
   setRightTab: (tab: RightTab) => void;
+  resetWorkspace: () => void;
 }
 
 function neighbor(tabs: string[], path: string): string | null {
@@ -127,4 +128,5 @@ export const useIdeStore = create<IdeState>((set, get) => ({
 
   selectCommit: (sha) => set(sha ? { selectedCommitSha: sha, rightTab: 'git' } : { selectedCommitSha: null }),
   setRightTab: (tab) => set({ rightTab: tab }),
+  resetWorkspace: () => set({ tabs: [], active: null, buffers: {}, pendingReveal: null }),
 }));

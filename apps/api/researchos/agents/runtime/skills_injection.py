@@ -29,12 +29,18 @@ _MODULE_BY_AGENT: dict[AgentType, SkillModule] = {
 
 
 async def load_skills(
-    db: AsyncSession, project_id: uuid.UUID, agent_type: AgentType
+    db: AsyncSession,
+    project_id: uuid.UUID,
+    agent_type: AgentType,
+    *,
+    requested_slugs: list[str] | None = None,
 ) -> list[RuntimeSkill]:
     module = _MODULE_BY_AGENT.get(agent_type)
     if module is None:
         return []
-    return await SkillService(db).list_enabled_for_runtime(project_id, module)
+    return await SkillService(db).list_enabled_for_runtime(
+        project_id, module, requested_slugs=requested_slugs
+    )
 
 
 def _substitute(template: str, settings: dict) -> str:

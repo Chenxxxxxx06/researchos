@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
   BarChart3,
@@ -9,12 +9,26 @@ import {
   FileText,
   FlaskConical,
   Lightbulb,
+  Loader2,
+  GraduationCap,
+  RefreshCw,
   Trophy,
 } from 'lucide-react';
+import { useState } from 'react';
+import Link from 'next/link';
 
-import { listExperiments, listProjectRuns, type ExperimentRun } from '@/lib/api/experiments';
+import { createAgentRun, getAgentRun } from '@/lib/api/agents';
+import {
+  listExperiments,
+  listLogs,
+  listMetrics,
+  listProjectRuns,
+  type ExperimentRun,
+} from '@/lib/api/experiments';
 import { listIdeas } from '@/lib/api/ideas';
 import { listPapers } from '@/lib/api/papers';
+import { listLLMConfigs } from '@/lib/api/llmConfig';
+import { installSkill } from '@/lib/api/skills';
 import { cn } from '@/lib/utils';
 
 const nodeClass =
@@ -99,15 +113,99 @@ export function ExperimentFlowOverview({ projectId }: { projectId: string }) {
         )}
       </section>
 
-      <section className="rounded-xl border border-accent/25 bg-accent/5 p-4">
-        <h3 className="text-sm font-semibold text-text">实验规划助手</h3>
-        <p className="mt-1 text-xs leading-relaxed text-muted">
-          规划顺序固定为：主结果可支持主张后，再生成组件消融、超参数敏感性和替代设计；优先运行配置型消融，并为每个实验记录
-          “它验证什么”和“组件有效时预期发生什么”。Baseline 与 benchmark 必须来自项目文献库或明确标注为待验证建议。
-        </p>
-      </section>
+      <MentorPanel
+        projectId={projectId}
+        runs={allRuns}
+        experimentCount={experiments.data?.length ?? 0}
+        paperCount={papers.data?.total ?? 0}
+        ideaCount={ideas.data?.total ?? 0}
+      />
     </div>
   );
+}
+
+function MentorPanel({ projectId, runs, experimentCount, paperCount, ideaCount }: { projectId: string; runs: ExperimentRun[]; experimentCount: number; paperCount: number; ideaCount: number }) {
+  const [selectedRunId, setSelectedRunId] = useState<string>('');
+  const [runId, setRunId] = useState<string | null>(null);
+  const configs = useQuery({ queryKey: ['llm-configs', projectId], queryFn: () => listLLMConfigs(projectId) });
+  const realProviderReady = Boolean(configs.data?.some((item) => item.is_active));
+  const effectiveRunId = selectedRunId || runs[0]?.id || '';
+  const selectedRun = runs.find((item) => item.id === effectiveRunId) ?? null;
+  const metrics = useQuery({
+    queryKey: ['mentor-metrics', projectId, effectiveRunId],
+    queryFn: () => listMetrics(projectId, effectiveRunId),
+    enabled: Boolean(effectiveRunId),
+  });
+  const logs = useQuery({
+    queryKey: ['mentor-logs', projectId, effectiveRunId],
+    queryFn: () => listLogs(projectId, effectiveRunId),
+    enabled: Boolean(effectiveRunId),
+  });
+  const start = useMutation({
+    mutationFn: async () => {
+      await installSkill(projectId, 'research-mentor');
+      return createAgentRun(projectId, {
+        agent_type: 'research',
+        context: { skill_slugs: ['research-mentor'] },
+        message: mentorPrompt({
+          paperCount,
+          ideaCount,
+          experimentCount,
+          runs,
+          selectedRun,
+          metrics: metrics.data ?? [],
+          logs: logs.data ?? [],
+        }),
+      });
+    },
+    onSuccess: (result) => setRunId(result.agent_run_id),
+  });
+  const agentRun = useQuery({
+    queryKey: ['mentor-run', projectId, runId],
+    queryFn: () => getAgentRun(projectId, runId!),
+    enabled: Boolean(runId),
+    refetchInterval: (query) => ['queued', 'running'].includes(query.state.data?.status ?? '') ? 1500 : false,
+  });
+
+  return (
+    <section className="overflow-hidden border border-accent/25 bg-accent/5">
+      <div className="grid lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <div className="border-b border-accent/15 p-5 lg:border-b-0 lg:border-r">
+          <div className="flex items-center gap-2"><GraduationCap className="h-4 w-4 text-accent" /><h3 className="text-sm font-semibold text-text">实验导师 Skill</h3></div>
+          <p className="mt-2 text-xs leading-5 text-muted">读取当前项目与选中运行的真实指标、日志和版本信息，给出可证伪、按信息增益排序的下一步建议。</p>
+          <label className="mt-4 block text-[10px] font-semibold uppercase tracking-wider text-faint">重点运行</label>
+          <select value={effectiveRunId} onChange={(event) => setSelectedRunId(event.target.value)} className="mt-1 h-10 w-full border border-border-strong bg-surface px-3 text-xs text-text">
+            {runs.length === 0 && <option value="">尚无实验运行</option>}
+            {runs.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.status}</option>)}
+          </select>
+          <button type="button" disabled={!realProviderReady || start.isPending || metrics.isLoading || logs.isLoading} onClick={() => start.mutate()} className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 bg-accent px-4 text-xs font-semibold text-accent-fg disabled:cursor-not-allowed disabled:opacity-50">
+            {start.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {runId ? '重新生成导师建议' : '生成导师建议'}
+          </button>
+          <p className="mt-3 font-mono text-[9px] leading-4 text-faint">SKILL research-mentor · evidence-bound · no fabricated metrics</p>
+          {!realProviderReady && !configs.isLoading && <p className="mt-3 border border-warn/25 bg-warn-bg p-2 text-[10px] leading-4 text-warn">导师 Agent 已锁定，请先在<Link href={`/projects/${projectId}/manage?tab=settings`} className="mx-1 font-semibold underline">管理中心</Link>配置真实模型。</p>}
+        </div>
+        <div className="min-h-[16rem] bg-surface/70 p-5">
+          {!runId && <div className="flex h-full min-h-[12rem] items-center justify-center text-center text-xs leading-6 text-muted">选择一个运行后，导师会检查主张—证据链、混杂因素、对照、消融、复现信息和停止条件。</div>}
+          {agentRun.data && ['queued', 'running'].includes(agentRun.data.status) && <div className="flex items-center gap-2 text-sm text-info"><Loader2 className="h-4 w-4 animate-spin" />导师 Agent 正在检查实验记录…</div>}
+          {agentRun.data?.status === 'failed' && <div className="border border-danger/20 bg-danger-bg p-3 text-xs text-danger">{agentRun.data.error_json?.message || '生成失败，请在管理中心检查模型连接与 Worker。'}</div>}
+          {agentRun.data?.status === 'completed' && <article className="whitespace-pre-wrap text-sm leading-7 text-text">{typeof agentRun.data.output_json?.message === 'string' ? agentRun.data.output_json.message : '运行完成，但没有返回可显示的导师报告。'}</article>}
+          {start.error && <div className="border border-danger/20 bg-danger-bg p-3 text-xs text-danger">{start.error instanceof Error ? start.error.message : '无法启动导师 Agent。'}</div>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function mentorPrompt(input: { paperCount: number; ideaCount: number; experimentCount: number; runs: ExperimentRun[]; selectedRun: ExperimentRun | null; metrics: Array<{ name: string; step: number; value: number }>; logs: Array<{ seq: number; level: string; message: string }> }): string {
+  const record = {
+    project_state: { papers: input.paperCount, ideas: input.ideaCount, experiments: input.experimentCount, runs: input.runs.length },
+    run_portfolio: input.runs.slice(0, 20).map((run) => ({ id: run.id, name: run.name, status: run.status, git_commit: run.git_commit, command: run.command, progress: run.progress, config: run.config_json })),
+    selected_run: input.selectedRun,
+    recorded_metrics: input.metrics.slice(-200),
+    recent_logs: input.logs.slice(-40),
+  };
+  return `Use the active Research Mentor skill to conduct a project checkpoint. Treat the JSON below as the complete available experiment record. Do not infer that a metric improved unless the recorded values prove it. Return in Chinese: (1) current stage and evidence inventory; (2) claim-to-evidence audit; (3) fatal gaps and confounds; (4) smallest decisive next experiment with hypothesis, independent/dependent/control variables, baseline, primary metric, success/failure thresholds and stop rule; (5) ordered checklist for this week; (6) what must be logged for reproducibility. Mark absent data as [证据缺口].\n\nPROJECT RECORD:\n${JSON.stringify(record).slice(0, 8500)}`;
 }
 
 function RunProgress({ run }: { run: ExperimentRun }) {

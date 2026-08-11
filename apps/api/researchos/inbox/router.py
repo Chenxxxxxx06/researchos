@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 
 from researchos.common.deps import CurrentUser, DbSession, require_csrf
+from researchos.common.roles import ProjectRole
 
+from .extraction import extract_upload
 from .schemas import (
     AnalyzeInboxItemRequest,
     AnalyzeInboxItemResponse,
     CreateInboxItemRequest,
+    InboxAnalysisMode,
     InboxItemResponse,
+    UploadInboxItemResponse,
 )
 from .service import ResearchInboxService
 
@@ -41,6 +46,53 @@ async def create_item(
 ) -> InboxItemResponse:
     item = await ResearchInboxService(db).create_item(user, project_id, payload)
     return InboxItemResponse.model_validate(item)
+
+
+@router.post(
+    "/upload",
+    response_model=UploadInboxItemResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_csrf)],
+)
+async def upload_item(
+    project_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    file: Annotated[UploadFile, File()],
+    sender: Annotated[str | None, Form()] = None,
+    title: Annotated[str | None, Form()] = None,
+    analysis_mode: Annotated[InboxAnalysisMode, Form()] = "direction",
+    auto_analyze: Annotated[bool, Form()] = True,
+) -> UploadInboxItemResponse:
+    service = ResearchInboxService(db)
+    await service.projects.ensure_access(user, project_id, ProjectRole.RESEARCHER)
+    text, source_type = await extract_upload(db, project_id, file)
+    filename = file.filename or "upload"
+    item = await service.create_item(
+        user,
+        project_id,
+        CreateInboxItemRequest(
+            source_type=source_type,
+            sender=sender,
+            title=(title or filename).strip(),
+            content_text=text,
+            original_filename=filename,
+            media_type=file.content_type,
+        ),
+    )
+    analysis = None
+    if auto_analyze:
+        run = await service.analyze(user, project_id, item.id, analysis_mode)
+        analysis = AnalyzeInboxItemResponse(
+            item_id=item.id,
+            agent_run_id=run.id,
+            status=run.status.value,
+        )
+        await db.refresh(item)
+    return UploadInboxItemResponse(
+        item=InboxItemResponse.model_validate(item),
+        analysis=analysis,
+    )
 
 
 @router.post(

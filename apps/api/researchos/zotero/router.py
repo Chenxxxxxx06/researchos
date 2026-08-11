@@ -7,6 +7,7 @@ import uuid
 from fastapi import APIRouter, Depends, status
 
 from researchos.common.deps import CurrentUser, DbSession, require_csrf
+from researchos.common.secrets import mask_secret
 
 from .models import ZoteroConnection
 from .schemas import (
@@ -21,13 +22,11 @@ router = APIRouter(prefix="/projects/{project_id}/integrations/zotero", tags=["z
 
 
 def _response(connection: ZoteroConnection) -> ZoteroConnectionResponse:
-    key = connection.api_key
-    masked = f"****{key[-4:]}" if len(key) > 4 else "****"
     return ZoteroConnectionResponse(
         id=str(connection.id),
         library_type=connection.library_type,
         library_id=connection.library_id,
-        api_key_masked=masked,
+        api_key_masked=mask_secret(connection.api_key),
         enabled=connection.enabled,
         include_collections=[str(v) for v in connection.include_collections_json],
         last_library_version=connection.last_library_version,

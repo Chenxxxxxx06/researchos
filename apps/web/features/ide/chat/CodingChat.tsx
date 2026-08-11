@@ -12,6 +12,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bot } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -52,7 +53,7 @@ export function CodingChat({ projectId }: { projectId: string }) {
     queryKey: ['llm-configs', projectId],
     queryFn: () => listLLMConfigs(projectId),
   });
-  const hasRealLLM = (llmConfigs.data?.length ?? 0) > 0;
+  const hasRealLLM = Boolean(llmConfigs.data?.some((config) => config.is_active));
 
   const patchesQuery = useQuery({
     queryKey: ['patches', projectId],
@@ -171,7 +172,7 @@ export function CodingChat({ projectId }: { projectId: string }) {
         <h2 className="text-sm font-semibold text-text">{t('ide.codingChat')}</h2>
         {!hasRealLLM && (
           <Badge variant="warn" size="sm">
-            {t('ide.mockLLM')}
+            需要真实模型
           </Badge>
         )}
       </div>
@@ -184,6 +185,13 @@ export function CodingChat({ projectId }: { projectId: string }) {
           onNew={() => void sessions.createSession()}
           creating={sessions.creating}
         />
+      )}
+      {!hasRealLLM && !llmConfigs.isLoading && (
+        <div className="border-b border-warn/25 bg-warn-bg px-3 py-2 text-[10px] leading-4 text-warn">
+          Coding Agent 已锁定，避免 Mock 补丁被当成真实修改。请在
+          <Link href={`/projects/${projectId}/manage?tab=settings`} className="mx-1 font-semibold underline">管理中心</Link>
+          配置并测试模型。
+        </div>
       )}
 
       {/* Turns */}
@@ -232,7 +240,7 @@ export function CodingChat({ projectId }: { projectId: string }) {
         <div ref={bottomRef} />
       </div>
 
-      <Composer onSend={send} disabled={busy} busy={busy} />
+      <Composer onSend={send} disabled={!hasRealLLM || busy} busy={busy} />
     </div>
   );
 }

@@ -54,7 +54,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const method = options.method ?? 'GET';
   const headers: Record<string, string> = { Accept: 'application/json' };
 
-  if (options.body !== undefined) {
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  if (options.body !== undefined && !isFormData) {
     headers['Content-Type'] = 'application/json';
   }
   if (method !== 'GET') {
@@ -66,7 +67,12 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     method,
     headers,
     credentials: 'include',
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body:
+      options.body === undefined
+        ? undefined
+        : isFormData
+          ? (options.body as FormData)
+          : JSON.stringify(options.body),
   });
 
   if (res.status === 204) {

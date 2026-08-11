@@ -5,6 +5,7 @@ import { Loader2, Play, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 
 import { runTerminalCommand, type TerminalRunResult } from '@/lib/api/workspace';
+import { runSSHCommand } from '@/lib/api/ssh';
 
 type Entry = { command: string; result: TerminalRunResult };
 
@@ -17,12 +18,14 @@ function tokenize(command: string): string[] {
   return tokens;
 }
 
-export function TerminalPanel({ projectId }: { projectId: string }) {
+export function TerminalPanel({ projectId, sshProfileId }: { projectId: string; sshProfileId?: string | null }) {
   const [command, setCommand] = useState('git status --short');
   const [entries, setEntries] = useState<Entry[]>([]);
   const run = useMutation({
     mutationFn: (value: string) =>
-      runTerminalCommand(projectId, { argv: tokenize(value), cwd: '.' }),
+      sshProfileId
+        ? runSSHCommand(projectId, sshProfileId, { argv: tokenize(value), cwd: '.' })
+        : runTerminalCommand(projectId, { argv: tokenize(value), cwd: '.' }),
     onSuccess: (result, value) => {
       setEntries((current) => [...current.slice(-19), { command: value, result }]);
       setCommand('');
@@ -40,7 +43,7 @@ export function TerminalPanel({ projectId }: { projectId: string }) {
       <div className="flex items-center gap-3 border-b border-[#333] px-4 py-1.5">
         <span className="text-[11px] font-medium text-[#aaa]">TERMINAL</span>
         <span className="flex items-center gap-1 rounded bg-[#173d32] px-2 py-0.5 text-[10px] text-[#7ee2bd]">
-          <ShieldCheck className="h-3 w-3" /> local only · real argv process · no shell
+          <ShieldCheck className="h-3 w-3" /> {sshProfileId ? 'SSH · host-key verified · audited' : 'local · real argv process · no shell'}
         </span>
         <span className="text-[10px] text-[#777]">
           python / pytest / node / pnpm / npm / read-only git
@@ -49,14 +52,15 @@ export function TerminalPanel({ projectId }: { projectId: string }) {
       <div className="min-h-0 flex-1 overflow-auto px-4 py-2 leading-relaxed">
         {entries.length === 0 && (
           <div className="text-[#777]">
-            Commands run in the real local project workspace. Staging and production reject this
-            endpoint until an isolated runtime is configured.
+            {sshProfileId
+              ? 'Commands run in the configured remote workdir with an argv allowlist, timeout, and persisted audit record.'
+              : 'Commands run in the real local project workspace. Staging and production reject this endpoint until an isolated runtime is configured.'}
           </div>
         )}
         {entries.map((entry, index) => (
           <div key={`${entry.command}-${index}`} className="mb-2">
             <div>
-              <span className="text-[#4ec9b0]">researchos</span>{' '}
+              <span className="text-[#4ec9b0]">{sshProfileId ? 'ssh' : 'researchos'}</span>{' '}
               <span className="text-[#888]">{entry.result.cwd}$</span>{' '}
               <span>{entry.command}</span>
             </div>
@@ -79,8 +83,8 @@ export function TerminalPanel({ projectId }: { projectId: string }) {
         )}
       </div>
       <div className="flex items-center gap-2 border-t border-[#333] px-3 py-1.5">
-        <span className="text-[#4ec9b0]">researchos</span>
-        <span className="text-[#888]">~/workspace$</span>
+        <span className="text-[#4ec9b0]">{sshProfileId ? 'ssh' : 'researchos'}</span>
+        <span className="text-[#888]">{sshProfileId ? 'remote$' : '~/workspace$'}</span>
         <input
           value={command}
           onChange={(event) => setCommand(event.target.value)}

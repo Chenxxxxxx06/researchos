@@ -37,6 +37,28 @@ export function createInboxItem(
   return apiRequest(`/projects/${projectId}/inbox`, { method: 'POST', body: input });
 }
 
+export function uploadInboxFile(
+  projectId: string,
+  input: {
+    file: File;
+    sender?: string;
+    title?: string;
+    analysis_mode: 'direction' | 'meeting_summary' | 'audio_to_paper';
+    auto_analyze?: boolean;
+  },
+): Promise<{
+  item: InboxItem;
+  analysis: { item_id: string; agent_run_id: string; status: string } | null;
+}> {
+  const body = new FormData();
+  body.append('file', input.file);
+  body.append('sender', input.sender ?? '');
+  body.append('title', input.title ?? '');
+  body.append('analysis_mode', input.analysis_mode);
+  body.append('auto_analyze', String(input.auto_analyze ?? true));
+  return apiRequest(`/projects/${projectId}/inbox/upload`, { method: 'POST', body });
+}
+
 export function analyzeInboxItem(
   projectId: string,
   itemId: string,

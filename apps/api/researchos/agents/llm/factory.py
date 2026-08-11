@@ -10,6 +10,7 @@ import uuid
 from sqlalchemy import select
 
 from researchos.common.config import get_settings
+from researchos.common.secrets import decrypt_secret
 
 from .base import LLMProvider
 from .mock import MockLLMProvider
@@ -48,13 +49,13 @@ async def get_llm_provider(project_id: uuid.UUID | None = None) -> LLMProvider:
                 # empty-api_key-preserves-stored-key convention).
                 return AnthropicProvider(
                     model=cfg.model or None,
-                    api_key=cfg.api_key or None,
+                    api_key=decrypt_secret(cfg.api_key) or None,
                     base_url=cfg.base_url or None,
                 )
             return OpenAICompatibleProvider(
                 base_url=cfg.base_url,
                 model=cfg.model,
-                api_key=cfg.api_key,
+                api_key=decrypt_secret(cfg.api_key),
             )
 
     # 2. Environment-variable fallback.

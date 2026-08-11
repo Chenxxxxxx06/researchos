@@ -8,7 +8,7 @@
  * surfaces socket reconnects.
  */
 
-import { GitBranch } from 'lucide-react';
+import { GitBranch, Server } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { useIdeStore, type RightTab } from '@/lib/ide/store';
@@ -21,6 +21,7 @@ import { FileTree } from './FileTree';
 import { StatusHeader } from './GitStatusPanel';
 import { SearchPanel } from './SearchPanel';
 import { TerminalPanel } from './TerminalPanel';
+import { RuntimeSwitcher } from './RuntimeSwitcher';
 import { CodingChat } from './chat/CodingChat';
 import { GitTimelinePanel } from './git/GitTimelinePanel';
 
@@ -56,9 +57,11 @@ export function IdeWorkspace({ projectId }: { projectId: string }) {
   const rightTab = useIdeStore((s) => s.rightTab);
   const setRightTab = useIdeStore((s) => s.setRightTab);
   const buffers = useIdeStore((s) => s.buffers);
+  const resetWorkspace = useIdeStore((s) => s.resetWorkspace);
 
   const [leftTab, setLeftTab] = useState<LeftTab>('explorer');
   const [searchSupported, setSearchSupported] = useState(true);
+  const [sshProfileId, setSSHProfileId] = useState<string | null>(null);
 
   // Warn on hard unloads while any buffer is dirty (SPA route changes keep tabs).
   useEffect(() => {
@@ -78,7 +81,16 @@ export function IdeWorkspace({ projectId }: { projectId: string }) {
   }, [buffers]);
 
   return (
-    <div className="relative -m-6 flex h-[calc(100vh-3.5rem)] flex-col">
+    <div className="relative -m-6 flex h-[calc(100vh-3.5rem)] flex-col lg:-m-8">
+      <RuntimeSwitcher
+        projectId={projectId}
+        profileId={sshProfileId}
+        onChange={setSSHProfileId}
+        onWorkspaceChange={() => {
+          resetWorkspace();
+          setLeftTab('explorer');
+        }}
+      />
       <div className="flex min-h-0 flex-1">
         {/* Left rail */}
         <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-surface">
@@ -86,7 +98,7 @@ export function IdeWorkspace({ projectId }: { projectId: string }) {
             <RailTab active={leftTab === 'explorer'} onClick={() => setLeftTab('explorer')}>
               {t('ide.explorer')}
             </RailTab>
-            {searchSupported && (
+            {searchSupported && !sshProfileId && (
               <RailTab active={leftTab === 'search'} onClick={() => setLeftTab('search')}>
                 {t('ide.search')}
               </RailTab>
@@ -94,7 +106,7 @@ export function IdeWorkspace({ projectId }: { projectId: string }) {
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {leftTab === 'search' && searchSupported ? (
+            {leftTab === 'search' && searchSupported && !sshProfileId ? (
               <SearchPanel
                 projectId={projectId}
                 onUnsupported={() => {
@@ -103,11 +115,11 @@ export function IdeWorkspace({ projectId }: { projectId: string }) {
                 }}
               />
             ) : (
-              <FileTree projectId={projectId} />
+              <FileTree projectId={projectId} sshProfileId={sshProfileId} />
             )}
           </div>
 
-          <div className="shrink-0">
+          {!sshProfileId && <div className="shrink-0">
             <button
               type="button"
               onClick={() => setRightTab('git')}
@@ -117,21 +129,21 @@ export function IdeWorkspace({ projectId }: { projectId: string }) {
               {t('ide.sourceControl')}
             </button>
             <StatusHeader projectId={projectId} />
-          </div>
+          </div>}
         </aside>
 
         {/* Center */}
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="min-h-0 flex-1">
-            <EditorPane projectId={projectId} />
+            <EditorPane projectId={projectId} sshProfileId={sshProfileId} />
           </div>
           <div className="h-40 shrink-0 border-t border-border">
-            <TerminalPanel projectId={projectId} />
+            <TerminalPanel projectId={projectId} sshProfileId={sshProfileId} />
           </div>
         </div>
 
         {/* Right rail */}
-        <aside className="flex w-[26rem] shrink-0 flex-col border-l border-border bg-surface">
+        {!sshProfileId ? <aside className="flex w-[26rem] shrink-0 flex-col border-l border-border bg-surface">
           <div className="flex border-b border-border">
             <RailTab active={rightTab === 'chat'} onClick={() => setRightTab('chat')}>
               {t('ide.chat')}
@@ -147,7 +159,7 @@ export function IdeWorkspace({ projectId }: { projectId: string }) {
               <GitTimelinePanel projectId={projectId} />
             )}
           </div>
-        </aside>
+        </aside> : <aside className="flex w-72 shrink-0 flex-col justify-center border-l border-border bg-surface p-6"><Server className="h-6 w-6 text-accent" /><h2 className="mt-4 text-sm font-semibold text-text">SSH 远程工作区</h2><p className="mt-2 text-xs leading-6 text-muted">当前文件通过 SFTP 直接读取和保存，终端命令具有超时、白名单和审计记录。Coding Agent 与 Git 补丁仍只作用于本地工作区，避免把未经审查的 Agent 写入直接发送到远端。</p></aside>}
       </div>
 
       <ConnectionStatusPill projectId={projectId} />

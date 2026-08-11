@@ -16,6 +16,8 @@ class AgentRunContext(BaseModel):
     # optional section indices; both flow verbatim into input_json.context.
     paper_id: uuid.UUID | None = None
     section_seqs: list[int] | None = Field(default=None, max_length=64)
+    # Optional per-run narrowing. Slugs still have to be installed and enabled.
+    skill_slugs: list[str] | None = Field(default=None, max_length=8)
 
 
 class CreateAgentRunRequest(BaseModel):

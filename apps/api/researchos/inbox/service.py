@@ -103,8 +103,20 @@ class ResearchInboxService:
 7. 给出下一步调研、实现和实验任务，等待用户确认后才能进入正式写作。""",
         }[mode]
 
-        message = f"""你正在整理导师或合作者发来的科研输入。请只根据下面的原始内容分析，
-不要补造论文、结果、引用或要求。
+        excerpt = item.content_text[:48_000]
+        omitted = len(item.content_text) - len(excerpt)
+        truncation_note = (
+            f"\n注意：原始文本共 {len(item.content_text)} 字符，本次仅分析前 {len(excerpt)} 字符，"
+            f"仍有 {omitted} 字符未进入当前上下文。请把超长材料拆分后再次导入。"
+            if omitted > 0
+            else ""
+        )
+        message = f"""你正在整理导师、师兄或合作者发来的科研输入。请只根据下面的原始内容分析，
+不要补造论文、结果、引用、实验状态或任何人的承诺。严格区分四类信息：
+- [原文事实] 可以从输入中直接定位；
+- [合理推断] 由输入推导但尚未确认；
+- [行动建议] 你提出的下一步；
+- [证据缺口] 需要论文、代码、数据或当事人补充。
 
 标题：{item.title}
 发送者：{item.sender or "未注明"}
@@ -112,7 +124,8 @@ class ResearchInboxService:
 处理模式：{mode}
 
 原始内容：
-{item.content_text[:7500]}
+{excerpt}
+{truncation_note}
 
 {mode_instructions}
 """

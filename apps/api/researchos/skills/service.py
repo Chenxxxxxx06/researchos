@@ -162,7 +162,12 @@ class SkillService:
 
     # --- runtime read-path ---------------------------------------------------
     async def list_enabled_for_runtime(
-        self, project_id: uuid.UUID, module: SkillModule, *, cap: int = 5
+        self,
+        project_id: uuid.UUID,
+        module: SkillModule,
+        *,
+        cap: int = 5,
+        requested_slugs: list[str] | None = None,
     ) -> list[RuntimeSkill]:
         """Enabled skills for a project/module, at their PINNED versions.
 
@@ -172,7 +177,7 @@ class SkillService:
         names.
         """
 
-        result = await self.db.execute(
+        statement = (
             select(SkillInstallation, Skill, SkillVersion)
             .join(Skill, Skill.id == SkillInstallation.skill_id)
             .join(SkillVersion, SkillVersion.id == SkillInstallation.skill_version_id)
@@ -182,6 +187,11 @@ class SkillService:
             )
             .order_by(SkillInstallation.created_at.asc())
         )
+        if requested_slugs is not None:
+            if not requested_slugs:
+                return []
+            statement = statement.where(Skill.slug.in_(requested_slugs))
+        result = await self.db.execute(statement)
         out: list[RuntimeSkill] = []
         for installation, skill, version in result.all():
             manifest = version.manifest_json or {}

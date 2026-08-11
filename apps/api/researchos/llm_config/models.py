@@ -1,8 +1,7 @@
 """LLM provider configuration — per-project, stored in DB.
 
 Users manage these in Settings. Provider configs hold the type, custom base URL,
-model name, and API key. Keys are stored as-is for MVP (a future improvement is
-encryption at rest).
+model name, and an application-encrypted API key.
 """
 
 from __future__ import annotations

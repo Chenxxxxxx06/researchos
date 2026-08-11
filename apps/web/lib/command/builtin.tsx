@@ -9,7 +9,6 @@
 import { useParams } from 'next/navigation';
 import {
   BookOpen,
-  CalendarClock,
   Code2,
   FileText,
   FlaskConical,
@@ -21,11 +20,10 @@ import {
   Monitor,
   MessagesSquare,
   Megaphone,
-  Network,
   Route,
   Moon,
   Search,
-  Settings,
+  FolderCog,
   ShieldCheck,
   Sun,
 } from 'lucide-react';
@@ -47,14 +45,12 @@ const PROJECT_NAV: Array<{
   { id: 'nav.research', key: 'nav.research', segment: 'research', shortcut: 'g r', icon: Search },
   { id: 'nav.references', key: 'nav.references', segment: 'references', shortcut: 'g l', icon: BookOpen },
   { id: 'nav.inbox', key: 'nav.inbox', segment: 'inbox', shortcut: 'g m', icon: MessagesSquare },
-  { id: 'nav.orchestration', key: 'nav.orchestration', segment: 'orchestration', shortcut: 'g a', icon: Network },
-  { id: 'nav.deadlines', key: 'nav.deadlines', segment: 'deadlines', shortcut: 'g d', icon: CalendarClock },
   { id: 'nav.ide', key: 'nav.ide', segment: 'ide', shortcut: 'g i', icon: Code2 },
   { id: 'nav.experiments', key: 'nav.experiments', segment: 'experiments', shortcut: 'g e', icon: FlaskConical },
   { id: 'nav.paper', key: 'nav.paper', segment: 'paper', shortcut: 'g p', icon: FileText },
   { id: 'nav.reviewer', key: 'nav.reviewer', segment: 'reviewer', shortcut: 'g v', icon: ShieldCheck },
   { id: 'nav.release', key: 'nav.release', segment: 'release', shortcut: 'g u', icon: Megaphone },
-  { id: 'nav.settings', key: 'nav.settings', segment: 'settings', shortcut: 'g s', icon: Settings },
+  { id: 'nav.manage', key: 'nav.manage', segment: 'manage', shortcut: 'g n', icon: FolderCog },
 ];
 
 export function useBuiltinCommands(): void {

@@ -10,6 +10,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import Link from 'next/link';
 
 import { ApiError } from '@/lib/api/client';
 import { createLatexRun } from '@/lib/api/documents';
@@ -86,7 +87,7 @@ export function AssistantDock({
     queryFn: () => listLLMConfigs(projectId),
     retry: false,
   });
-  const hasRealLLM = (llmConfigs.data?.length ?? 0) > 0;
+  const hasRealLLM = Boolean(llmConfigs.data?.some((config) => config.is_active));
 
   const history = useQuery({
     queryKey: ['agent-runs', projectId, 'latex'],
@@ -121,12 +122,21 @@ export function AssistantDock({
         </h3>
         {!hasRealLLM && (
           <Badge variant="warn" size="sm">
-            {t('paper.assistant.mock')}
+            需要真实模型
           </Badge>
         )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        {!hasRealLLM && !llmConfigs.isLoading && (
+          <div className="mb-3 border border-warn/25 bg-warn-bg p-3 text-xs leading-5 text-warn">
+            论文 Agent 已锁定，避免 Mock 输出被当成真实写作建议。请先在
+            <Link href={`/projects/${projectId}/manage?tab=settings`} className="mx-1 font-semibold underline">
+              管理中心
+            </Link>
+            配置并测试模型。
+          </div>
+        )}
         {!displayText && !ask.isPending && !isRunning && (
           <p className="text-xs text-muted">{t('paper.assistant.empty')}</p>
         )}
@@ -153,7 +163,7 @@ export function AssistantDock({
           type="submit"
           size="sm"
           className="w-full"
-          disabled={ask.isPending || !message.trim()}
+          disabled={!hasRealLLM || ask.isPending || !message.trim()}
           loading={ask.isPending}
         >
           {t('paper.send')}

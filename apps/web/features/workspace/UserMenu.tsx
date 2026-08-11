@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
-import { LogOut, Settings } from 'lucide-react';
+import { FolderCog, LogOut } from 'lucide-react';
 
 import { logout, type MeResponse } from '@/lib/api/auth';
 import { useI18n } from '@/lib/i18n';
@@ -60,11 +60,11 @@ export function UserMenu({ me }: { me: MeResponse }) {
       <DropdownSeparator />
       {projectId && (
         <DropdownItem
-          icon={Settings}
-          shortcut="g s"
-          onSelect={() => router.push(`/projects/${projectId}/settings`)}
+          icon={FolderCog}
+          shortcut="g n"
+          onSelect={() => router.push(`/projects/${projectId}/manage?tab=settings`)}
         >
-          {t('nav.settings')}
+          {t('nav.manage')}
         </DropdownItem>
       )}
       {projectId && <DropdownSeparator />}

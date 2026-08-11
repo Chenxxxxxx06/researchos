@@ -46,3 +46,25 @@ async def test_create_list_and_analyze_inbox_item(client) -> None:
 
     refreshed = (await client.get(f"/projects/{project_id}/inbox")).json()[0]
     assert refreshed["agent_run_id"] == analyzed.json()["agent_run_id"]
+
+
+async def test_upload_markdown_extracts_and_dispatches_analysis(client) -> None:
+    project_id = await _make_project(client)
+    response = await client.post(
+        f"/projects/{project_id}/inbox/upload",
+        files={"file": ("meeting.md", b"# Decision\nRun three seeds.", "text/markdown")},
+        data={
+            "sender": "Advisor",
+            "title": "Weekly meeting",
+            "analysis_mode": "meeting_summary",
+            "auto_analyze": "true",
+        },
+        headers=csrf_headers(client),
+    )
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["item"]["content_text"] == "# Decision\nRun three seeds."
+    assert payload["item"]["source_type"] == "file"
+    assert payload["analysis"]["status"] == "queued"
+    listing = (await client.get(f"/projects/{project_id}/inbox")).json()
+    assert listing[0]["agent_run_id"] == payload["analysis"]["agent_run_id"]

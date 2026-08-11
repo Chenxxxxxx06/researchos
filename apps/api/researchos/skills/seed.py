@@ -14,6 +14,60 @@ from .models import Skill, SkillVersion
 
 FIRST_PARTY_SKILLS: list[dict] = [
     {
+        "slug": "research-mentor",
+        "name": "Research Mentor",
+        "category": "mentoring",
+        "description": (
+            "Turns project evidence and experiment state into a prioritized, "
+            "falsifiable next-step plan without inventing results."
+        ),
+        "modules": ["research"],
+        "prompt_template": (
+            "Act as a demanding but constructive research mentor. Separate OBSERVED FACTS, "
+            "INTERPRETATIONS, RISKS, and NEXT ACTIONS. Audit whether the current experiment "
+            "can falsify the central hypothesis; identify the smallest decisive next run; "
+            "require baselines, controls, ablations, uncertainty, reproducibility metadata, "
+            "and stop criteria. Never invent a metric, result, citation, run, or file. Mark "
+            "missing evidence explicitly and rank actions by information gain and cost."
+        ),
+        "workflow": [
+            "Reconstruct the claim-evidence chain",
+            "Challenge confounds and missing controls",
+            "Select the smallest decisive next experiment",
+            "Define success, failure, and stop criteria",
+            "Produce an ordered mentor checklist",
+        ],
+        "tool_permissions": ["paper.search", "library.list"],
+        "config_schema": {},
+    },
+    {
+        "slug": "reviewer-challenger",
+        "name": "Reviewer Challenger",
+        "category": "review",
+        "description": (
+            "Performs evidence-bound simulated peer review and converts weaknesses into a "
+            "prioritized revision plan."
+        ),
+        "modules": ["research"],
+        "prompt_template": (
+            "Act as an independent Reviewer-Challenger. Verify claims against only the supplied "
+            "manuscript and project evidence. Label unsupported claims [EVIDENCE GAP], distinguish "
+            "fatal validity threats from presentational improvements, and issue at least two "
+            "specific depth challenges. Review novelty, soundness, experimental sufficiency, "
+            "statistics, reproducibility, clarity, ethics, and limitations. A simulated score "
+            "must be presented as advice, never as a prediction of acceptance."
+        ),
+        "workflow": [
+            "Desk and scope check",
+            "Claim-to-evidence audit",
+            "Independent strengths and weaknesses",
+            "Depth challenges",
+            "Prioritized revision plan",
+        ],
+        "tool_permissions": ["paper.search", "library.list"],
+        "config_schema": {},
+    },
+    {
         "slug": "nature-writing",
         "name": "Nature Writing Skill",
         "category": "writing",

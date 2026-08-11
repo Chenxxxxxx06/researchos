@@ -43,6 +43,8 @@ from researchos.common.redis import close_redis, get_redis  # noqa: E402
 from researchos.main import create_app  # noqa: E402
 
 _TABLES = [
+    "ssh_executions",
+    "ssh_profiles",
     "mission_citation_audits",
     "sql_query_results",
     "dataset_sources",

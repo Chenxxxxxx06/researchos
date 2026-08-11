@@ -47,6 +47,7 @@ from researchos.preferences.models import UserPreference
 from researchos.projects.models import Project, ProjectMembership
 from researchos.research.models import Idea, Paper, PaperSection, ResearchCritique, ResearchFeedPref
 from researchos.reviews.models import ReviewDocument, ReviewSection, ReviewVersion
+from researchos.runtime.ssh.models import SSHExecution, SSHProfile
 from researchos.skills.models import Skill, SkillInstallation, SkillVersion
 from researchos.zotero.models import ZoteroConnection
 
@@ -108,4 +109,6 @@ __all__ = [
     "LLMProviderConfig",
     "ZoteroConnection",
     "ResearchInboxItem",
+    "SSHProfile",
+    "SSHExecution",
 ]

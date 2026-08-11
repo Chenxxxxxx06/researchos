@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api/client';
+import { getSSHTree, saveSSHFile } from '@/lib/api/ssh';
 import { getTree, saveFile, type TreeNode, type TreeResponse } from '@/lib/api/workspace';
 import { useIdeStore } from '@/lib/ide/store';
 import { useI18n } from '@/lib/i18n';
@@ -69,15 +70,15 @@ function Node({ node, depth }: { node: TreeNode; depth: number }) {
   );
 }
 
-export function FileTree({ projectId }: { projectId: string }) {
+export function FileTree({ projectId, sshProfileId }: { projectId: string; sshProfileId?: string | null }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const openTab = useIdeStore((s) => s.openTab);
   const [creating, setCreating] = useState(false);
   const [newPath, setNewPath] = useState('');
   const { data, isLoading, isError, refetch } = useQuery<TreeResponse, ApiError>({
-    queryKey: ['workspace-tree', projectId],
-    queryFn: () => getTree(projectId),
+    queryKey: ['workspace-tree', projectId, sshProfileId ?? 'local'],
+    queryFn: () => sshProfileId ? getSSHTree(projectId, sshProfileId) : getTree(projectId),
   });
 
   return (
@@ -103,8 +104,9 @@ export function FileTree({ projectId }: { projectId: string }) {
             const path = newPath.trim().replaceAll('\\', '/');
             if (!path) return;
             try {
-              await saveFile(projectId, { path, content: '', base_sha: null });
-              await queryClient.invalidateQueries({ queryKey: ['workspace-tree', projectId] });
+              if (sshProfileId) await saveSSHFile(projectId, sshProfileId, { path, content: '', base_sha: null });
+              else await saveFile(projectId, { path, content: '', base_sha: null });
+              await queryClient.invalidateQueries({ queryKey: ['workspace-tree', projectId, sshProfileId ?? 'local'] });
               setCreating(false);
               setNewPath('');
               openTab(path);

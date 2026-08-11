@@ -19,6 +19,18 @@ class TreeResponse(BaseModel):
     nodes: list[TreeNode]
 
 
+class LocalWorkspaceConfigResponse(BaseModel):
+    root: str
+    default_root: str
+    uses_default: bool
+    available: bool
+    recent_roots: list[str]
+
+
+class SetLocalWorkspaceRequest(BaseModel):
+    root_path: str = Field(min_length=1, max_length=2048)
+
+
 class FileContentResponse(BaseModel):
     path: str
     binary: bool

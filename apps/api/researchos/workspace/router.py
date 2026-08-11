@@ -14,7 +14,9 @@ from .schemas import (
     FileContentResponse,
     GrepMatch,
     GrepResponse,
+    LocalWorkspaceConfigResponse,
     SaveFileRequest,
+    SetLocalWorkspaceRequest,
     TerminalRunRequest,
     TerminalRunResponse,
     TreeResponse,
@@ -22,6 +24,38 @@ from .schemas import (
 from .service import WorkspaceService
 
 router = APIRouter(prefix="/projects/{project_id}/workspace", tags=["workspace"])
+
+
+@router.get("/local", response_model=LocalWorkspaceConfigResponse)
+async def get_local_workspace(
+    project_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> LocalWorkspaceConfigResponse:
+    return await WorkspaceService(db).get_local_config(user, project_id)
+
+
+@router.put(
+    "/local",
+    response_model=LocalWorkspaceConfigResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def set_local_workspace(
+    project_id: uuid.UUID,
+    payload: SetLocalWorkspaceRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> LocalWorkspaceConfigResponse:
+    return await WorkspaceService(db).set_local_config(user, project_id, payload.root_path)
+
+
+@router.delete(
+    "/local",
+    response_model=LocalWorkspaceConfigResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def reset_local_workspace(
+    project_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> LocalWorkspaceConfigResponse:
+    return await WorkspaceService(db).reset_local_config(user, project_id)
 
 
 @router.get("/tree", response_model=TreeResponse)

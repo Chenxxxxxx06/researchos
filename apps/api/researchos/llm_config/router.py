@@ -14,6 +14,7 @@ from researchos.agents.llm.openai_compatible import OpenAICompatibleProvider
 from researchos.common.deps import CurrentUser, DbSession, require_csrf
 from researchos.common.errors import NotFoundError
 from researchos.common.roles import ProjectRole
+from researchos.common.secrets import decrypt_secret, encrypt_secret, mask_secret
 from researchos.projects.service import ProjectService
 
 from .models import LLMProviderConfig
@@ -24,10 +25,6 @@ from .schemas import (
 )
 
 router = APIRouter(prefix="/projects/{project_id}/settings/llm", tags=["settings-llm"])
-
-
-def _mask(key: str) -> str:
-    return f"****{key[-4:]}" if len(key) > 4 else "****"
 
 
 @router.get("", response_model=list[LLMConfigResponse])
@@ -45,7 +42,7 @@ async def list_configs(
             provider_type=c.provider_type,
             base_url=c.base_url,
             model=c.model,
-            api_key_masked=_mask(c.api_key),
+            api_key_masked=mask_secret(c.api_key),
             is_active=c.is_active,
             description=c.description,
         )
@@ -74,7 +71,7 @@ async def save_config(
     cfg.base_url = payload.base_url.rstrip("/") if payload.base_url else ""
     cfg.model = payload.model
     if payload.api_key:
-        cfg.api_key = payload.api_key
+        cfg.api_key = encrypt_secret(payload.api_key)
     cfg.is_active = payload.is_active
     cfg.description = payload.description
     if existing is None:
@@ -87,7 +84,7 @@ async def save_config(
         provider_type=cfg.provider_type,
         base_url=cfg.base_url,
         model=cfg.model,
-        api_key_masked=_mask(cfg.api_key),
+        api_key_masked=mask_secret(cfg.api_key),
         is_active=cfg.is_active,
         description=cfg.description,
     )
@@ -139,14 +136,14 @@ async def test_config(
 
             provider = AnthropicProvider(
                 model=cfg.model or None,
-                api_key=cfg.api_key or None,
+                api_key=decrypt_secret(cfg.api_key) or None,
                 base_url=cfg.base_url or None,
             )
         else:
             provider = OpenAICompatibleProvider(
                 base_url=cfg.base_url,
                 model=cfg.model,
-                api_key=cfg.api_key,
+                api_key=decrypt_secret(cfg.api_key),
             )
 
         async with asyncio.timeout(30):

@@ -25,6 +25,7 @@ import {
 import { toast } from '@/components/ui/toast';
 import { ApiError } from '@/lib/api/client';
 import { createPatch } from '@/lib/api/patches';
+import { getSSHFile, saveSSHFile } from '@/lib/api/ssh';
 import { getFile, saveFile, type FileContent } from '@/lib/api/workspace';
 import { languageForPath } from '@/lib/ide/language';
 import { ThemedMonacoDiff, ThemedMonacoEditor } from '@/lib/ide/monaco';
@@ -33,7 +34,7 @@ import { useI18n } from '@/lib/i18n';
 
 type EditorInstance = Parameters<OnMount>[0];
 
-export function EditorPane({ projectId }: { projectId: string }) {
+export function EditorPane({ projectId, sshProfileId }: { projectId: string; sshProfileId?: string | null }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
 
@@ -54,8 +55,8 @@ export function EditorPane({ projectId }: { projectId: string }) {
   const [reviewOpen, setReviewOpen] = useState(false);
 
   const file = useQuery<FileContent, ApiError>({
-    queryKey: ['file', projectId, active],
-    queryFn: () => getFile(projectId, active as string),
+    queryKey: ['file', projectId, sshProfileId ?? 'local', active],
+    queryFn: () => sshProfileId ? getSSHFile(projectId, sshProfileId, active as string) : getFile(projectId, active as string),
     enabled: Boolean(active),
   });
 
@@ -122,19 +123,20 @@ export function EditorPane({ projectId }: { projectId: string }) {
   const save = useMutation({
     mutationFn: () => {
       const buf = buffers[active as string];
-      return saveFile(projectId, {
+      const input = {
         path: active as string,
         content: buf.content,
         base_sha: buf.baseSha,
-      });
+      };
+      return sshProfileId ? saveSSHFile(projectId, sshProfileId, input) : saveFile(projectId, input);
     },
     onSuccess: (saved) => {
       if (active && saved.content != null) {
         setBuffer(active, saved.content, saved.content, saved.sha);
       }
-      void queryClient.invalidateQueries({ queryKey: ['file', projectId, active] });
-      void queryClient.invalidateQueries({ queryKey: ['workspace-tree', projectId] });
-      void queryClient.invalidateQueries({ queryKey: ['git-status', projectId] });
+      void queryClient.invalidateQueries({ queryKey: ['file', projectId, sshProfileId ?? 'local', active] });
+      void queryClient.invalidateQueries({ queryKey: ['workspace-tree', projectId, sshProfileId ?? 'local'] });
+      if (!sshProfileId) void queryClient.invalidateQueries({ queryKey: ['git-status', projectId] });
       toast({ title: t('ide.fileSaved') });
     },
     onError: (err) =>
@@ -209,14 +211,14 @@ export function EditorPane({ projectId }: { projectId: string }) {
             >
               {t('ide.saveFile')}
             </Button>
-            <Button
+            {!sshProfileId && <Button
               size="sm"
               onClick={() => propose.mutate()}
               disabled={!dirty || propose.isPending}
               loading={propose.isPending}
             >
               {dirty ? t('ide.proposePatch') : t('ide.reviewed')}
-            </Button>
+            </Button>}
           </div>
         )}
       </div>

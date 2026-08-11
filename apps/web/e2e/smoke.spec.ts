@@ -22,7 +22,7 @@ test.describe('ResearchOS smoke', () => {
     const projLink = page.locator('a[href*="/projects/"][href*="/overview"]').first();
     await projLink.click();
     await page.waitForURL('**/overview');
-    await expect(page.getByRole('link', { name: 'Research Copilot', exact: true })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/RESEARCH LOOP/i).first()).toBeVisible({ timeout: 10000 });
     await page.screenshot({ path: 'artifacts/screenshots/3-overview.png' });
 
     // Extract projectId from URL
@@ -41,6 +41,13 @@ test.describe('ResearchOS smoke', () => {
     await page.goto(`/projects/${projectId}/ide`);
     await page.waitForLoadState('domcontentloaded');
     await expect(page.getByRole('button', { name: /资源管理器|Explorer/i }).first()).toBeVisible({ timeout: 10000 });
+    const workspaceLabel = page.getByText('Workspace', { exact: true });
+    await expect(workspaceLabel).toBeVisible();
+    await workspaceLabel.locator('..').getByRole('button').first().click();
+    await page.getByRole('button', { name: /设置文件夹/ }).click();
+    await expect(page.getByText('本地项目文件夹的绝对路径')).toBeVisible();
+    await expect(page.getByLabel('本地项目文件夹的绝对路径')).toBeVisible();
+    await page.getByRole('button', { name: '取消' }).click();
     await page.screenshot({ path: 'artifacts/screenshots/5-ide.png' });
 
     // 5. Experiments
@@ -67,33 +74,36 @@ test.describe('ResearchOS smoke', () => {
     await expect(page.getByText(/Research Inbox|科研收件箱/i).first()).toBeVisible({ timeout: 5000 });
     await page.screenshot({ path: 'artifacts/screenshots/9-inbox.png' });
 
-    // 9. Agent collaboration
+    // 9. Removed legacy modules redirect to the real project overview.
     await page.goto(`/projects/${projectId}/orchestration`);
-    await expect(page.getByText(/Agent Collaboration|Agent 协作/i).first()).toBeVisible({ timeout: 5000 });
+    await page.waitForURL(`**/projects/${projectId}/overview`);
+    await expect(page.getByText(/RESEARCH LOOP/i).first()).toBeVisible({ timeout: 5000 });
 
-    // 10. Live conference deadlines
     await page.goto(`/projects/${projectId}/deadlines`);
-    await expect(page.getByText(/会议与期刊 DDL|Deadlines/i).first()).toBeVisible({ timeout: 5000 });
+    await page.waitForURL(`**/projects/${projectId}/overview`);
+    await expect(page.getByText(/RESEARCH LOOP/i).first()).toBeVisible({ timeout: 5000 });
 
     // 11. Reviewer
     await page.goto(`/projects/${projectId}/reviewer`);
-    await expect(page.getByText(/Reviewer Arena/i).first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/模拟审稿|Simulated review/i).first()).toBeVisible({ timeout: 5000 });
+    await page.screenshot({ path: 'artifacts/screenshots/10-reviewer.png' });
 
     // 12. Release Studio
     await page.goto(`/projects/${projectId}/release`);
     await expect(page.getByText(/Research Release Studio/i).first()).toBeVisible({ timeout: 5000 });
+    await page.screenshot({ path: 'artifacts/screenshots/11-release.png' });
 
     // 13. Settings
     await page.goto(`/projects/${projectId}/settings`);
     await page.waitForLoadState('domcontentloaded');
     await expect(page.getByText(/Language|语言|LLM/i).first()).toBeVisible({ timeout: 5000 });
-    await page.screenshot({ path: 'artifacts/screenshots/10-settings.png' });
+    await page.screenshot({ path: 'artifacts/screenshots/12-settings.png' });
 
     // 14. Chinese interface (default)
     await page.goto(`/projects/${projectId}/overview`);
     await page.waitForLoadState('domcontentloaded');
     await expect(page.getByText(/项目总览|Research Copilot|project/i).first()).toBeVisible({ timeout: 5000 });
-    await page.screenshot({ path: 'artifacts/screenshots/11-chinese-default.png' });
+    await page.screenshot({ path: 'artifacts/screenshots/13-chinese-default.png' });
 
     // 15. Switch to English
     const langSelect = page.locator('select[aria-label="语言"], select[aria-label="Language"]').first();
@@ -104,6 +114,6 @@ test.describe('ResearchOS smoke', () => {
     await page.goto(`/projects/${projectId}/overview`);
     await page.waitForLoadState('domcontentloaded');
     await expect(page.getByText(/Overview|Research Copilot|Sign out/i).first()).toBeVisible({ timeout: 5000 });
-    await page.screenshot({ path: 'artifacts/screenshots/12-english.png' });
+    await page.screenshot({ path: 'artifacts/screenshots/14-english.png' });
   });
 });

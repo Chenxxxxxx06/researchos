@@ -57,6 +57,7 @@ export interface AgentRunContext {
   idea_id?: string;
   paper_id?: string;
   section_seqs?: number[];
+  skill_slugs?: string[];
 }
 
 export function createAgentRun(

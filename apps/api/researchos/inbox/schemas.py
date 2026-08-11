@@ -46,3 +46,8 @@ class AnalyzeInboxItemResponse(BaseModel):
 
 class AnalyzeInboxItemRequest(BaseModel):
     mode: InboxAnalysisMode = "direction"
+
+
+class UploadInboxItemResponse(BaseModel):
+    item: InboxItemResponse
+    analysis: AnalyzeInboxItemResponse | None = None

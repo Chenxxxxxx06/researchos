@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from researchos.common.errors import AppError, NotFoundError
 from researchos.common.roles import ProjectRole
+from researchos.common.secrets import decrypt_secret, encrypt_secret
 from researchos.identity.models import User
 from researchos.projects.service import ProjectService
 from researchos.research.enums import PaperIngestStatus
@@ -74,7 +75,7 @@ class ZoteroService:
         connection.library_type = payload.library_type
         connection.library_id = payload.library_id.strip()
         if payload.api_key:
-            connection.api_key = payload.api_key.strip()
+            connection.api_key = encrypt_secret(payload.api_key)
         connection.enabled = payload.enabled
         connection.include_collections_json = payload.include_collections
         await self.db.commit()
@@ -336,7 +337,7 @@ class ZoteroService:
     def _headers(connection: ZoteroConnection) -> dict[str, str]:
         return {
             "Zotero-API-Version": "3",
-            "Zotero-API-Key": connection.api_key,
+            "Zotero-API-Key": decrypt_secret(connection.api_key),
             "Accept": "application/json",
         }
 

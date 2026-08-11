@@ -44,6 +44,7 @@ from researchos.preferences.router import project_router as preferences_project_
 from researchos.projects.router import router as projects_router
 from researchos.research.router import router as research_router
 from researchos.reviews.router import router as reviews_router
+from researchos.runtime.ssh.router import router as ssh_router
 from researchos.skills.router import router as skills_router
 from researchos.venues.router import router as venues_router
 from researchos.websocket.router import router as websocket_router
@@ -129,6 +130,7 @@ def create_app() -> FastAPI:
     app.include_router(preferences_project_router)
     app.include_router(documents_router)
     app.include_router(skills_router)
+    app.include_router(ssh_router)
     app.include_router(llm_config_router)
     app.include_router(websocket_router)
     app.include_router(zotero_router)

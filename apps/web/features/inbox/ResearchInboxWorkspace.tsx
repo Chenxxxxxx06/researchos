@@ -13,6 +13,7 @@ import {
   WandSparkles,
 } from 'lucide-react';
 import { useState } from 'react';
+import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,13 +24,13 @@ import {
   analyzeInboxItem,
   createInboxItem,
   listInboxItems,
+  uploadInboxFile,
   type InboxItem,
   type InboxSourceType,
 } from '@/lib/api/inbox';
+import { listLLMConfigs } from '@/lib/api/llmConfig';
 
 import { StreamingVoiceCapture } from './StreamingVoiceCapture';
-
-const READABLE_EXTENSIONS = /\.(txt|md|markdown|csv|json|yaml|yml|log|tex)$/i;
 
 export function ResearchInboxWorkspace({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
@@ -37,6 +38,12 @@ export function ResearchInboxWorkspace({ projectId }: { projectId: string }) {
     queryKey: ['research-inbox', projectId],
     queryFn: () => listInboxItems(projectId),
   });
+  const configs = useQuery({ queryKey: ['llm-configs', projectId], queryFn: () => listLLMConfigs(projectId) });
+  const analysisReady = Boolean(configs.data?.some((config) => config.is_active));
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [analysisMode, setAnalysisMode] = useState<
+    'direction' | 'meeting_summary' | 'audio_to_paper'
+  >('direction');
   const [form, setForm] = useState({
     source_type: 'message' as InboxSourceType,
     sender: '',
@@ -48,13 +55,25 @@ export function ResearchInboxWorkspace({ projectId }: { projectId: string }) {
   const [fileHint, setFileHint] = useState('');
 
   const create = useMutation({
-    mutationFn: () =>
-      createInboxItem(projectId, {
+    mutationFn: async () => {
+      if (selectedFile) {
+        return uploadInboxFile(projectId, {
+          file: selectedFile,
+          sender: form.sender,
+          title: form.title,
+          analysis_mode: analysisMode,
+          auto_analyze: analysisReady,
+        });
+      }
+      const item = await createInboxItem(projectId, {
         ...form,
         sender: form.sender || null,
         original_filename: form.original_filename || null,
         media_type: form.media_type || null,
-      }),
+      });
+      const analysis = analysisReady ? await analyzeInboxItem(projectId, item.id, analysisMode) : null;
+      return { item, analysis };
+    },
     onSuccess: () => {
       setForm({
         source_type: 'message',
@@ -64,6 +83,7 @@ export function ResearchInboxWorkspace({ projectId }: { projectId: string }) {
         original_filename: '',
         media_type: '',
       });
+      setSelectedFile(null);
       setFileHint('');
       void queryClient.invalidateQueries({ queryKey: ['research-inbox', projectId] });
     },
@@ -157,53 +177,50 @@ export function ResearchInboxWorkspace({ projectId }: { projectId: string }) {
                   />
                 </div>
                 <textarea
-                  required
                   value={form.content_text}
                   onChange={(event) => setForm({ ...form, content_text: event.target.value })}
                   className="min-h-44 w-full resize-y rounded-md border border-border-strong bg-surface p-3 text-sm text-text outline-none focus:ring-2 focus:ring-focus/60"
-                  placeholder="粘贴原始内容，系统会保留原文并单独生成 AI 总结。"
+                  placeholder={selectedFile ? '文件将在服务端提取；这里可留空。' : '粘贴原始内容，系统会保留原文并单独生成 AI 总结。'}
                 />
+              </div>
+              <div>
+                <Label>自动分析方式</Label>
+                <select
+                  value={analysisMode}
+                  onChange={(event) => setAnalysisMode(event.target.value as typeof analysisMode)}
+                  className="h-10 w-full rounded-md border border-border-strong bg-surface px-3 text-sm text-text"
+                >
+                  <option value="direction">提取研究方向与行动清单</option>
+                  <option value="meeting_summary">生成可追踪会议纪要</option>
+                  <option value="audio_to_paper">生成论文蓝图与证据缺口</option>
+                </select>
               </div>
               <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-border-strong p-3 text-xs text-muted hover:bg-surface-2">
                 <Upload className="h-4 w-4" />
-                导入文本文件或选择录音
+                {selectedFile ? selectedFile.name : '导入 PDF、DOCX、文本或录音'}
                 <input
                   type="file"
                   className="sr-only"
-                  accept=".txt,.md,.markdown,.csv,.json,.yaml,.yml,.log,.tex,audio/*"
-                  onChange={async (event) => {
+                  accept=".txt,.md,.markdown,.csv,.json,.yaml,.yml,.log,.tex,.html,.htm,.pdf,.docx,audio/*"
+                  onChange={(event) => {
                     const file = event.target.files?.[0];
                     if (!file) return;
                     const isAudio = file.type.startsWith('audio/');
-                    if (isAudio) {
-                      setForm({
-                        ...form,
-                        source_type: 'audio_transcript',
-                        title: form.title || file.name,
-                        original_filename: file.name,
-                        media_type: file.type,
-                      });
-                      setFileHint('已记录录音来源；当前版本请在上方粘贴转写稿后再保存。');
-                      return;
-                    }
-                    if (file.size > 1_000_000 || !READABLE_EXTENSIONS.test(file.name)) {
-                      setFileHint('当前仅直接读取 1 MB 以内的文本、Markdown、CSV、JSON、YAML、日志或 TeX。');
-                      return;
-                    }
-                    const text = await file.text();
+                    setSelectedFile(file);
                     setForm({
                       ...form,
-                      source_type: 'file',
+                      source_type: isAudio ? 'audio_transcript' : 'file',
                       title: form.title || file.name,
-                      content_text: text,
                       original_filename: file.name,
-                      media_type: file.type || 'text/plain',
+                      media_type: file.type || 'application/octet-stream',
                     });
-                    setFileHint(`已读取 ${file.name}`);
+                    if (isAudio) setAnalysisMode('audio_to_paper');
+                    setFileHint(`已选择 ${file.name}，保存后由服务端提取并立即分析。`);
                   }}
                 />
               </label>
               {fileHint && <p className="text-xs text-muted">{fileHint}</p>}
+              {!analysisReady && !configs.isLoading && <p className="border border-warn/25 bg-warn-bg p-3 text-[10px] leading-4 text-warn">文件和原文仍会真实提取、保存；Agent 总结暂不启动，避免 Mock 输出冒充分析。请先在<Link href={`/projects/${projectId}/manage?tab=settings`} className="mx-1 font-semibold underline">管理中心</Link>配置模型。音频文件还需要名为 <span className="font-mono">asr</span> 的转写配置。</p>}
               {create.error && (
                 <p className="rounded-md bg-danger-bg p-2 text-xs text-danger">
                   {create.error instanceof Error ? create.error.message : '保存失败'}
@@ -213,9 +230,9 @@ export function ResearchInboxWorkspace({ projectId }: { projectId: string }) {
                 type="submit"
                 className="w-full"
                 loading={create.isPending}
-                disabled={!form.title.trim() || !form.content_text.trim()}
+                disabled={!form.title.trim() || (!form.content_text.trim() && !selectedFile)}
               >
-                保存到收件箱
+                {analysisReady ? (selectedFile ? '上传、提取并分析' : '保存并开始分析') : (selectedFile ? '上传并提取原文' : '保存原文')}
               </Button>
             </form>
           </CardContent>
@@ -229,7 +246,7 @@ export function ResearchInboxWorkspace({ projectId }: { projectId: string }) {
             </div>
           )}
           {items.data?.map((item) => (
-            <InboxItemCard key={item.id} projectId={projectId} item={item} />
+            <InboxItemCard key={item.id} projectId={projectId} item={item} analysisReady={analysisReady} />
           ))}
         </section>
       </div>
@@ -237,7 +254,7 @@ export function ResearchInboxWorkspace({ projectId }: { projectId: string }) {
   );
 }
 
-function InboxItemCard({ projectId, item }: { projectId: string; item: InboxItem }) {
+function InboxItemCard({ projectId, item, analysisReady }: { projectId: string; item: InboxItem; analysisReady: boolean }) {
   const queryClient = useQueryClient();
   const analyze = useMutation({
     mutationFn: (mode: 'direction' | 'meeting_summary' | 'audio_to_paper') =>
@@ -269,7 +286,7 @@ function InboxItemCard({ projectId, item }: { projectId: string; item: InboxItem
               size="sm"
               variant="secondary"
               onClick={() => analyze.mutate('direction')}
-              disabled={analyze.isPending}
+              disabled={!analysisReady || analyze.isPending}
             >
               <WandSparkles className="mr-1.5 h-3.5 w-3.5" /> 提取方向
             </Button>
@@ -277,7 +294,7 @@ function InboxItemCard({ projectId, item }: { projectId: string; item: InboxItem
               size="sm"
               variant="secondary"
               onClick={() => analyze.mutate('meeting_summary')}
-              disabled={analyze.isPending}
+              disabled={!analysisReady || analyze.isPending}
             >
               <ClipboardList className="mr-1.5 h-3.5 w-3.5" /> 会议总结
             </Button>
@@ -285,7 +302,7 @@ function InboxItemCard({ projectId, item }: { projectId: string; item: InboxItem
               size="sm"
               onClick={() => analyze.mutate('audio_to_paper')}
               loading={analyze.isPending && analyze.variables === 'audio_to_paper'}
-              disabled={analyze.isPending}
+              disabled={!analysisReady || analyze.isPending}
             >
               <FileText className="mr-1.5 h-3.5 w-3.5" /> 语音转论文
             </Button>

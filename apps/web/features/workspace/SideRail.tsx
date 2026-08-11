@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import {
   BookOpen,
-  CalendarClock,
   Code2,
   FileText,
   FlaskConical,
@@ -13,10 +12,8 @@ import {
   LayoutDashboard,
   MessagesSquare,
   Megaphone,
-  Network,
   Route,
   Search,
-  Settings,
   ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
@@ -38,14 +35,11 @@ const ITEMS: NavItem[] = [
   { key: 'nav.research', segment: 'research', icon: Search, shortcut: 'g r' },
   { key: 'nav.references', segment: 'references', icon: BookOpen, shortcut: 'g l' },
   { key: 'nav.inbox', segment: 'inbox', icon: MessagesSquare, shortcut: 'g m' },
-  { key: 'nav.orchestration', segment: 'orchestration', icon: Network, shortcut: 'g a' },
-  { key: 'nav.deadlines', segment: 'deadlines', icon: CalendarClock, shortcut: 'g d' },
   { key: 'nav.ide', segment: 'ide', icon: Code2, shortcut: 'g i' },
   { key: 'nav.experiments', segment: 'experiments', icon: FlaskConical, shortcut: 'g e' },
   { key: 'nav.paper', segment: 'paper', icon: FileText, shortcut: 'g p' },
   { key: 'nav.reviewer', segment: 'reviewer', icon: ShieldCheck, shortcut: 'g v' },
   { key: 'nav.release', segment: 'release', icon: Megaphone, shortcut: 'g u' },
-  { key: 'nav.settings', segment: 'settings', icon: Settings, shortcut: 'g s' },
   { key: 'nav.manage', segment: 'manage', icon: FolderCog, shortcut: 'g n' },
 ];
 
@@ -54,7 +48,7 @@ const GROUPS: Array<{ key: DictKey; items: string[] }> = [
   { key: 'nav.groupResearch', items: ['research', 'references', 'inbox'] },
   { key: 'nav.groupBuild', items: ['ide', 'experiments'] },
   { key: 'nav.groupPublish', items: ['paper', 'reviewer', 'release'] },
-  { key: 'nav.groupManage', items: ['manage', 'orchestration', 'deadlines', 'settings'] },
+  { key: 'nav.groupManage', items: ['manage'] },
 ];
 
 export function SideRail() {
@@ -73,17 +67,17 @@ export function SideRail() {
   }, null);
 
   return (
-    <nav className="w-56 shrink-0 border-r border-border bg-surface/90 py-3">
+    <nav className="sticky top-14 h-[calc(100dvh-3.5rem)] w-60 shrink-0 overflow-y-auto border-r border-border bg-surface/90 py-4 backdrop-blur">
       <Link
         href="/projects"
-        className="mx-3 mb-4 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-text hover:bg-surface-2"
+        className="mx-3 mb-5 flex items-center gap-2 rounded-md border border-transparent px-3 py-2 text-sm font-semibold text-text hover:border-border hover:bg-surface-2"
       >
         <FolderKanban className="h-4 w-4" aria-hidden="true" /> {t('nav.projects')}
       </Link>
-      <div className="space-y-4 px-2">
+      <div className="space-y-5 px-2">
         {GROUPS.map((group) => (
           <section key={group.key} aria-labelledby={`nav-${group.key}`}>
-            <h2 id={`nav-${group.key}`} className="mb-1.5 px-3 text-[10px] font-semibold tracking-[0.12em] text-faint">
+            <h2 id={`nav-${group.key}`} className="mb-1.5 px-3 text-[10px] font-semibold tracking-[0.16em] text-faint">
               {t(group.key).toUpperCase()}
             </h2>
             <ul className="space-y-0.5">
@@ -99,8 +93,10 @@ export function SideRail() {
                     href={href}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                      active ? 'bg-accent text-accent-fg' : 'text-muted hover:bg-surface-2 hover:text-text',
+                      'relative flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                      active
+                        ? 'bg-accent text-accent-fg shadow-sm before:absolute before:-left-2 before:h-5 before:w-0.5 before:bg-accent'
+                        : 'text-muted hover:bg-surface-2 hover:text-text',
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> {t(item.key)}

@@ -1,4 +1,4 @@
-import { VenueDeadlinesWorkspace } from '@/features/venues/VenueDeadlinesWorkspace';
+import { redirect } from 'next/navigation';
 
 export default async function VenueDeadlinesPage({
   params,
@@ -6,5 +6,5 @@ export default async function VenueDeadlinesPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  return <VenueDeadlinesWorkspace projectId={projectId} />;
+  redirect(`/projects/${projectId}/overview`);
 }

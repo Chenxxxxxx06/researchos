@@ -126,7 +126,14 @@ class AgentRuntime:
             await self._finalize_failed(run, emitter, "Triggering user not found.")
             return run
 
-        skills = await load_skills(self.db, run.project_id, run.agent_type)
+        context = run.input_json.get("context", {})
+        requested_skills = context.get("skill_slugs")
+        skills = await load_skills(
+            self.db,
+            run.project_id,
+            run.agent_type,
+            requested_slugs=requested_skills,
+        )
         run.skill_ids_json = [{"slug": s.slug, "version": s.version} for s in skills]
         run.status = AgentRunStatus.RUNNING
         run.started_at = _now()
@@ -160,7 +167,7 @@ class AgentRuntime:
             project_id=run.project_id,
             run=run,
             message=run.input_json.get("message", ""),
-            context=run.input_json.get("context", {}),
+            context=context,
             tool_ctx=tool_ctx,
             skills=skills,
         )

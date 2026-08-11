@@ -132,6 +132,24 @@ async def test_runtime_uses_pinned_version_not_latest(db_session: AsyncSession) 
     assert [s.version for s in skills] == ["1.0.0"]
 
 
+async def test_runtime_skill_selection_can_narrow_enabled_set(db_session: AsyncSession) -> None:
+    user, project = await _setup(db_session, "ski-select@example.com")
+    service = SkillService(db_session)
+    for slug in ("mentor-protocol", "reviewer-protocol"):
+        await service.create_custom(user, project.id, _skill_request(slug))
+        await service.install(user, project.id, slug)
+
+    selected = await service.list_enabled_for_runtime(
+        project.id,
+        SkillModule.RESEARCH,
+        requested_slugs=["mentor-protocol"],
+    )
+    assert [skill.slug for skill in selected] == ["mentor-protocol"]
+    assert await service.list_enabled_for_runtime(
+        project.id, SkillModule.RESEARCH, requested_slugs=[]
+    ) == []
+
+
 async def test_tool_permissions_filtered_and_cap_respected(db_session: AsyncSession) -> None:
     user, project = await _setup(db_session, "ski-cap@example.com")
     service = SkillService(db_session)
