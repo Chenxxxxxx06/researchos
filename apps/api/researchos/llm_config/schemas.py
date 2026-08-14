@@ -16,7 +16,7 @@ class LLMConfigResponse(BaseModel):
     description: str | None
 
 
-class SaveLLMConfigRequest(BaseModel):
+class CreateLLMConfigRequest(BaseModel):
     name: str = Field(default="default", max_length=100)
     provider_type: str = Field(default="openai_compatible", max_length=30)
     base_url: str = Field(default="https://api.openai.com/v1", max_length=1024)
@@ -24,6 +24,10 @@ class SaveLLMConfigRequest(BaseModel):
     api_key: str = Field(default="", max_length=512)
     is_active: bool = True
     description: str | None = Field(default=None, max_length=500)
+
+
+class UpdateLLMConfigRequest(CreateLLMConfigRequest):
+    pass
 
 
 class LLMConnectionTestResponse(BaseModel):

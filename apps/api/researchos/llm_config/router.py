@@ -19,65 +19,16 @@ from researchos.projects.service import ProjectService
 
 from .models import LLMProviderConfig
 from .schemas import (
+    CreateLLMConfigRequest,
     LLMConfigResponse,
     LLMConnectionTestResponse,
-    SaveLLMConfigRequest,
+    UpdateLLMConfigRequest,
 )
 
 router = APIRouter(prefix="/projects/{project_id}/settings/llm", tags=["settings-llm"])
 
 
-@router.get("", response_model=list[LLMConfigResponse])
-async def list_configs(
-    project_id: uuid.UUID, user: CurrentUser, db: DbSession
-) -> list[LLMConfigResponse]:
-    await ProjectService(db).ensure_access(user, project_id, ProjectRole.VIEWER)
-    result = await db.execute(
-        select(LLMProviderConfig).where(LLMProviderConfig.project_id == project_id)
-    )
-    return [
-        LLMConfigResponse(
-            id=str(c.id),
-            name=c.name,
-            provider_type=c.provider_type,
-            base_url=c.base_url,
-            model=c.model,
-            api_key_masked=mask_secret(c.api_key),
-            is_active=c.is_active,
-            description=c.description,
-        )
-        for c in result.scalars().all()
-    ]
-
-
-@router.post("", response_model=LLMConfigResponse, dependencies=[Depends(require_csrf)])
-async def save_config(
-    project_id: uuid.UUID,
-    payload: SaveLLMConfigRequest,
-    user: CurrentUser,
-    db: DbSession,
-) -> LLMConfigResponse:
-    await ProjectService(db).ensure_access(user, project_id, ProjectRole.ADMIN)
-
-    existing = await db.scalar(
-        select(LLMProviderConfig).where(
-            LLMProviderConfig.project_id == project_id,
-            LLMProviderConfig.name == payload.name,
-        )
-    )
-    cfg = existing or LLMProviderConfig(project_id=project_id)
-    cfg.name = payload.name
-    cfg.provider_type = payload.provider_type
-    cfg.base_url = payload.base_url.rstrip("/") if payload.base_url else ""
-    cfg.model = payload.model
-    if payload.api_key:
-        cfg.api_key = encrypt_secret(payload.api_key)
-    cfg.is_active = payload.is_active
-    cfg.description = payload.description
-    if existing is None:
-        db.add(cfg)
-    await db.commit()
-    await db.refresh(cfg)
+def _to_response(cfg: LLMProviderConfig) -> LLMConfigResponse:
     return LLMConfigResponse(
         id=str(cfg.id),
         name=cfg.name,
@@ -88,6 +39,73 @@ async def save_config(
         is_active=cfg.is_active,
         description=cfg.description,
     )
+
+
+@router.get("", response_model=list[LLMConfigResponse])
+async def list_configs(
+    project_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> list[LLMConfigResponse]:
+    await ProjectService(db).ensure_access(user, project_id, ProjectRole.VIEWER)
+    result = await db.execute(
+        select(LLMProviderConfig)
+        .where(LLMProviderConfig.project_id == project_id)
+        .order_by(LLMProviderConfig.updated_at.desc(), LLMProviderConfig.id)
+    )
+    return [_to_response(c) for c in result.scalars().all()]
+
+
+@router.post("", response_model=LLMConfigResponse, dependencies=[Depends(require_csrf)])
+async def create_config(
+    project_id: uuid.UUID,
+    payload: CreateLLMConfigRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> LLMConfigResponse:
+    await ProjectService(db).ensure_access(user, project_id, ProjectRole.ADMIN)
+
+    cfg = LLMProviderConfig(project_id=project_id)
+    cfg.name = payload.name
+    cfg.provider_type = payload.provider_type
+    cfg.base_url = payload.base_url.rstrip("/") if payload.base_url else ""
+    cfg.model = payload.model
+    if payload.api_key:
+        cfg.api_key = encrypt_secret(payload.api_key)
+    cfg.is_active = payload.is_active
+    cfg.description = payload.description
+    db.add(cfg)
+    await db.commit()
+    await db.refresh(cfg)
+    return _to_response(cfg)
+
+
+@router.patch(
+    "/{config_id}",
+    response_model=LLMConfigResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def update_config(
+    project_id: uuid.UUID,
+    config_id: uuid.UUID,
+    payload: UpdateLLMConfigRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> LLMConfigResponse:
+    await ProjectService(db).ensure_access(user, project_id, ProjectRole.ADMIN)
+    cfg = await db.get(LLMProviderConfig, config_id)
+    if cfg is None or cfg.project_id != project_id:
+        raise NotFoundError("LLM config not found.")
+
+    cfg.name = payload.name
+    cfg.provider_type = payload.provider_type
+    cfg.base_url = payload.base_url.rstrip("/") if payload.base_url else ""
+    cfg.model = payload.model
+    if payload.api_key:
+        cfg.api_key = encrypt_secret(payload.api_key)
+    cfg.is_active = payload.is_active
+    cfg.description = payload.description
+    await db.commit()
+    await db.refresh(cfg)
+    return _to_response(cfg)
 
 
 @router.delete("/{config_id}", status_code=204, dependencies=[Depends(require_csrf)])
