@@ -191,6 +191,23 @@ async def test_invalid_explicit_llm_config_fails_run_durably(
     assert "LLM config" in run.error_json["message"]
 
 
+async def test_falsey_malformed_explicit_llm_config_fails_without_fallback(
+    db_session: AsyncSession,
+) -> None:
+    run = await _research_run(db_session, "rt-llm-empty@example.com")
+    run.input_json = {
+        "message": "do not use a fallback model",
+        "context": {"llm_config_id": ""},
+    }
+    await db_session.commit()
+
+    await AgentRuntime(db_session).run(run.id)
+
+    await db_session.refresh(run)
+    assert run.status == AgentRunStatus.FAILED
+    assert run.error_json["code"] == "validation_error"
+
+
 class CancellingProvider:
     """Sets the cooperative cancel flag from inside its second stream call."""
 

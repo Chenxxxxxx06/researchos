@@ -122,7 +122,9 @@ class AgentRuntime:
             llm = self._llm or await get_llm_provider(
                 run.project_id,
                 config_id=(
-                    uuid.UUID(str(selected_config_id)) if selected_config_id else None
+                    uuid.UUID(str(selected_config_id))
+                    if selected_config_id is not None
+                    else None
                 ),
             )
         except (AppError, ValueError) as exc:
