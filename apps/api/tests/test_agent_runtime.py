@@ -8,6 +8,7 @@ critic path, cancellation, timeout, and ToolDenied recovery.
 from __future__ import annotations
 
 import asyncio
+import uuid
 from collections.abc import AsyncIterator
 from pathlib import Path
 
@@ -170,6 +171,24 @@ async def _research_run(db: AsyncSession, email: str) -> AgentRun:
     )
     await db.commit()
     return run
+
+
+async def test_invalid_explicit_llm_config_fails_run_durably(
+    db_session: AsyncSession,
+) -> None:
+    run = await _research_run(db_session, "rt-llm-invalid@example.com")
+    run.input_json = {
+        "message": "use missing model",
+        "context": {"llm_config_id": str(uuid.uuid4())},
+    }
+    await db_session.commit()
+
+    await AgentRuntime(db_session).run(run.id)
+
+    await db_session.refresh(run)
+    assert run.status == AgentRunStatus.FAILED
+    assert run.error_json["code"] == "not_found"
+    assert "LLM config" in run.error_json["message"]
 
 
 class CancellingProvider:

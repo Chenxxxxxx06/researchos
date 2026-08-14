@@ -114,8 +114,21 @@ class AgentRuntime:
             return None
 
         # Resolve the LLM provider (lazy — uses project DB config if present).
-        llm = self._llm or await get_llm_provider(run.project_id)
+        context = run.input_json.get("context", {})
         emitter = EventEmitter(self.db, project_id=run.project_id, run_id=run.id)
+        selected_config_id = context.get("llm_config_id")
+        try:
+            # An injected provider remains authoritative for isolated runtime tests.
+            llm = self._llm or await get_llm_provider(
+                run.project_id,
+                config_id=(
+                    uuid.UUID(str(selected_config_id)) if selected_config_id else None
+                ),
+            )
+        except (AppError, ValueError) as exc:
+            code = exc.code if isinstance(exc, AppError) else "validation_error"
+            await self._finalize_failed(run, emitter, str(exc), code=code)
+            return run
 
         if await is_cancel_requested(run.id) or run.status == AgentRunStatus.CANCELLED:
             await self._finalize_cancelled(run, emitter)
@@ -126,7 +139,6 @@ class AgentRuntime:
             await self._finalize_failed(run, emitter, "Triggering user not found.")
             return run
 
-        context = run.input_json.get("context", {})
         requested_skills = context.get("skill_slugs")
         skills = await load_skills(
             self.db,
