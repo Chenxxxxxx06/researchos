@@ -62,6 +62,10 @@ services:
       S3_ENDPOINT_URL: http://minio:9000
       CORS_ORIGINS: http://localhost:3000
       WORKSPACE_ROOT: /data/workspaces
+      # Embedding profile passthrough (never hardcode keys here; export or use apps/api/.env)
+      EMBEDDING_PROFILE: ${EMBEDDING_PROFILE:-hashing-1024-v2}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      DASHSCOPE_BASE_URL: ${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
     ports:
       - "8000:8000"
     volumes:
@@ -93,6 +97,9 @@ services:
       S3_ENDPOINT_URL: http://minio:9000
       DB_USE_NULLPOOL: "true"
       WORKSPACE_ROOT: /data/workspaces
+      EMBEDDING_PROFILE: ${EMBEDDING_PROFILE:-hashing-1024-v2}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:-}
+      DASHSCOPE_BASE_URL: ${DASHSCOPE_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
     volumes:
       - wsdata:/data/workspaces
     depends_on:

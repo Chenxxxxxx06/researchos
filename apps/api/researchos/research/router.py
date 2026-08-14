@@ -26,6 +26,8 @@ from .schemas import (
     ImportPapersRequest,
     ImportPapersResponse,
     IngestTriggerResponse,
+    PaperReferenceCounts,
+    PaperReferencesResponse,
     PaperResponse,
     PaperSearchRequest,
     PaperSearchResponse,
@@ -153,15 +155,31 @@ async def trigger_paper_ingest(
     return IngestTriggerResponse(paper_id=paper.id, ingest_status=paper.ingest_status)
 
 
+@router.get("/papers/{paper_id}/references", response_model=PaperReferencesResponse)
+async def get_paper_references(
+    project_id: uuid.UUID, paper_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> PaperReferencesResponse:
+    references = await PaperService(db).get_references(user, project_id, paper_id)
+    return PaperReferencesResponse(
+        paper_id=paper_id,
+        references=PaperReferenceCounts(**references),
+        blocked=any(references.values()),
+    )
+
+
 @router.delete(
     "/papers/{paper_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_csrf)],
 )
 async def delete_paper(
-    project_id: uuid.UUID, paper_id: uuid.UUID, user: CurrentUser, db: DbSession
+    project_id: uuid.UUID,
+    paper_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    force: bool = Query(default=False),
 ) -> None:
-    await PaperService(db).delete(user, project_id, paper_id)
+    await PaperService(db).delete(user, project_id, paper_id, force=force)
 
 
 # --- Ideas -------------------------------------------------------------------

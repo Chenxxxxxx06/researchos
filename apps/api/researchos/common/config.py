@@ -92,7 +92,7 @@ class Settings(BaseSettings):
     # --- Paper search provider ----------------------------------------------
     # Comma-separated provider list, e.g. "arxiv,s2,openalex".
     paper_provider: str = "arxiv"
-    arxiv_api_base: str = "http://export.arxiv.org/api/query"
+    arxiv_api_base: str = "https://export.arxiv.org/api/query"
     arxiv_timeout_seconds: float = 10.0
     paper_search_max_results: int = 25
     s2_api_base: str = "https://api.semanticscholar.org/graph/v1"
@@ -105,6 +105,16 @@ class Settings(BaseSettings):
     arxiv_html_base_url: str = "https://arxiv.org/html"
     feed_cache_ttl_seconds: int = 900
     paper_section_max_chars: int = 20_000
+
+    # --- Embedding / RAG ------------------------------------------------------
+    # Active embedding profile name; see researchos/knowledge/profiles.py.
+    # Changing this value invalidates all stored chunks (full re-index).
+    embedding_profile: str = "hashing-1024-v2"
+    # Aliyun Bailian (DashScope) OpenAI-compatible endpoint. Only used when the
+    # active profile's provider is "dashscope"; the key comes from
+    # DASHSCOPE_API_KEY and must never be committed or logged.
+    dashscope_api_key: str = ""
+    dashscope_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
     # --- Workspace (IDE) -----------------------------------------------------
     # Base directory holding per-project workspaces: <workspace_root>/<project_id>.

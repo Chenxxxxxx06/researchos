@@ -154,6 +154,7 @@ class RagHitResponse(BaseModel):
     score: float
     vector_score: float = 0.0
     keyword_score: float = 0.0
+    match_reasons: list[str] = Field(default_factory=list)
     char_start: int | None = None
     char_end: int | None = None
     citation_key: str

@@ -64,9 +64,9 @@ class PaperChunk(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ),
         nullable=False,
     )
-    embedding: Mapped[list[float]] = mapped_column(Vector(384), nullable=False)
+    embedding: Mapped[list[float]] = mapped_column(Vector(1024), nullable=False)
     embedding_model: Mapped[str] = mapped_column(
-        String(80), nullable=False, default="hashing-384-v1"
+        String(80), nullable=False, default="hashing-1024-v2"
     )
 
 
