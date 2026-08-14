@@ -24,6 +24,7 @@ out/
 .DS_Store
 .idea/
 *.log
+.worktrees/
 
 # --- Docker / data volumes ---------------------------------------------------
 infra/docker/.data/
