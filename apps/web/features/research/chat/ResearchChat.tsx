@@ -29,6 +29,7 @@ import { useChatSeedStore } from '../chatSeed';
 import { resolveCitation, useCitationResolver } from '../citations';
 import { AgentRunMessage } from './AgentRunMessage';
 import { ContextBanner } from './ContextBanner';
+import { reconcileSelectedConfigId } from './modelSelection';
 import { buildSuggestions, type Suggestion } from './suggestions';
 import { SuggestionChips } from './SuggestionChips';
 
@@ -96,13 +97,19 @@ export function ResearchChat({
   const clearSeed = useChatSeedStore((s) => s.clear);
 
   const [message, setMessage] = useState('');
+  const [selectedConfigId, setSelectedConfigId] = useState('');
   const [pendingPrompts, setPendingPrompts] = useState<Record<string, Pending>>({});
   const [older, setOlder] = useState<AgentRun[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastSeedRef = useRef<ChatSeed | null>(null);
 
   const llm = useQuery({ queryKey: ['llm-configs', projectId], queryFn: () => listLLMConfigs(projectId) });
-  const hasRealLLM = (llm.data?.length ?? 0) > 0;
+  const configs = llm.data ?? [];
+  const hasRealLLM = configs.some((config) => config.is_active);
+
+  useEffect(() => {
+    setSelectedConfigId((current) => reconcileSelectedConfigId(llm.data ?? [], current));
+  }, [llm.data]);
 
   const history = useQuery<Page<AgentRun>, ApiError>({
     queryKey: ['agent-runs', projectId],
@@ -128,7 +135,11 @@ export function ResearchChat({
   const mutation = useMutation<CreateAgentRunResponse, ApiError, Pending>({
     mutationFn: ({ message: msg, seed: s }) => {
       const body = seedToRequest(msg, s);
-      return createAgentRun(projectId, { agent_type: 'research', message: body.message, context: body.context });
+      return createAgentRun(projectId, {
+        agent_type: 'research',
+        message: body.message,
+        context: { ...body.context, llm_config_id: selectedConfigId },
+      });
     },
     onSuccess: (res, vars) => {
       setPendingPrompts((prev) => ({ ...prev, [res.agent_run_id]: vars }));
@@ -179,7 +190,7 @@ export function ResearchChat({
 
   const submit = () => {
     const text = message.trim();
-    if (!text || mutation.isPending) return;
+    if (!text || !selectedConfigId || mutation.isPending) return;
     mutation.mutate({ message: text, seed });
   };
 
@@ -274,6 +285,29 @@ export function ResearchChat({
         {!isEmpty && !message.trim() && suggestions.length > 0 && (
           <SuggestionChips suggestions={suggestions} onSelect={onSuggestion} />
         )}
+        <div className="flex items-center gap-2">
+          <label htmlFor="research-copilot-model" className="shrink-0 text-xs font-medium text-muted">
+            {t('research.chat.model')}
+          </label>
+          <select
+            id="research-copilot-model"
+            className="h-9 min-w-0 flex-1 rounded-md border border-border-strong bg-surface px-3 text-xs text-text"
+            value={selectedConfigId}
+            onChange={(event) => setSelectedConfigId(event.target.value)}
+            disabled={llm.isLoading || mutation.isPending}
+          >
+            {!selectedConfigId && <option value="">{t('research.chat.noActiveModel')}</option>}
+            {configs.map((config) => (
+              <option key={config.id} value={config.id} disabled={!config.is_active}>
+                {config.name} · {config.model}
+                {!config.is_active ? ` · ${t('research.chat.modelInactive')}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+        {!llm.isLoading && !hasRealLLM && (
+          <p className="text-xs text-muted">{t('research.chat.noActiveModel')}</p>
+        )}
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -288,7 +322,7 @@ export function ResearchChat({
             disabled={mutation.isPending}
             aria-label={t('research.chat.placeholder')}
           />
-          <Button type="submit" className="shrink-0" loading={mutation.isPending} disabled={!message.trim()}>
+          <Button type="submit" className="shrink-0" loading={mutation.isPending} disabled={!message.trim() || !selectedConfigId}>
             <Send className="h-4 w-4" aria-hidden="true" />
             <span className="sr-only">{t('research.chat.send')}</span>
           </Button>

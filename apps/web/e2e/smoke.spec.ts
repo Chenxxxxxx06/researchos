@@ -35,6 +35,7 @@ test.describe('ResearchOS smoke', () => {
     await page.goto(`/projects/${projectId}/research`);
     await page.waitForLoadState('domcontentloaded');
     await expect(page.getByRole('heading', { name: 'Research Copilot', exact: true })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByLabel(/模型|Model/)).toBeVisible();
     await page.screenshot({ path: 'artifacts/screenshots/4-research.png' });
 
     // 4. AI IDE
@@ -97,6 +98,13 @@ test.describe('ResearchOS smoke', () => {
     await page.goto(`/projects/${projectId}/settings`);
     await page.waitForLoadState('domcontentloaded');
     await expect(page.getByText(/Language|语言|LLM/i).first()).toBeVisible({ timeout: 5000 });
+    const editButton = page.getByRole('button', { name: /修改|Edit/ }).first();
+    if (await editButton.isVisible()) {
+      await editButton.click();
+      await expect(page.locator('input[type="password"]')).toHaveValue('');
+      await expect(page.getByText(/保留当前密钥|keep the current key/i)).toBeVisible();
+      await page.getByRole('button', { name: /取消|Cancel/ }).click();
+    }
     await page.screenshot({ path: 'artifacts/screenshots/12-settings.png' });
 
     // 14. Chinese interface (default)

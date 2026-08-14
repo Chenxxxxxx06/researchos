@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, KeyRound, Languages, Palette, Plus, Trash2, Wifi } from 'lucide-react';
+import { CheckCircle2, KeyRound, Languages, Palette, Pencil, Plus, Trash2, Wifi } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,9 @@ import {
   listLLMConfigs,
   saveLLMConfig,
   testLLMConfig,
+  updateLLMConfig,
   type LLMConfig,
+  type LLMConfigInput,
   type LLMConnectionTest,
 } from '@/lib/api/llmConfig';
 import { useI18n } from '@/lib/i18n';
@@ -33,7 +35,14 @@ export function SettingsPanel({ projectId }: { projectId: string }) {
   const { preference, setTheme } = useTheme();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm());
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(emptyForm());
+  };
 
   const configs = useQuery<LLMConfig[]>({
     queryKey: ['llm-configs', projectId],
@@ -42,7 +51,15 @@ export function SettingsPanel({ projectId }: { projectId: string }) {
   const save = useMutation({
     mutationFn: (input: Parameters<typeof saveLLMConfig>[1]) => saveLLMConfig(projectId, input),
     onSuccess: () => {
-      setShowForm(false);
+      closeForm();
+      void queryClient.invalidateQueries({ queryKey: ['llm-configs', projectId] });
+    },
+  });
+  const update = useMutation({
+    mutationFn: ({ id, input }: { id: string; input: LLMConfigInput }) =>
+      updateLLMConfig(projectId, id, input),
+    onSuccess: () => {
+      closeForm();
       void queryClient.invalidateQueries({ queryKey: ['llm-configs', projectId] });
     },
   });
@@ -100,6 +117,7 @@ export function SettingsPanel({ projectId }: { projectId: string }) {
             size="sm"
             variant="secondary"
             onClick={() => {
+              setEditingId(null);
               setForm(emptyForm());
               setShowForm(true);
             }}
@@ -134,6 +152,18 @@ export function SettingsPanel({ projectId }: { projectId: string }) {
                   <p className="mt-1 break-all text-[10px] text-faint">{config.base_url}</p>
                 </div>
                 <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      setEditingId(config.id);
+                      setForm(formForConfig(config));
+                      setShowForm(true);
+                    }}
+                  >
+                    <Pencil className="mr-1 h-3.5 w-3.5" />
+                    {t('settings.llmEdit')}
+                  </Button>
                   <Button size="sm" variant="secondary" disabled={test.isPending} onClick={() => test.mutate(config.id)}>
                     {test.isPending && test.variables === config.id ? t('settings.llmTesting') : t('settings.llmTest')}
                   </Button>
@@ -153,9 +183,13 @@ export function SettingsPanel({ projectId }: { projectId: string }) {
               className="space-y-3 border border-border-strong bg-surface-2 p-4"
               onSubmit={(event) => {
                 event.preventDefault();
-                save.mutate(form);
+                if (editingId) update.mutate({ id: editingId, input: form });
+                else save.mutate(form);
               }}
             >
+              <h3 className="text-sm font-semibold text-text">
+                {editingId ? t('settings.llmEditTitle') : t('settings.llmAdd')}
+              </h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label={t('settings.llmName')}><Input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></Field>
                 <Field label={t('settings.llmProviderType')}>
@@ -167,12 +201,29 @@ export function SettingsPanel({ projectId }: { projectId: string }) {
                 <Field label={t('settings.llmBaseUrl')}><Input required value={form.base_url} onChange={(event) => setForm({ ...form, base_url: event.target.value })} /></Field>
                 <Field label={t('settings.llmModel')}><Input required value={form.model} onChange={(event) => setForm({ ...form, model: event.target.value })} /></Field>
               </div>
-              <Field label={t('settings.llmApiKey')}><Input required type="password" autoComplete="off" value={form.api_key} onChange={(event) => setForm({ ...form, api_key: event.target.value })} /></Field>
+              <Field label={t('settings.llmApiKey')}>
+                <Input required={!editingId} type="password" autoComplete="off" value={form.api_key} onChange={(event) => setForm({ ...form, api_key: event.target.value })} />
+                {editingId && <p className="mt-1 text-[11px] text-muted">{t('settings.llmApiKeyHint')}</p>}
+              </Field>
               <Field label={t('settings.llmDesc')}><Input value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} /></Field>
-              {save.error instanceof ApiError && <p className="text-xs text-danger">{save.error.message}</p>}
+              <label className="flex items-center gap-2 text-sm text-text">
+                <input
+                  type="checkbox"
+                  checked={form.is_active}
+                  onChange={(event) => setForm({ ...form, is_active: event.target.checked })}
+                />
+                {t('settings.llmActive')}
+              </label>
+              {(save.error instanceof ApiError || update.error instanceof ApiError) && (
+                <p className="text-xs text-danger">
+                  {(editingId ? update.error : save.error)?.message}
+                </p>
+              )}
               <div className="flex gap-2 pt-1">
-                <Button size="sm" type="submit" disabled={save.isPending}>{t('common.save')}</Button>
-                <Button size="sm" type="button" variant="secondary" onClick={() => setShowForm(false)}>{t('common.cancel')}</Button>
+                <Button size="sm" type="submit" disabled={save.isPending || update.isPending}>
+                  {editingId ? t('settings.llmSaveChanges') : t('common.save')}
+                </Button>
+                <Button size="sm" type="button" variant="secondary" onClick={closeForm}>{t('common.cancel')}</Button>
               </div>
             </form>
           )}
@@ -190,6 +241,19 @@ function emptyForm() {
     model: 'gpt-4o',
     api_key: '',
     description: '',
+    is_active: true,
+  };
+}
+
+function formForConfig(config: LLMConfig) {
+  return {
+    name: config.name,
+    provider_type: config.provider_type,
+    base_url: config.base_url,
+    model: config.model,
+    api_key: '',
+    description: config.description ?? '',
+    is_active: config.is_active,
   };
 }
 
