@@ -6,6 +6,8 @@ consuming, so runs remain queued, which is what these endpoint tests assert.
 
 from __future__ import annotations
 
+import uuid
+
 from .helpers import csrf_headers, register
 
 
@@ -35,6 +37,36 @@ async def test_create_research_run_returns_handle(client) -> None:
     assert detail.status_code == 200
     listing = (await client.get(f"/projects/{project_id}/agents/runs")).json()
     assert listing["total"] == 1
+
+
+async def test_create_run_persists_llm_config_id(client) -> None:
+    project_id = await _make_project(client, "agent-model@example.com")
+    config_id = str(uuid.uuid4())
+    response = await client.post(
+        f"/projects/{project_id}/agents/runs",
+        json={
+            "agent_type": "research",
+            "message": "use this model",
+            "context": {"llm_config_id": config_id},
+        },
+        headers=csrf_headers(client),
+    )
+    assert response.status_code == 201
+    detail = await client.get(
+        f"/projects/{project_id}/agents/runs/{response.json()['agent_run_id']}"
+    )
+    assert detail.json()["input_json"]["context"]["llm_config_id"] == config_id
+
+    malformed_response = await client.post(
+        f"/projects/{project_id}/agents/runs",
+        json={
+            "agent_type": "research",
+            "message": "reject malformed model",
+            "context": {"llm_config_id": "not-a-uuid"},
+        },
+        headers=csrf_headers(client),
+    )
+    assert malformed_response.status_code == 422
 
 
 async def test_dispatch_failure_still_returns_durable_handle(client, monkeypatch) -> None:
