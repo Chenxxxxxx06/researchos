@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import json
 
+import httpx
 import pytest
 
 from researchos.agents.llm.anthropic import _to_anthropic_messages
-from researchos.agents.llm.base import LLMMessage, ToolCall
+from researchos.agents.llm.base import LLMMessage, LLMTool, ToolCall
 from researchos.agents.llm.mock import _validate_protocol
-from researchos.agents.llm.openai_compatible import _to_openai
+from researchos.agents.llm.openai_compatible import OpenAICompatibleProvider, _to_openai
 from researchos.agents.llm.structured import (
     StructuredOutputError,
     _check_required,
@@ -115,6 +116,66 @@ def test_openai_empty_assistant_tool_turn_has_null_content() -> None:
     ]
     out = _to_openai(messages)
     assert out[0]["content"] is None
+
+
+async def test_openai_compatible_maps_dotted_tool_names_across_wire_boundary() -> None:
+    captured_body: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured_body.update(json.loads(request.content))
+        chunk = {
+            "choices": [
+                {
+                    "delta": {
+                        "tool_calls": [
+                            {
+                                "index": 0,
+                                "id": "call_1",
+                                "function": {"name": "library_list", "arguments": "{}"},
+                            }
+                        ]
+                    },
+                    "finish_reason": "tool_calls",
+                }
+            ]
+        }
+        stream = "\n".join(
+            [
+                f"data: {json.dumps(chunk)}",
+                "data: [DONE]",
+                "",
+            ]
+        )
+        return httpx.Response(200, text=stream, headers={"content-type": "text/event-stream"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        provider = OpenAICompatibleProvider(
+            base_url="https://llm.example/v1",
+            model="test-model",
+            api_key="test-key",
+            http_client=client,
+        )
+        events = [
+            event
+            async for event in provider.stream(
+                messages=_tool_turn_history(),
+                tools=[
+                    LLMTool(
+                        name="library.list",
+                        description="List library papers.",
+                        parameters={"type": "object", "properties": {}},
+                    )
+                ],
+            )
+        ]
+
+    assert captured_body["tools"][0]["function"]["name"] == "library_list"
+    assert (
+        captured_body["messages"][2]["tool_calls"][0]["function"]["name"]
+        == "library_list"
+    )
+    calls = [event for event in events if isinstance(event, ToolCall)]
+    assert [(call.name, call.arguments) for call in calls] == [("library.list", {})]
 
 
 # --- extract_json ------------------------------------------------------------

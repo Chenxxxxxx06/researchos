@@ -73,9 +73,10 @@ class OpenAICompatibleProvider:
         include_response_format: bool,
     ) -> dict:
         settings = get_settings()
+        tool_names = {tool.name: _to_openai_tool_name(tool.name) for tool in tools or []}
         body: dict = {
             "model": self.model,
-            "messages": _to_openai(messages),
+            "messages": _to_openai(messages, tool_names=tool_names),
             "stream": True,
             "stream_options": {"include_usage": True},
             "max_tokens": settings.llm_max_output_tokens,
@@ -85,7 +86,7 @@ class OpenAICompatibleProvider:
                 {
                     "type": "function",
                     "function": {
-                        "name": t.name,
+                        "name": tool_names[t.name],
                         "description": t.description,
                         "parameters": t.parameters,
                     },
@@ -112,6 +113,7 @@ class OpenAICompatibleProvider:
         force_structured: bool = False,
     ) -> AsyncIterator[StreamEvent]:
         settings = get_settings()
+        wire_tool_names = {_to_openai_tool_name(tool.name): tool.name for tool in tools or []}
         client = self._http_client
         owns_client = client is None
         if client is None:
@@ -155,7 +157,7 @@ class OpenAICompatibleProvider:
                             http_status=502,
                         )
 
-                    async for event in self._consume_stream(resp):
+                    async for event in self._consume_stream(resp, wire_tool_names):
                         yield event
                     return
         finally:
@@ -163,7 +165,9 @@ class OpenAICompatibleProvider:
                 await client.aclose()
 
     @staticmethod
-    async def _consume_stream(resp: httpx.Response) -> AsyncIterator[StreamEvent]:
+    async def _consume_stream(
+        resp: httpx.Response, wire_tool_names: dict[str, str]
+    ) -> AsyncIterator[StreamEvent]:
         tool_calls_acc: dict[int, dict] = {}
         finish_reason: str | None = None
         async for line in resp.aiter_lines():
@@ -206,7 +210,11 @@ class OpenAICompatibleProvider:
                     args = json.loads(acc["arguments"] or "{}")
                 except json.JSONDecodeError:
                     args = {}
-                yield ToolCall(id=acc["id"], name=acc["name"], arguments=args)
+                yield ToolCall(
+                    id=acc["id"],
+                    name=wire_tool_names.get(acc["name"], acc["name"]),
+                    arguments=args,
+                )
 
         if finish_reason == "tool_calls":
             yield StreamDone(stop_reason="tool_use")
@@ -214,7 +222,16 @@ class OpenAICompatibleProvider:
             yield StreamDone(stop_reason="stop")
 
 
-def _to_openai(messages: list[LLMMessage]) -> list[dict]:
+def _to_openai_tool_name(name: str) -> str:
+    """Translate internal dotted tool names to OpenAI function names."""
+
+    return name.replace(".", "_")
+
+
+def _to_openai(
+    messages: list[LLMMessage], *, tool_names: dict[str, str] | None = None
+) -> list[dict]:
+    tool_names = tool_names or {}
     paired = paired_tool_indexes(messages)
     out: list[dict] = []
     for i, msg in enumerate(messages):
@@ -243,7 +260,7 @@ def _to_openai(messages: list[LLMMessage]) -> list[dict]:
                                 "id": c.id,
                                 "type": "function",
                                 "function": {
-                                    "name": c.name,
+                                    "name": tool_names.get(c.name, c.name),
                                     "arguments": json.dumps(c.arguments),
                                 },
                             }
