@@ -36,6 +36,17 @@ import {
 } from '@/lib/api/knowledge';
 import { getAgentRun } from '@/lib/api/agents';
 
+const READING_FOCUS = [
+  { value: 'abstract', zh: '摘要', en: 'Abstract' },
+  { value: 'introduction', zh: '引言', en: 'Introduction' },
+  { value: 'method', zh: '方法', en: 'Methods' },
+  { value: 'experiments', zh: '实验设计', en: 'Experiments' },
+  { value: 'results', zh: '实验结果', en: 'Results' },
+  { value: 'conclusion', zh: '结论', en: 'Conclusion' },
+] as const;
+
+const DEFAULT_READING_FOCUS = READING_FOCUS.map((item) => item.value);
+
 export function LiteratureStagePanel({
   projectId,
   missionId,
@@ -182,7 +193,11 @@ export function ReadingStagePanel({ projectId, missionId, lang }: { projectId: s
   const [selected, setSelected] = useState('');
   const [summary, setSummary] = useState('');
   const [question, setQuestion] = useState('');
+  const [readingFocus, setReadingFocus] = useState<string[]>(DEFAULT_READING_FOCUS);
   const [method, setMethod] = useState('');
+  const [experimentalSetup, setExperimentalSetup] = useState('');
+  const [keyResults, setKeyResults] = useState('');
+  const [conclusions, setConclusions] = useState('');
   const [strengths, setStrengths] = useState('');
   const [limitations, setLimitations] = useState('');
   const [reproducibility, setReproducibility] = useState('');
@@ -195,7 +210,11 @@ export function ReadingStagePanel({ projectId, missionId, lang }: { projectId: s
   useEffect(() => {
     setSummary(current?.summary ?? '');
     setQuestion(current?.research_question ?? '');
+    setReadingFocus(current?.reading_focus_json.length ? current.reading_focus_json : DEFAULT_READING_FOCUS);
     setMethod((current?.method_flow_json ?? []).join('\n'));
+    setExperimentalSetup((current?.experimental_setup_json ?? []).join('\n'));
+    setKeyResults((current?.key_results_json ?? []).join('\n'));
+    setConclusions((current?.conclusions_json ?? []).join('\n'));
     setStrengths((current?.strengths_json ?? []).join('\n'));
     setLimitations((current?.limitations_json ?? []).join('\n'));
     setReproducibility((current?.reproducibility_json ?? []).join('\n'));
@@ -207,7 +226,11 @@ export function ReadingStagePanel({ projectId, missionId, lang }: { projectId: s
       expected_version: current?.version,
       summary,
       research_question: question,
+      reading_focus: readingFocus,
       method_flow: lines(method),
+      experimental_setup: lines(experimentalSetup),
+      key_results: lines(keyResults),
+      conclusions: lines(conclusions),
       strengths: lines(strengths),
       limitations: lines(limitations),
       reproducibility: lines(reproducibility),
@@ -221,7 +244,13 @@ export function ReadingStagePanel({ projectId, missionId, lang }: { projectId: s
     onError: (error) => toast({ title: lang === 'zh' ? '保存失败' : 'Save failed', description: error instanceof Error ? error.message : undefined, variant: 'error' }),
   });
   const generate = useMutation({
-    mutationFn: () => generateReadingCard(projectId, selected, missionId, Boolean(current)),
+    mutationFn: () => generateReadingCard(
+      projectId,
+      selected,
+      missionId,
+      Boolean(current),
+      readingFocus,
+    ),
     onSuccess: (run) => {
       setActiveRunId(run.agent_run_id);
       toast({ title: lang === 'zh' ? '阅读卡 Agent 已开始' : 'Reading-card agent started', description: lang === 'zh' ? '它会只使用已解析原文，并逐条校验引用片段。' : 'It will use parsed source text and validate every evidence quote.' });
@@ -265,14 +294,38 @@ export function ReadingStagePanel({ projectId, missionId, lang }: { projectId: s
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><h3 className="text-sm font-semibold text-text">{papers.data?.find((paper) => paper.paper_id === selected)?.title}</h3><p className="mt-1 text-[10px] text-faint">{current ? `card v${current.version} · ${current.status}` : (lang === 'zh' ? '尚未生成阅读卡' : 'No reading card yet')}</p></div>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => generate.mutate()} loading={generate.isPending || Boolean(activeRunId)}><Sparkles className="h-3.5 w-3.5" />{current ? (lang === 'zh' ? '重新生成新版本' : 'Regenerate version') : (lang === 'zh' ? 'Agent 生成' : 'Generate with agent')}</Button>
+            <Button variant="secondary" size="sm" disabled={readingFocus.length === 0} onClick={() => generate.mutate()} loading={generate.isPending || Boolean(activeRunId)}><Sparkles className="h-3.5 w-3.5" />{current ? (lang === 'zh' ? '重新生成新版本' : 'Regenerate version') : (lang === 'zh' ? 'Agent 生成' : 'Generate with agent')}</Button>
             <Link href={`/projects/${projectId}/research/read/${selected}?mission=${missionId}`} className="flex items-center gap-1 text-xs font-medium text-info hover:underline"><FileSearch className="h-3.5 w-3.5" />{lang === 'zh' ? '查看原文与笔记' : 'Open paper and notes'}</Link>
           </div>
         </div>
+        <section className="border-y border-border py-4">
+          <div className="mb-3">
+            <h4 className="text-xs font-semibold text-text">{lang === 'zh' ? '本次读取范围' : 'Reading focus'}</h4>
+            <p className="mt-1 text-[10px] leading-4 text-muted">{lang === 'zh' ? 'Agent 只接收勾选类型的已解析章节，选择会随阅读卡版本保存。' : 'The agent receives only parsed sections of the selected kinds. The selection is versioned with the card.'}</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {READING_FOCUS.map((item) => {
+              const checked = readingFocus.includes(item.value);
+              return (
+                <label key={item.value} className={`flex cursor-pointer items-center gap-2 border px-3 py-2 text-xs ${checked ? 'border-info bg-info-bg text-text' : 'border-border bg-surface text-muted'}`}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => setReadingFocus((currentFocus) => checked ? currentFocus.filter((value) => value !== item.value) : [...currentFocus, item.value])}
+                  />
+                  {lang === 'zh' ? item.zh : item.en}
+                </label>
+              );
+            })}
+          </div>
+        </section>
         <Field label={lang === 'zh' ? '核心摘要' : 'Core summary'} value={summary} onChange={setSummary} rows={4} placeholder={lang === 'zh' ? '用自己的语言说明论文做了什么，避免复制摘要。' : 'Explain the paper in your own words.'} />
         <Field label={lang === 'zh' ? '研究问题' : 'Research question'} value={question} onChange={setQuestion} rows={3} />
         <div className="grid gap-4 md:grid-cols-2">
           <Field label={lang === 'zh' ? '方法流程（每行一步）' : 'Method flow (one step per line)'} value={method} onChange={setMethod} rows={6} />
+          <Field label={lang === 'zh' ? '实验设置（数据、基线、指标）' : 'Experimental setup (data, baselines, metrics)'} value={experimentalSetup} onChange={setExperimentalSetup} rows={6} />
+          <Field label={lang === 'zh' ? '关键结果（保留数值与条件）' : 'Key results (preserve values and conditions)'} value={keyResults} onChange={setKeyResults} rows={6} />
+          <Field label={lang === 'zh' ? '作者结论与适用边界' : 'Conclusions and scope'} value={conclusions} onChange={setConclusions} rows={6} />
           <Field label={lang === 'zh' ? '可复现要点（每行一项）' : 'Reproducibility (one per line)'} value={reproducibility} onChange={setReproducibility} rows={6} />
           <Field label={lang === 'zh' ? '优点' : 'Strengths'} value={strengths} onChange={setStrengths} rows={5} />
           <Field label={lang === 'zh' ? '局限' : 'Limitations'} value={limitations} onChange={setLimitations} rows={5} />

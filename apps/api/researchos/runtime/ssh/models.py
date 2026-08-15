@@ -39,7 +39,7 @@ class SSHExecution(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
     )
     profile_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("ssh_profiles.id", ondelete="CASCADE"), nullable=False, index=True
+        ForeignKey("ssh_profiles.id", ondelete="RESTRICT"), nullable=False, index=True
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False

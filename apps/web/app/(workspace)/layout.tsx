@@ -44,7 +44,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
         <TopBar me={me} />
         <div className="flex flex-1 items-start">
           <SideRail />
-          <main className="min-w-0 flex-1 bg-bg p-6 lg:p-8">{children}</main>
+          <main className="min-w-0 flex-1 bg-bg p-6 pb-20 lg:p-8">{children}</main>
         </div>
       </div>
       <CommandPalette />

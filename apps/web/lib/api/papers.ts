@@ -141,6 +141,21 @@ export interface IngestTriggerResponse {
   ingest_status: IngestStatus;
 }
 
+export interface PaperReferenceCounts {
+  reading_cards: number;
+  reading_notes: number;
+  review_sections: number;
+  research_critiques: number;
+  experiment_plans: number;
+  missions: number;
+}
+
+export interface PaperReferencesResponse {
+  paper_id: string;
+  references: PaperReferenceCounts;
+  blocked: boolean;
+}
+
 /** A freshness-feed item = `PaperResult` + server-computed `in_library`. */
 export interface FeedItem extends PaperResult {
   in_library: boolean;
@@ -213,8 +228,12 @@ export function getPaper(projectId: string, paperId: string): Promise<Paper> {
   return apiRequest(`/projects/${projectId}/papers/${paperId}`);
 }
 
-export function deletePaper(projectId: string, paperId: string): Promise<void> {
-  return apiRequest(`/projects/${projectId}/papers/${paperId}`, { method: 'DELETE' });
+export function getPaperReferences(projectId: string, paperId: string): Promise<PaperReferencesResponse> {
+  return apiRequest(`/projects/${projectId}/papers/${paperId}/references`);
+}
+
+export function deletePaper(projectId: string, paperId: string, force = false): Promise<void> {
+  return apiRequest(`/projects/${projectId}/papers/${paperId}${force ? '?force=true' : ''}`, { method: 'DELETE' });
 }
 
 export function getPaperSections(projectId: string, paperId: string): Promise<SectionsResponse> {

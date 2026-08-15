@@ -97,6 +97,38 @@ async def test_patch_non_empty_key_replaces_secret(client, db_session) -> None:
     assert decrypt_secret(row.api_key) == "replacement-secret"
 
 
+async def test_patch_omitted_fields_preserve_existing_values(client, db_session) -> None:
+    project_id = await _make_project(client, "llm-partial@example.com")
+    created = await _create_config(client, project_id, name="keep-me", model="model-a")
+    config_id = created.json()["id"]
+
+    response = await client.patch(
+        f"/projects/{project_id}/settings/llm/{config_id}",
+        json={"description": "description-only update"},
+        headers=csrf_headers(client),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "keep-me"
+    assert response.json()["model"] == "model-a"
+    assert response.json()["base_url"] == "https://example.test/v1"
+    assert response.json()["is_active"] is True
+    assert response.json()["description"] == "description-only update"
+
+
+async def test_patch_rejects_null_for_required_fields(client) -> None:
+    project_id = await _make_project(client, "llm-null@example.com")
+    created = await _create_config(client, project_id)
+
+    response = await client.patch(
+        f"/projects/{project_id}/settings/llm/{created.json()['id']}",
+        json={"model": None},
+        headers=csrf_headers(client),
+    )
+
+    assert response.status_code == 422
+
+
 async def test_patch_cross_project_config_returns_404(client) -> None:
     project_id = await _make_project(client, "llm-cross@example.com")
     other_project_response = await client.post(

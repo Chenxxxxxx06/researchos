@@ -121,9 +121,7 @@ class PaperRepository:
         )
         return {f"{s}:{e}" for s, e in result.all()}
 
-    async def count_by_primary_category(
-        self, project_id: uuid.UUID
-    ) -> list[tuple[str, int]]:
+    async def count_by_primary_category(self, project_id: uuid.UUID) -> list[tuple[str, int]]:
         """Non-null primary categories with counts, most frequent first."""
 
         result = await self.db.execute(
@@ -138,16 +136,13 @@ class PaperRepository:
         await self.db.delete(paper)
         await self.db.flush()
 
-    async def reference_counts(
-        self, project_id: uuid.UUID, paper_id: uuid.UUID
-    ) -> dict[str, int]:
+    async def reference_counts(self, project_id: uuid.UUID, paper_id: uuid.UUID) -> dict[str, int]:
         """Count downstream artifacts referencing a paper (delete preflight).
 
         Reading cards/notes and mission links carry a direct ``paper_id`` FK.
-        Review sections cite papers via ``citations_json`` (list of paper-id
-        strings) and grounded ``claims_json`` entries; experiment plans via
-        ``baselines_json[*].source_paper_id`` — both queried with JSONB
-        containment against the real stored shapes.
+        Review sections and research critiques cite papers via ``citations_json``
+        (list of paper-id strings). Grounded review claims and experiment-plan
+        baselines are queried with JSONB containment against their stored shapes.
         """
 
         pid = str(paper_id)
@@ -170,6 +165,10 @@ class PaperRepository:
                     ReviewSection.claims_json.contains([{"paper_id": pid}]),
                 ),
             ),
+            "research_critiques": await _count(
+                ResearchCritique,
+                ResearchCritique.citations_json.contains([pid]),
+            ),
             "experiment_plans": await _count(
                 ExperimentPlan,
                 ExperimentPlan.baselines_json.contains([{"source_paper_id": pid}]),
@@ -182,9 +181,7 @@ class PaperSectionRepository:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def replace_for_paper(
-        self, paper_id: uuid.UUID, sections: list[PaperSection]
-    ) -> None:
+    async def replace_for_paper(self, paper_id: uuid.UUID, sections: list[PaperSection]) -> None:
         """Idempotent full replace (safe under acks_late task redelivery)."""
 
         await self.db.execute(delete(PaperSection).where(PaperSection.paper_id == paper_id))

@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from researchos.experiment_plans.models import ExperimentPlan
 from researchos.identity.models import User
 from researchos.research.enums import PaperIngestStatus
-from researchos.research.models import Paper
+from researchos.research.models import Idea, Paper, ResearchCritique
 from researchos.reviews.models import ReviewDocument, ReviewSection
 
 from .helpers import csrf_headers, register
@@ -123,6 +123,22 @@ async def _add_all_references(
             updated_by=user.id,
         )
     )
+    idea = Idea(
+        project_id=paper.project_id,
+        title="Referenced idea",
+        description="Critique reference fixture.",
+        created_by=user.id,
+    )
+    db.add(idea)
+    await db.flush()
+    db.add(
+        ResearchCritique(
+            project_id=paper.project_id,
+            idea_id=idea.id,
+            novelty_summary="Grounded critique",
+            citations_json=[str(paper.id)],
+        )
+    )
     await db.commit()
 
 
@@ -140,6 +156,7 @@ async def test_delete_without_references_succeeds(
             "reading_cards": 0,
             "reading_notes": 0,
             "review_sections": 0,
+            "research_critiques": 0,
             "experiment_plans": 0,
             "missions": 0,
         },
@@ -163,6 +180,7 @@ async def test_references_preflight_counts(client: AsyncClient, db_session: Asyn
         "reading_cards": 1,
         "reading_notes": 1,
         "review_sections": 1,
+        "research_critiques": 1,
         "experiment_plans": 1,
         "missions": 1,
     }
@@ -184,6 +202,7 @@ async def test_delete_with_references_returns_409_with_details(
         "reading_cards": 1,
         "reading_notes": 1,
         "review_sections": 1,
+        "research_critiques": 1,
         "experiment_plans": 1,
         "missions": 1,
     }

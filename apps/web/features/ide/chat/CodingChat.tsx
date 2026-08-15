@@ -35,10 +35,16 @@ import { SessionBar } from './SessionBar';
 
 const TERMINAL = new Set(['completed', 'failed', 'cancelled']);
 
-export function CodingChat({ projectId }: { projectId: string }) {
+export function CodingChat({
+  projectId,
+  initialSessionId = null,
+}: {
+  projectId: string;
+  initialSessionId?: string | null;
+}) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
-  const sessions = useCodingSessions(projectId);
+  const sessions = useCodingSessions(projectId, initialSessionId);
   const { runs, trackRun } = useProjectAgentEvents(projectId);
 
   const highlightRunId = useIdeStore((s) => s.highlightTurnRunId);

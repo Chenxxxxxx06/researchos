@@ -11,6 +11,8 @@ export interface IdeaMetadata {
   generated?: boolean;
   gap_type?: GapType | null;
   supporting_paper_keys?: string[];
+  evidence_basis?: 'reading_cards+parsed_sections' | string;
+  reading_cards_used?: number;
   /** [method, problem] gap-cell label, when the idea came from a matrix cell. */
   cell?: [string, string];
   [key: string]: unknown;

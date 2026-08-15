@@ -23,6 +23,9 @@ _SCHEMA = {
         "summary": {"type": "string"},
         "research_question": {"type": "string"},
         "method_flow": {"type": "array", "items": {"type": "string"}},
+        "experimental_setup": {"type": "array", "items": {"type": "string"}},
+        "key_results": {"type": "array", "items": {"type": "string"}},
+        "conclusions": {"type": "array", "items": {"type": "string"}},
         "strengths": {"type": "array", "items": {"type": "string"}},
         "limitations": {"type": "array", "items": {"type": "string"}},
         "reproducibility": {"type": "array", "items": {"type": "string"}},
@@ -44,6 +47,9 @@ _SCHEMA = {
         "summary",
         "research_question",
         "method_flow",
+        "experimental_setup",
+        "key_results",
+        "conclusions",
         "strengths",
         "limitations",
         "reproducibility",
@@ -51,10 +57,12 @@ _SCHEMA = {
     ],
 }
 
-_SYSTEM = """You create a structured reading card from supplied paper sections.
+_SYSTEM = """You create a structured reading card from user-selected paper sections.
 Use only the supplied text. Do not add external facts. Every claim must carry the exact section UUID
 and a short verbatim quote copied from that section. Mark interpretations with inference=true.
-If a detail is absent, say it is not reported. Return only the requested JSON object."""
+Extract experimental setup, key results, and conclusions separately. Preserve reported metric values
+and qualifiers exactly. If a detail is absent from the selected sections, say it is not reported.
+Return only the requested JSON object."""
 
 
 class ReadingCardAgent(Agent):
@@ -97,6 +105,13 @@ class ReadingCardAgent(Agent):
         )
         if not sections:
             raise ValidationError("Paper has no parsed sections to ground a reading card.")
+        requested = set(actx.context.get("section_kinds") or [])
+        if requested:
+            sections = [section for section in sections if section.kind.value in requested]
+            if not sections:
+                raise ValidationError(
+                    "The paper has no parsed sections matching the selected reading focus."
+                )
         return mission, paper, sections
 
     async def build_messages(self, actx: AgentContext) -> list[LLMMessage]:
@@ -110,7 +125,12 @@ class ReadingCardAgent(Agent):
             "url": paper.url,
         }
         remaining = 28_000
-        blocks: list[str] = [f"Paper: {paper.title}", f"Citation key: {key}"]
+        blocks: list[str] = [
+            f"Paper: {paper.title}",
+            f"Citation key: {key}",
+            "Selected section kinds: "
+            + ", ".join(dict.fromkeys(section.kind.value for section in sections)),
+        ]
         for section in sections:
             header = (
                 f"\n[SECTION id={section.id} seq={section.seq} "
@@ -180,7 +200,11 @@ class ReadingCardAgent(Agent):
             card.version += 1
         card.summary = str(parsed.get("summary") or "").strip()
         card.research_question = str(parsed.get("research_question") or "").strip()
+        card.reading_focus_json = list(dict.fromkeys(section.kind.value for section in sections))
         card.method_flow_json = _strings(parsed.get("method_flow"))
+        card.experimental_setup_json = _strings(parsed.get("experimental_setup"))
+        card.key_results_json = _strings(parsed.get("key_results"))
+        card.conclusions_json = _strings(parsed.get("conclusions"))
         card.strengths_json = _strings(parsed.get("strengths"))
         card.limitations_json = _strings(parsed.get("limitations"))
         card.reproducibility_json = _strings(parsed.get("reproducibility"))

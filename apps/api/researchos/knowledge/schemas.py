@@ -56,7 +56,11 @@ class ReadingCardUpsertRequest(BaseModel):
     expected_version: int | None = Field(default=None, ge=1)
     summary: str = Field(default="", max_length=30_000)
     research_question: str = Field(default="", max_length=10_000)
+    reading_focus: list[PaperSectionKind] = Field(default_factory=list, max_length=10)
     method_flow: list[str] = Field(default_factory=list, max_length=100)
+    experimental_setup: list[str] = Field(default_factory=list, max_length=100)
+    key_results: list[str] = Field(default_factory=list, max_length=100)
+    conclusions: list[str] = Field(default_factory=list, max_length=100)
     strengths: list[str] = Field(default_factory=list, max_length=100)
     limitations: list[str] = Field(default_factory=list, max_length=100)
     reproducibility: list[str] = Field(default_factory=list, max_length=100)
@@ -72,7 +76,11 @@ class ReadingCardResponse(BaseModel):
     paper_id: uuid.UUID
     summary: str
     research_question: str
+    reading_focus_json: list
     method_flow_json: list
+    experimental_setup_json: list
+    key_results_json: list
+    conclusions_json: list
     strengths_json: list
     limitations_json: list
     reproducibility_json: list
@@ -102,6 +110,18 @@ class ReadingCardVersionResponse(BaseModel):
 class GenerateReadingCardRequest(BaseModel):
     mission_id: uuid.UUID
     regenerate: bool = False
+    section_kinds: list[PaperSectionKind] = Field(
+        default_factory=lambda: [
+            PaperSectionKind.ABSTRACT,
+            PaperSectionKind.INTRODUCTION,
+            PaperSectionKind.METHOD,
+            PaperSectionKind.EXPERIMENTS,
+            PaperSectionKind.RESULTS,
+            PaperSectionKind.CONCLUSION,
+        ],
+        min_length=1,
+        max_length=10,
+    )
 
 
 class ReadingNoteCreateRequest(BaseModel):

@@ -46,6 +46,13 @@ from researchos.common.redis import close_redis, get_redis  # noqa: E402
 from researchos.main import create_app  # noqa: E402
 
 _TABLES = [
+    "task_events",
+    "approval_gates",
+    "task_artifacts",
+    "task_leases",
+    "mission_task_dependencies",
+    "mission_tasks",
+    "repository_snapshots",
     "ssh_executions",
     "ssh_profiles",
     "mission_citation_audits",

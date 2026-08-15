@@ -4,7 +4,18 @@
  * Mirrors apps/api/researchos/agents/enums.py.
  */
 
-export const AGENT_TYPES = ['research', 'critic', 'coding', 'experiment', 'latex'] as const;
+export const AGENT_TYPES = [
+  'research',
+  'critic',
+  'coding',
+  'experiment',
+  'latex',
+  'reading_card',
+  'review_section',
+  'experiment_planner',
+  'sql_analyst',
+  'citation_organizer',
+] as const;
 export type AgentType = (typeof AGENT_TYPES)[number];
 
 export const AGENT_RUN_STATUSES = [

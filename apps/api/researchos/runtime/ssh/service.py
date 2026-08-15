@@ -6,10 +6,10 @@ import json
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from researchos.common.errors import NotFoundError
+from researchos.common.errors import ConflictError, NotFoundError
 from researchos.common.roles import ProjectRole
 from researchos.common.secrets import encrypt_secret
 from researchos.identity.models import User
@@ -76,6 +76,18 @@ class SSHService:
     ) -> None:
         await self.projects.ensure_access(actor, project_id, ProjectRole.RESEARCHER)
         profile = await self._get(project_id, profile_id)
+        execution_count = await self.db.scalar(
+            select(func.count())
+            .select_from(SSHExecution)
+            .where(SSHExecution.project_id == project_id, SSHExecution.profile_id == profile.id)
+        )
+        if execution_count:
+            raise ConflictError(
+                "SSH profiles with execution history cannot be deleted; keep the profile "
+                "to preserve the audit trail.",
+                code="ssh_profile_has_executions",
+                details={"execution_count": int(execution_count)},
+            )
         await self.db.delete(profile)
         await self.db.commit()
 

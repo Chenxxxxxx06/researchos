@@ -329,7 +329,11 @@ class KnowledgeService:
             )
         card.summary = payload.summary.strip()
         card.research_question = payload.research_question.strip()
+        card.reading_focus_json = [kind.value for kind in payload.reading_focus]
         card.method_flow_json = payload.method_flow
+        card.experimental_setup_json = payload.experimental_setup
+        card.key_results_json = payload.key_results
+        card.conclusions_json = payload.conclusions
         card.strengths_json = payload.strengths
         card.limitations_json = payload.limitations
         card.reproducibility_json = payload.reproducibility
@@ -550,9 +554,9 @@ class KnowledgeService:
 
         vector_rows = (
             await self.db.execute(
-                _filtered(
-                    select(PaperChunk, Paper, distance.label("vector_distance"))
-                ).order_by(distance.asc(), PaperChunk.id.asc()).limit(_RECALL_PER_LEG)
+                _filtered(select(PaperChunk, Paper, distance.label("vector_distance")))
+                .order_by(distance.asc(), PaperChunk.id.asc())
+                .limit(_RECALL_PER_LEG)
             )
         ).all()
         keyword_rows = (
@@ -723,7 +727,11 @@ async def record_card_version(
         snapshot_json={
             "summary": card.summary,
             "research_question": card.research_question,
+            "reading_focus": card.reading_focus_json,
             "method_flow": card.method_flow_json,
+            "experimental_setup": card.experimental_setup_json,
+            "key_results": card.key_results_json,
+            "conclusions": card.conclusions_json,
             "strengths": card.strengths_json,
             "limitations": card.limitations_json,
             "reproducibility": card.reproducibility_json,

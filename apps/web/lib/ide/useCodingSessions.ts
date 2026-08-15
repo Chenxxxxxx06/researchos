@@ -107,9 +107,12 @@ export interface CodingSessionsModel {
   refetchSessions: () => void;
 }
 
-export function useCodingSessions(projectId: string): CodingSessionsModel {
+export function useCodingSessions(
+  projectId: string,
+  initialSessionId: string | null = null,
+): CodingSessionsModel {
   const queryClient = useQueryClient();
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(initialSessionId);
 
   const sessionsQuery = useQuery({
     queryKey: ['coding-sessions', projectId],

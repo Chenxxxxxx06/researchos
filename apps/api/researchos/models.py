@@ -29,6 +29,7 @@ from researchos.experiments.models import (
     ExperimentRun,
 )
 from researchos.figures.models import Figure, FigureAsset, ResultAnchor
+from researchos.git.models import RepositorySnapshot
 from researchos.identity.models import User
 from researchos.inbox.models import ResearchInboxItem
 from researchos.knowledge.models import (
@@ -41,6 +42,14 @@ from researchos.knowledge.models import (
 )
 from researchos.llm_config.models import LLMProviderConfig
 from researchos.missions.models import MissionEvent, MissionStep, ResearchMission
+from researchos.orchestration.models import (
+    ApprovalGate,
+    MissionTask,
+    MissionTaskDependency,
+    TaskArtifact,
+    TaskEvent,
+    TaskLease,
+)
 from researchos.organizations.models import Organization, OrganizationMembership
 from researchos.patches.models import PatchFile, PatchHunk, PatchProposal
 from researchos.preferences.models import UserPreference
@@ -56,6 +65,12 @@ __all__ = [
     "User",
     "Organization",
     "OrganizationMembership",
+    "MissionTask",
+    "MissionTaskDependency",
+    "TaskLease",
+    "TaskArtifact",
+    "ApprovalGate",
+    "TaskEvent",
     "Project",
     "ProjectMembership",
     "ResearchMission",
@@ -97,6 +112,7 @@ __all__ = [
     "ResultAnchor",
     "Figure",
     "FigureAsset",
+    "RepositorySnapshot",
     "UserPreference",
     "LatexProject",
     "DocumentFile",

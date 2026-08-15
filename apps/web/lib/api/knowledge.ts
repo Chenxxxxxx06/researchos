@@ -59,7 +59,11 @@ export interface ReadingCard {
   paper_id: string;
   summary: string;
   research_question: string;
+  reading_focus_json: string[];
   method_flow_json: string[];
+  experimental_setup_json: string[];
+  key_results_json: string[];
+  conclusions_json: string[];
   strengths_json: string[];
   limitations_json: string[];
   reproducibility_json: string[];
@@ -127,7 +131,11 @@ export function saveReadingCard(
     expected_version?: number;
     summary: string;
     research_question: string;
+    reading_focus: string[];
     method_flow: string[];
+    experimental_setup: string[];
+    key_results: string[];
+    conclusions: string[];
     strengths: string[];
     limitations: string[];
     reproducibility: string[];
@@ -146,10 +154,11 @@ export function generateReadingCard(
   paperId: string,
   missionId: string,
   regenerate: boolean,
+  sectionKinds: string[],
 ) {
   return apiRequest<CreateAgentRunResponse>(
     `/projects/${projectId}/papers/${paperId}/reading-card/generate`,
-    { method: 'POST', body: { mission_id: missionId, regenerate } },
+    { method: 'POST', body: { mission_id: missionId, regenerate, section_kinds: sectionKinds } },
   );
 }
 

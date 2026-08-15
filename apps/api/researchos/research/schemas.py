@@ -90,6 +90,7 @@ class PaperReferenceCounts(BaseModel):
     reading_cards: int = 0
     reading_notes: int = 0
     review_sections: int = 0
+    research_critiques: int = 0
     experiment_plans: int = 0
     missions: int = 0
 

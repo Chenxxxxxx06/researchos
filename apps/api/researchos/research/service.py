@@ -13,16 +13,18 @@ from collections.abc import Sequence
 
 import httpx
 import structlog
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from researchos.common.celery_app import get_celery_client
 from researchos.common.config import get_settings
-from researchos.common.errors import AppError, NotFoundError
+from researchos.common.errors import AppError, NotFoundError, ValidationError
 from researchos.common.pagination import Page
 from researchos.common.rate_limit import enforce_rate_limit
 from researchos.common.roles import ProjectRole
 from researchos.identity.models import User
+from researchos.projects.models import Project
 from researchos.projects.service import ProjectService
 from researchos.research.providers import (
     PROVIDER_NAMES,
@@ -516,6 +518,33 @@ class IdeaService:
         if hypothesis is not None:
             idea.hypothesis = hypothesis
         if status is not None:
+            if status is IdeaStatus.ACTIVE:
+                # Serialize direction approval per project so two concurrent
+                # requests cannot both become active before the archive update.
+                await self.db.execute(
+                    select(Project.id).where(Project.id == project_id).with_for_update()
+                )
+                critique_id = await self.db.scalar(
+                    select(ResearchCritique.id)
+                    .where(
+                        ResearchCritique.project_id == project_id,
+                        ResearchCritique.idea_id == idea.id,
+                    )
+                    .limit(1)
+                )
+                if critique_id is None:
+                    raise ValidationError(
+                        "Run and review at least one critic report before approving a direction."
+                    )
+                await self.db.execute(
+                    update(Idea)
+                    .where(
+                        Idea.project_id == project_id,
+                        Idea.id != idea.id,
+                        Idea.status == IdeaStatus.ACTIVE,
+                    )
+                    .values(status=IdeaStatus.ARCHIVED)
+                )
             idea.status = status
         await self.db.commit()
         await self.db.refresh(idea)

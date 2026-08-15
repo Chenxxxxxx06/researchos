@@ -356,6 +356,13 @@ class MockLLMProvider:
                     "summary": "A deterministic, source-grounded reading-card summary.",
                     "research_question": "What problem does the supplied paper address?",
                     "method_flow": ["Define the task", "Apply the proposed method", "Evaluate"],
+                    "experimental_setup": [
+                        "The supplied sections do not report a complete experimental setup"
+                    ],
+                    "key_results": [
+                        "The supplied sections do not report a complete numerical result"
+                    ],
+                    "conclusions": ["The conclusion is limited to the supplied section evidence"],
                     "strengths": ["The method is described in the supplied sections"],
                     "limitations": ["Only supplied sections were available for this card"],
                     "reproducibility": ["Verify data splits, hyperparameters, and random seeds"],

@@ -155,6 +155,7 @@ async def generate_reading_card(
         context={
             "mission_id": str(payload.mission_id),
             "paper_id": str(paper_id),
+            "section_kinds": [kind.value for kind in payload.section_kinds],
         },
     )
     return CreateAgentRunResponse(

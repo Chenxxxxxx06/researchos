@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, ChevronDown, Sparkles, Wand2 } from 'lucide-react';
+import { Archive, CheckCircle2, ChevronDown, Sparkles, Wand2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { listCritiques, runCriticReview, updateIdea, type Critique, type Idea } from '@/lib/api/ideas';
@@ -15,6 +15,7 @@ import { CitationChip } from '../CitationChip';
 import { useChatSeedStore } from '../chatSeed';
 import { resolveCitation, type LibraryMap } from '../citations';
 import { CriticReviewCard } from './CriticReviewCard';
+import { RepositoryHandoff } from './RepositoryHandoff';
 
 const GAP_META: Record<string, { key: DictKey; variant: BadgeProps['variant'] }> = {
   coverage: { key: 'research.ideas.gapCoverage', variant: 'info' },
@@ -77,6 +78,10 @@ export function IdeaCard({
     mutationFn: () => updateIdea(projectId, idea.id, { status: 'archived' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ideas', projectId] }),
   });
+  const approve = useMutation({
+    mutationFn: () => updateIdea(projectId, idea.id, { status: 'active' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ideas', projectId] }),
+  });
 
   // Critic completion via the shared run status (D8.3) — no count-growth polling.
   useEffect(() => {
@@ -121,6 +126,16 @@ export function IdeaCard({
               {t('research.ideas.archived')}
             </Badge>
           )}
+          {(idea.metadata.reading_cards_used ?? 0) > 0 && (
+            <Badge variant="neutral" size="sm">
+              {t('research.ideas.evidenceCards', { n: idea.metadata.reading_cards_used ?? 0 })}
+            </Badge>
+          )}
+          {idea.status === 'active' && (
+            <Badge variant="success" size="sm">
+              {t('research.ideas.activeDirection')}
+            </Badge>
+          )}
         </div>
       </button>
 
@@ -154,6 +169,9 @@ export function IdeaCard({
             <CriticReviewCard key={c.id} critique={c} projectId={projectId} library={library} />
           ))}
           {criticError && <p className="text-[11px] text-danger">{criticError}</p>}
+          {approve.error instanceof Error && (
+            <p className="text-[11px] text-danger">{approve.error.message}</p>
+          )}
 
           <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
             <Button
@@ -176,6 +194,17 @@ export function IdeaCard({
               <Wand2 className="h-3 w-3" aria-hidden="true" />
               {t('research.ideas.develop')}
             </Button>
+            {idea.status !== 'active' && (critiques.data?.length ?? 0) > 0 && (
+              <Button
+                size="sm"
+                className="h-7 text-[11px]"
+                loading={approve.isPending}
+                onClick={() => approve.mutate()}
+              >
+                <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                {t('research.ideas.approveDirection')}
+              </Button>
+            )}
             {idea.status !== 'archived' && (
               <Button
                 size="sm"
@@ -189,6 +218,9 @@ export function IdeaCard({
               </Button>
             )}
           </div>
+          {idea.status === 'active' && (
+            <RepositoryHandoff projectId={projectId} ideaId={idea.id} />
+          )}
         </div>
       )}
     </div>

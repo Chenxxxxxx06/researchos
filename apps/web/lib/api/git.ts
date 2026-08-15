@@ -24,6 +24,8 @@ export interface GitCommitEntry {
   patch_id: string | null;
   agent_run_id: string | null;
   reverts_sha: string | null;
+  repository_snapshot_id: string | null;
+  source_commit_sha: string | null;
 }
 
 export interface GitLogResponse {
@@ -57,6 +59,40 @@ export interface GitRevertResult {
   reverted_sha: string;
 }
 
+export interface RepositorySnapshot {
+  id: string;
+  project_id: string;
+  idea_id: string;
+  approved_by: string;
+  source_url: string;
+  source_owner: string;
+  source_repo: string;
+  destination_path: string;
+  status: 'importing' | 'ready' | 'failed';
+  commit_sha: string | null;
+  default_branch: string | null;
+  license_spdx: string | null;
+  license_path: string | null;
+  file_count: number;
+  total_bytes: number;
+  skipped_files_json: Array<{ path: string; reason: string }>;
+  submodules_json: Array<{ name: string; path?: string; url?: string }>;
+  manifest_hash: string | null;
+  workspace_commit_sha: string | null;
+  coding_session_id: string | null;
+  coding_run_id: string | null;
+  imported_at: string | null;
+  error: string | null;
+  created_at: string;
+}
+
+export interface StartRepositoryCodingResult {
+  snapshot_id: string;
+  coding_session_id: string;
+  coding_run_id: string;
+  stream: string;
+}
+
 /** Derive a short sha client-side (the log carries only full shas). */
 export function shortSha(sha: string): string {
   return sha.slice(0, 7);
@@ -85,4 +121,36 @@ export function getCommitDiff(projectId: string, sha: string): Promise<GitCommit
 /** Non-destructive revert: creates an inverse commit. */
 export function revertCommit(projectId: string, sha: string): Promise<GitRevertResult> {
   return apiRequest(`/projects/${projectId}/git/revert`, { method: 'POST', body: { sha } });
+}
+
+export function listRepositorySnapshots(
+  projectId: string,
+  ideaId?: string,
+): Promise<RepositorySnapshot[]> {
+  const params = new URLSearchParams();
+  if (ideaId) params.set('idea_id', ideaId);
+  const query = params.toString();
+  return apiRequest(
+    `/projects/${projectId}/git/repository-snapshots${query ? `?${query}` : ''}`,
+  );
+}
+
+export function importRepositorySnapshot(
+  projectId: string,
+  body: { idea_id: string; github_url: string; approved: true },
+): Promise<RepositorySnapshot> {
+  return apiRequest(`/projects/${projectId}/git/repository-snapshots`, {
+    method: 'POST',
+    body,
+  });
+}
+
+export function startRepositoryCoding(
+  projectId: string,
+  snapshotId: string,
+): Promise<StartRepositoryCodingResult> {
+  return apiRequest(
+    `/projects/${projectId}/git/repository-snapshots/${snapshotId}/start-coding`,
+    { method: 'POST' },
+  );
 }

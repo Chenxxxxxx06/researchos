@@ -52,7 +52,13 @@ function RailTab({
   );
 }
 
-export function IdeWorkspace({ projectId }: { projectId: string }) {
+export function IdeWorkspace({
+  projectId,
+  initialSessionId = null,
+}: {
+  projectId: string;
+  initialSessionId?: string | null;
+}) {
   const { t } = useI18n();
   const rightTab = useIdeStore((s) => s.rightTab);
   const setRightTab = useIdeStore((s) => s.setRightTab);
@@ -154,7 +160,7 @@ export function IdeWorkspace({ projectId }: { projectId: string }) {
           </div>
           <div className="min-h-0 flex-1">
             {rightTab === 'chat' ? (
-              <CodingChat projectId={projectId} />
+              <CodingChat projectId={projectId} initialSessionId={initialSessionId} />
             ) : (
               <GitTimelinePanel projectId={projectId} />
             )}

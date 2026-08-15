@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+import { AgentOrchestrationWorkspace } from '@/features/orchestration/AgentOrchestrationWorkspace';
 
 export default async function OrchestrationPage({
   params,
@@ -6,5 +6,5 @@ export default async function OrchestrationPage({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  redirect(`/projects/${projectId}/overview`);
+  return <AgentOrchestrationWorkspace projectId={projectId} />;
 }

@@ -8,12 +8,16 @@ from fastapi import APIRouter, Depends, Path, Query
 
 from researchos.common.deps import CurrentUser, DbSession, require_csrf
 
+from .repository_import import RepositorySnapshotService
 from .schemas import (
     GitCommitDiff,
     GitLogResponse,
     GitRevertRequest,
     GitRevertResponse,
     GitStatusResponse,
+    ImportRepositoryRequest,
+    RepositorySnapshotResponse,
+    StartRepositoryCodingResponse,
 )
 from .service import GitService
 
@@ -57,3 +61,58 @@ async def git_revert(
     project_id: uuid.UUID, payload: GitRevertRequest, user: CurrentUser, db: DbSession
 ) -> GitRevertResponse:
     return await GitService(db).revert(user, project_id, payload.sha)
+
+
+@router.get("/repository-snapshots", response_model=list[RepositorySnapshotResponse])
+async def list_repository_snapshots(
+    project_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+    idea_id: uuid.UUID | None = Query(default=None),
+) -> list[RepositorySnapshotResponse]:
+    snapshots = await RepositorySnapshotService(db).list(user, project_id, idea_id=idea_id)
+    return [RepositorySnapshotResponse.model_validate(item) for item in snapshots]
+
+
+@router.post(
+    "/repository-snapshots",
+    response_model=RepositorySnapshotResponse,
+    status_code=201,
+    dependencies=[Depends(require_csrf)],
+)
+async def import_repository_snapshot(
+    project_id: uuid.UUID,
+    payload: ImportRepositoryRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> RepositorySnapshotResponse:
+    snapshot = await RepositorySnapshotService(db).import_repository(
+        user,
+        project_id,
+        idea_id=payload.idea_id,
+        github_url=payload.github_url,
+    )
+    return RepositorySnapshotResponse.model_validate(snapshot)
+
+
+@router.post(
+    "/repository-snapshots/{snapshot_id}/start-coding",
+    response_model=StartRepositoryCodingResponse,
+    status_code=201,
+    dependencies=[Depends(require_csrf)],
+)
+async def start_repository_coding(
+    project_id: uuid.UUID,
+    snapshot_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+) -> StartRepositoryCodingResponse:
+    snapshot, session_id, run_id = await RepositorySnapshotService(db).start_coding(
+        user, project_id, snapshot_id
+    )
+    return StartRepositoryCodingResponse(
+        snapshot_id=snapshot.id,
+        coding_session_id=session_id,
+        coding_run_id=run_id,
+        stream=f"/ws?project_id={project_id}",
+    )

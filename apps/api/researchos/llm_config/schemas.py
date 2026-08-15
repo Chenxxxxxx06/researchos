@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class LLMConfigResponse(BaseModel):
@@ -26,8 +26,29 @@ class CreateLLMConfigRequest(BaseModel):
     description: str | None = Field(default=None, max_length=500)
 
 
-class UpdateLLMConfigRequest(CreateLLMConfigRequest):
-    pass
+class UpdateLLMConfigRequest(BaseModel):
+    """Partial update payload.
+
+    An omitted field preserves the stored value. An empty ``api_key`` also
+    preserves the encrypted secret so the settings form can submit unchanged
+    credentials without reading the secret back into the browser.
+    """
+
+    name: str | None = Field(default=None, max_length=100)
+    provider_type: str | None = Field(default=None, max_length=30)
+    base_url: str | None = Field(default=None, max_length=1024)
+    model: str | None = Field(default=None, max_length=120)
+    api_key: str | None = Field(default=None, max_length=512)
+    is_active: bool | None = None
+    description: str | None = Field(default=None, max_length=500)
+
+    @model_validator(mode="after")
+    def _reject_null_required_fields(self) -> UpdateLLMConfigRequest:
+        required = ("name", "provider_type", "base_url", "model", "is_active")
+        for field_name in required:
+            if field_name in self.model_fields_set and getattr(self, field_name) is None:
+                raise ValueError(f"{field_name} cannot be null")
+        return self
 
 
 class LLMConnectionTestResponse(BaseModel):

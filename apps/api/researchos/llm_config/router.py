@@ -95,14 +95,26 @@ async def update_config(
     if cfg is None or cfg.project_id != project_id:
         raise NotFoundError("LLM config not found.")
 
-    cfg.name = payload.name
-    cfg.provider_type = payload.provider_type
-    cfg.base_url = payload.base_url.rstrip("/") if payload.base_url else ""
-    cfg.model = payload.model
+    changes = payload.model_dump(exclude_unset=True)
+    if "name" in changes:
+        assert payload.name is not None
+        cfg.name = payload.name
+    if "provider_type" in changes:
+        assert payload.provider_type is not None
+        cfg.provider_type = payload.provider_type
+    if "base_url" in changes:
+        assert payload.base_url is not None
+        cfg.base_url = payload.base_url.rstrip("/")
+    if "model" in changes:
+        assert payload.model is not None
+        cfg.model = payload.model
     if payload.api_key:
         cfg.api_key = encrypt_secret(payload.api_key)
-    cfg.is_active = payload.is_active
-    cfg.description = payload.description
+    if "is_active" in changes:
+        assert payload.is_active is not None
+        cfg.is_active = payload.is_active
+    if "description" in changes:
+        cfg.description = payload.description
     await db.commit()
     await db.refresh(cfg)
     return _to_response(cfg)

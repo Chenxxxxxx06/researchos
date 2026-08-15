@@ -59,6 +59,12 @@ def run_git(
     env = {
         **os.environ,
         "GIT_TERMINAL_PROMPT": "0",
+        # Ignore host-level helpers and content filters. Repository imports are
+        # public HTTPS snapshots and must not execute a developer's configured
+        # smudge/clean programs or consult interactive credential helpers.
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_LFS_SKIP_SMUDGE": "1",
         "GIT_AUTHOR_NAME": os.environ.get("GIT_AUTHOR_NAME", "ResearchOS"),
         "GIT_AUTHOR_EMAIL": os.environ.get("GIT_AUTHOR_EMAIL", "bot@researchos.local"),
         "GIT_COMMITTER_NAME": os.environ.get("GIT_COMMITTER_NAME", "ResearchOS"),

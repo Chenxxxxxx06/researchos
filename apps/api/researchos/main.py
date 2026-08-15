@@ -37,6 +37,7 @@ from researchos.knowledge.router import router as knowledge_router
 from researchos.llm_config.router import router as llm_config_router
 from researchos.management.router import router as management_router
 from researchos.missions.router import router as missions_router
+from researchos.orchestration.router import router as orchestration_router
 from researchos.organizations.router import router as organizations_router
 from researchos.patches.router import router as patches_router
 from researchos.preferences.router import me_router as preferences_me_router
@@ -108,6 +109,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(auth_router)
     app.include_router(organizations_router)
+    app.include_router(orchestration_router)
     app.include_router(projects_router)
     app.include_router(missions_router)
     app.include_router(knowledge_router)

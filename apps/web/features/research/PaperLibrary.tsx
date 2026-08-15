@@ -6,8 +6,15 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { ApiError } from '@/lib/api/client';
-import { deletePaper, listPapers, type Page, type Paper } from '@/lib/api/papers';
-import { useI18n } from '@/lib/i18n';
+import {
+  deletePaper,
+  getPaperReferences,
+  listPapers,
+  type Page,
+  type Paper,
+  type PaperReferenceCounts,
+} from '@/lib/api/papers';
+import { useI18n, type DictKey } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Dropdown, DropdownItem } from '@/components/ui/dropdown';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -44,8 +51,22 @@ export function PaperLibrary({
   });
 
   const del = useMutation({
-    mutationFn: (id: string) => deletePaper(projectId, id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['papers', projectId] }),
+    mutationFn: async (paper: Paper) => {
+      const preflight = await getPaperReferences(projectId, paper.id);
+      if (preflight.blocked) {
+        const details = formatReferenceCounts(preflight.references, t);
+        if (!window.confirm(t('research.library.deleteReferencedConfirm', { title: paper.title, details }))) {
+          return false;
+        }
+      } else if (!window.confirm(t('research.library.deleteConfirm'))) {
+        return false;
+      }
+      await deletePaper(projectId, paper.id, preflight.blocked);
+      return true;
+    },
+    onSuccess: (deleted) => {
+      if (deleted) void queryClient.invalidateQueries({ queryKey: ['papers', projectId] });
+    },
   });
 
   const items = data?.items ?? [];
@@ -64,6 +85,11 @@ export function PaperLibrary({
       {isLoading && <Skeleton className="h-12 w-full" />}
       {isError && (
         <p className="text-[11px] text-danger">{t('research.library.failed')}</p>
+      )}
+      {del.error instanceof ApiError && (
+        <p className="mb-2 border-l-2 border-danger bg-danger-bg px-2 py-1.5 text-[11px] text-danger">
+          {del.error.message}
+        </p>
       )}
 
       {!isLoading && total === 0 && (
@@ -118,8 +144,9 @@ export function PaperLibrary({
               <DropdownItem
                 icon={Trash2}
                 destructive
+                disabled={del.isPending}
                 onSelect={() => {
-                  if (window.confirm(t('research.library.deleteConfirm'))) del.mutate(paper.id);
+                  del.mutate(paper);
                 }}
               >
                 {t('research.library.delete')}
@@ -130,4 +157,22 @@ export function PaperLibrary({
       </ul>
     </div>
   );
+}
+
+function formatReferenceCounts(
+  references: PaperReferenceCounts,
+  t: (key: DictKey) => string,
+): string {
+  const labels: Array<[keyof PaperReferenceCounts, string]> = [
+    ['reading_cards', t('research.library.referenceReadingCards')],
+    ['reading_notes', t('research.library.referenceReadingNotes')],
+    ['review_sections', t('research.library.referenceReviewSections')],
+    ['research_critiques', t('research.library.referenceCritiques')],
+    ['experiment_plans', t('research.library.referenceExperimentPlans')],
+    ['missions', t('research.library.referenceMissions')],
+  ];
+  return labels
+    .filter(([key]) => references[key] > 0)
+    .map(([key, label]) => `${label}: ${references[key]}`)
+    .join('\n');
 }

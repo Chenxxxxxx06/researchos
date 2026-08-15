@@ -13,12 +13,14 @@ import uuid
 from dataclasses import dataclass
 
 import structlog
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from researchos.common.errors import AppError
 from researchos.common.rate_limit import enforce_rate_limit
 from researchos.common.roles import ProjectRole
 from researchos.identity.models import User
+from researchos.knowledge.models import ReadingCard
 from researchos.projects.service import ProjectService
 
 from .enums import IdeaStatus, PaperSectionKind
@@ -33,6 +35,7 @@ _AXIS_TERMS = 25
 _MIN_TERM_SUPPORT = 2
 _MAX_GAP_CELLS = 10
 _MAX_CONTEXT_PAPERS = 20
+_MAX_CONTEXT_CHARS = 28_000
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 
 GAP_IDEAS_SCHEMA: dict = {
@@ -60,10 +63,12 @@ GAP_IDEAS_SCHEMA: dict = {
 }
 
 _SYSTEM_PROMPT = (
-    "You are a research ideation assistant. Propose concrete, testable research "
-    "ideas that bridge underexplored method x problem gaps in the provided "
-    "library. Grounding rules: cite ONLY paper keys listed in the provided "
-    "context; never invent citations. Respond with JSON matching the schema."
+    "You are a research ideation assistant. Compare the structured evidence "
+    "summaries across papers and propose concrete, falsifiable directions for "
+    "underexplored method x problem cells. Treat a missing combination as a "
+    "candidate gap, not proof of novelty. Preserve reported limitations and "
+    "contradictory results. Cite ONLY paper keys listed in the provided context; "
+    "never invent citations. Respond with JSON matching the schema."
 )
 
 
@@ -167,8 +172,30 @@ class GapMatrixService:
         self.projects = ProjectService(db)
         self._llm_provider = llm_provider
 
-    async def _build_docs(self, project_id: uuid.UUID) -> list[GapDoc]:
+    async def _latest_cards(self, project_id: uuid.UUID) -> dict[uuid.UUID, ReadingCard]:
+        cards = list(
+            (
+                await self.db.execute(
+                    select(ReadingCard)
+                    .where(ReadingCard.project_id == project_id)
+                    .order_by(ReadingCard.updated_at.desc(), ReadingCard.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        latest: dict[uuid.UUID, ReadingCard] = {}
+        for card in cards:
+            latest.setdefault(card.paper_id, card)
+        return latest
+
+    async def _build_docs(
+        self,
+        project_id: uuid.UUID,
+        cards: dict[uuid.UUID, ReadingCard] | None = None,
+    ) -> list[GapDoc]:
         papers = await self.papers.list_recent(project_id, limit=_CORPUS_LIMIT)
+        cards = cards if cards is not None else await self._latest_cards(project_id)
         method_bodies: dict[uuid.UUID, list[str]] = {}
         for section in await self.sections.list_for_papers_by_kind(
             [p.id for p in papers], PaperSectionKind.METHOD
@@ -176,8 +203,27 @@ class GapMatrixService:
             method_bodies.setdefault(section.paper_id, []).append(section.body)
         docs: list[GapDoc] = []
         for paper in papers:
-            method_doc = " ".join(method_bodies.get(paper.id, [])) or paper.title
-            problem_doc = f"{first_sentences(paper.abstract or '')} {paper.title}".strip()
+            card = cards.get(paper.id)
+            method_doc = (
+                " ".join(
+                    [
+                        *method_bodies.get(paper.id, []),
+                        *_card_strings(card, "method_flow_json"),
+                        *_card_strings(card, "experimental_setup_json"),
+                        *_card_strings(card, "key_results_json"),
+                        *_card_strings(card, "limitations_json"),
+                    ]
+                ).strip()
+                or paper.title
+            )
+            problem_doc = " ".join(
+                [
+                    first_sentences(paper.abstract or ""),
+                    paper.title,
+                    card.research_question if card is not None else "",
+                    *_card_strings(card, "conclusions_json"),
+                ]
+            ).strip()
             docs.append(
                 GapDoc(
                     key=f"{paper.source}:{paper.external_id}",
@@ -198,13 +244,11 @@ class GapMatrixService:
         if len(papers) < 5:
             raise LibraryTooSmallError()
 
-        docs = await self._build_docs(project_id)
+        cards = await self._latest_cards(project_id)
+        docs = await self._build_docs(project_id, cards)
         matrix = build_gap_matrix(docs)
 
-        context_papers = [
-            {"source": p.source, "external_id": p.external_id, "title": p.title}
-            for p in papers[:_MAX_CONTEXT_PAPERS]
-        ]
+        context_papers = _bounded_evidence_context(papers, cards)
         raw_ideas = await self._call_llm(project_id, matrix, context_papers, max_ideas)
 
         library_keys = await self.papers.list_ids_for_project(project_id)
@@ -226,6 +270,8 @@ class GapMatrixService:
                 "generated": True,
                 "gap_type": str(raw.get("gap_type") or "coverage"),
                 "supporting_paper_keys": keys,
+                "evidence_basis": "reading_cards+parsed_sections",
+                "reading_cards_used": len(cards),
             }
             if index < len(matrix.gaps):
                 cell = matrix.gaps[index]
@@ -236,9 +282,7 @@ class GapMatrixService:
                         project_id=project_id,
                         title=title,
                         description=str(raw.get("description") or ""),
-                        hypothesis=(
-                            str(raw["hypothesis"]) if raw.get("hypothesis") else None
-                        ),
+                        hypothesis=(str(raw["hypothesis"]) if raw.get("hypothesis") else None),
                         status=IdeaStatus.DRAFT,
                         metadata_json=metadata,
                         created_by=actor.id,
@@ -285,8 +329,7 @@ class GapMatrixService:
             LLMMessage(
                 role="user",
                 content=(
-                    "Propose ideas for the most promising gap cells.\n"
-                    + json.dumps(user_payload)
+                    "Propose ideas for the most promising gap cells.\n" + json.dumps(user_payload)
                 ),
             ),
         ]
@@ -305,3 +348,54 @@ class GapMatrixService:
             return []
         ideas = parsed.get("ideas") if isinstance(parsed, dict) else None
         return ideas if isinstance(ideas, list) else []
+
+
+def _card_strings(card: ReadingCard | None, field: str, *, limit: int = 2) -> list[str]:
+    if card is None:
+        return []
+    value = getattr(card, field, None)
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip()[:300] for item in value[:limit] if str(item).strip()]
+
+
+def _paper_evidence(paper, card: ReadingCard | None) -> dict:  # noqa: ANN001
+    result: dict = {
+        "source": paper.source,
+        "external_id": paper.external_id,
+        "title": paper.title,
+        "abstract": first_sentences(paper.abstract or "", count=3)[:800],
+    }
+    if card is None:
+        return result
+    result["reading_card"] = {
+        "status": card.status,
+        "summary": card.summary[:1200],
+        "research_question": card.research_question[:500],
+        "method_flow": _card_strings(card, "method_flow_json"),
+        "experimental_setup": _card_strings(card, "experimental_setup_json"),
+        "key_results": _card_strings(card, "key_results_json"),
+        "conclusions": _card_strings(card, "conclusions_json"),
+        "limitations": _card_strings(card, "limitations_json"),
+    }
+    return result
+
+
+def _bounded_evidence_context(papers: list, cards: dict[uuid.UUID, ReadingCard]) -> list[dict]:
+    context: list[dict] = []
+    used = 0
+    for paper in papers[:_MAX_CONTEXT_PAPERS]:
+        item = _paper_evidence(paper, cards.get(paper.id))
+        size = len(json.dumps(item, ensure_ascii=False))
+        if used + size > _MAX_CONTEXT_CHARS:
+            item = {
+                "source": paper.source,
+                "external_id": paper.external_id,
+                "title": paper.title,
+            }
+            size = len(json.dumps(item, ensure_ascii=False))
+        if used + size > _MAX_CONTEXT_CHARS:
+            break
+        context.append(item)
+        used += size
+    return context

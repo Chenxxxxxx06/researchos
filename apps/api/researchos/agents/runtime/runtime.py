@@ -237,6 +237,7 @@ class AgentRuntime:
         run.cost_json = {"estimated": True, **usage}
         run.status = AgentRunStatus.COMPLETED
         run.finished_at = _now()
+        await self._reconcile_mission_task(run)
         await self.db.commit()
 
         summary = output_json.get("message") or output_json.get("novelty_summary") or ""
@@ -378,14 +379,31 @@ class AgentRuntime:
         run.status = AgentRunStatus.FAILED
         run.error_json = {"message": error, "code": code}
         run.finished_at = _now()
+        await self._reconcile_mission_task(run)
         await self.db.commit()
         await emitter.failed(error, code)
 
     async def _finalize_cancelled(self, run: AgentRun, emitter: EventEmitter) -> None:
         run.status = AgentRunStatus.CANCELLED
         run.finished_at = _now()
+        await self._reconcile_mission_task(run)
         await self.db.commit()
         await emitter.cancelled()
+
+    async def _reconcile_mission_task(self, run: AgentRun) -> None:
+        """Best-effort import boundary kept local to avoid runtime cycles."""
+
+        try:
+            from researchos.orchestration.service import OrchestrationService
+
+            async with self.db.begin_nested():
+                await OrchestrationService(self.db).reconcile_run(run)
+        except Exception as exc:  # noqa: BLE001 - the AgentRun remains authoritative
+            logger.exception(
+                "mission_task_reconciliation_failed",
+                run_id=str(run.id),
+                error=str(exc),
+            )
 
 
 async def run_agent_run(run_id: str, *, http_client: httpx.AsyncClient | None = None) -> None:

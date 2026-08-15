@@ -130,6 +130,10 @@ async def test_mission_knowledge_end_to_end(
     cards = await client.get(f"{base}/missions/{mission['id']}/reading-cards")
     assert cards.json()[0]["version"] == 2
     assert cards.json()[0]["status"] == "needs_review"
+    assert cards.json()[0]["reading_focus_json"] == ["method"]
+    assert cards.json()[0]["experimental_setup_json"]
+    assert cards.json()[0]["key_results_json"]
+    assert cards.json()[0]["conclusions_json"]
     assert cards.json()[0]["claims_json"][0]["evidence_status"] == "grounded"
     versions = await client.get(
         f"{base}/papers/{paper.id}/reading-card/versions",

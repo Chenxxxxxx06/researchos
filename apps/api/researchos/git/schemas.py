@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 GitFileState = Literal["modified", "added", "deleted", "untracked", "renamed"]
 
@@ -34,6 +34,8 @@ class GitCommitEntry(BaseModel):
     patch_id: uuid.UUID | None = None
     agent_run_id: uuid.UUID | None = None
     reverts_sha: str | None = None
+    repository_snapshot_id: uuid.UUID | None = None
+    source_commit_sha: str | None = None
 
 
 class GitLogResponse(BaseModel):
@@ -65,3 +67,45 @@ class GitRevertRequest(BaseModel):
 class GitRevertResponse(BaseModel):
     commit_sha: str
     reverted_sha: str
+
+
+class ImportRepositoryRequest(BaseModel):
+    idea_id: uuid.UUID
+    github_url: str = Field(min_length=20, max_length=1024)
+    approved: Literal[True]
+
+
+class RepositorySnapshotResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    project_id: uuid.UUID
+    idea_id: uuid.UUID
+    approved_by: uuid.UUID
+    source_url: str
+    source_owner: str
+    source_repo: str
+    destination_path: str
+    status: str
+    commit_sha: str | None
+    default_branch: str | None
+    license_spdx: str | None
+    license_path: str | None
+    file_count: int
+    total_bytes: int
+    skipped_files_json: list
+    submodules_json: list
+    manifest_hash: str | None
+    workspace_commit_sha: str | None
+    coding_session_id: uuid.UUID | None
+    coding_run_id: uuid.UUID | None
+    imported_at: datetime | None
+    error: str | None
+    created_at: datetime
+
+
+class StartRepositoryCodingResponse(BaseModel):
+    snapshot_id: uuid.UUID
+    coding_session_id: uuid.UUID
+    coding_run_id: uuid.UUID
+    stream: str

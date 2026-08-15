@@ -53,7 +53,7 @@ export function ProjectSwitcher() {
         <button
           type="button"
           aria-label={t('nav.switchProject')}
-          className="flex h-8 max-w-48 items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 text-sm text-text hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60"
+          className="flex h-8 max-w-24 items-center gap-1 rounded-md border border-border bg-surface px-2 text-xs text-text hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 sm:max-w-48 sm:gap-1.5 sm:px-2.5 sm:text-sm"
         >
           <FolderKanban className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden="true" />
           <span className="truncate">{current?.name ?? t('nav.currentProject')}</span>

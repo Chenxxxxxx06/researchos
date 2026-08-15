@@ -42,7 +42,10 @@ from .schemas import (
 
 logger = structlog.get_logger(__name__)
 
-_TRAILER_RE = re.compile(r"^(Patch|Agent-Run|Reverts):\s*(\S+)$", re.MULTILINE)
+_TRAILER_RE = re.compile(
+    r"^(Patch|Agent-Run|Reverts|Repository-Snapshot|Source-Commit):\s*(\S+)$",
+    re.MULTILINE,
+)
 _CO_AUTHOR_LINE = "Co-Authored-By: codex <noreply@anthropic.com>"
 _BOT_IDENT = ("user.name=ResearchOS", "user.email=bot@researchos.local")
 
@@ -164,6 +167,10 @@ class GitService:
                     patch_id=_parse_optional_uuid(trailers.get("Patch")),
                     agent_run_id=_parse_optional_uuid(trailers.get("Agent-Run")),
                     reverts_sha=trailers.get("Reverts"),
+                    repository_snapshot_id=_parse_optional_uuid(
+                        trailers.get("Repository-Snapshot")
+                    ),
+                    source_commit_sha=trailers.get("Source-Commit"),
                 )
             )
         return entries
@@ -309,6 +316,71 @@ class GitService:
             )
             return None
 
+    async def commit_repository_snapshot(
+        self,
+        project_id: uuid.UUID,
+        *,
+        snapshot_id: uuid.UUID,
+        source_url: str,
+        source_commit_sha: str,
+        destination_path: str,
+        actor: User,
+    ) -> str:
+        """Strictly commit an explicitly approved repository import.
+
+        Unlike patch traceability, a failed import commit is not optional: the
+        caller removes the just-materialized directory and marks the snapshot
+        failed so the workspace never contains an unaudited external tree.
+        """
+
+        if not await self.ensure_repo(project_id):
+            raise GitDisabled()
+        async with _lock_for(project_id):
+            return await asyncio.to_thread(
+                self._commit_repository_snapshot_sync,
+                project_id,
+                snapshot_id,
+                source_url,
+                source_commit_sha,
+                destination_path,
+                actor,
+            )
+
+    def _commit_repository_snapshot_sync(
+        self,
+        project_id: uuid.UUID,
+        snapshot_id: uuid.UUID,
+        source_url: str,
+        source_commit_sha: str,
+        destination_path: str,
+        actor: User,
+    ) -> str:
+        root = workspace_root_for(project_id)
+        relative = relative_to_root(project_id, resolve_in_workspace(project_id, destination_path))
+        try:
+            # The snapshot is an explicit provenance artifact. Force-add all
+            # tracked source files even when a host workspace ignores sources/.
+            run_git(root, "add", "-f", "-A", "--", relative)
+            if run_git(root, "diff", "--cached", "--quiet", check=False).returncode == 0:
+                raise ValidationError("The imported repository snapshot contains no files.")
+            message = (
+                f"Import {source_url}\n\n"
+                f"Repository-Snapshot: {snapshot_id}\n"
+                f"Source-Commit: {source_commit_sha}\n"
+            )
+            run_git(
+                root,
+                "commit",
+                "-m",
+                message,
+                "--author",
+                f"{actor.display_name} <{actor.email}>",
+            )
+            return run_git(root, "rev-parse", "HEAD").stdout.strip()
+        except Exception:
+            run_git(root, "restore", "--staged", "--", relative, check=False)
+            raise
+
     def _commit_applied_sync(
         self,
         project_id: uuid.UUID,
@@ -376,13 +448,7 @@ class GitService:
             stderr = (attempt.stderr or "").strip()[:300]
             raise ValidationError(f"Revert failed: {stderr}", http_status=400)
 
-        message = (
-            f'Revert "{original_summary}"\n'
-            "\n"
-            f"Reverts: {full_sha}\n"
-            "\n"
-            f"{_CO_AUTHOR_LINE}\n"
-        )
+        message = f'Revert "{original_summary}"\n\nReverts: {full_sha}\n\n{_CO_AUTHOR_LINE}\n'
         run_git(
             root,
             "commit",

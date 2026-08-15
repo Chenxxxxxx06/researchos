@@ -133,6 +133,10 @@ class Settings(BaseSettings):
     # --- Git (per-project workspace repos) -----------------------------------
     git_enabled: bool = True
     git_timeout_seconds: float = 10.0
+    repository_import_timeout_seconds: float = 120.0
+    repository_import_max_files: int = 10_000
+    repository_import_max_file_bytes: int = 20_000_000
+    repository_import_max_total_bytes: int = 250_000_000
 
     # --- Agent runtime -------------------------------------------------------
     agent_max_tool_calls: int = 4

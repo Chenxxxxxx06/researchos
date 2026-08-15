@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   MessagesSquare,
   Megaphone,
+  Network,
   Route,
   Search,
   ShieldCheck,
@@ -32,6 +33,7 @@ interface NavItem {
 const ITEMS: NavItem[] = [
   { key: 'nav.overview', segment: 'overview', icon: LayoutDashboard, shortcut: 'g o' },
   { key: 'nav.missions', segment: 'missions', icon: Route, shortcut: 'g t' },
+  { key: 'nav.orchestration', segment: 'orchestration', icon: Network, shortcut: 'g a' },
   { key: 'nav.research', segment: 'research', icon: Search, shortcut: 'g r' },
   { key: 'nav.references', segment: 'references', icon: BookOpen, shortcut: 'g l' },
   { key: 'nav.inbox', segment: 'inbox', icon: MessagesSquare, shortcut: 'g m' },
@@ -44,7 +46,7 @@ const ITEMS: NavItem[] = [
 ];
 
 const GROUPS: Array<{ key: DictKey; items: string[] }> = [
-  { key: 'nav.groupCore', items: ['overview', 'missions'] },
+  { key: 'nav.groupCore', items: ['overview', 'missions', 'orchestration'] },
   { key: 'nav.groupResearch', items: ['research', 'references', 'inbox'] },
   { key: 'nav.groupBuild', items: ['ide', 'experiments'] },
   { key: 'nav.groupPublish', items: ['paper', 'reviewer', 'release'] },
@@ -67,7 +69,8 @@ export function SideRail() {
   }, null);
 
   return (
-    <nav className="sticky top-14 h-[calc(100dvh-3.5rem)] w-60 shrink-0 overflow-y-auto border-r border-border bg-surface/90 py-4 backdrop-blur">
+    <>
+    <nav className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 overflow-y-auto border-r border-border bg-surface/90 py-4 backdrop-blur lg:block">
       <Link
         href="/projects"
         className="mx-3 mb-5 flex items-center gap-2 rounded-md border border-transparent px-3 py-2 text-sm font-semibold text-text hover:border-border hover:bg-surface-2"
@@ -118,5 +121,32 @@ export function SideRail() {
         ))}
       </div>
     </nav>
+    <nav
+      aria-label="Mobile workspace navigation"
+      className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-stretch overflow-x-auto border-t border-border bg-overlay/95 px-1 backdrop-blur lg:hidden"
+    >
+      {ITEMS.map((item) => {
+        const href = projectId ? `/projects/${projectId}/${item.segment}` : null;
+        const active = href !== null && href === activeHref;
+        const Icon = item.icon;
+        return href ? (
+          <Link
+            key={item.key}
+            href={href}
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+              'flex w-[4.5rem] shrink-0 flex-col items-center justify-center gap-1 border-t-2 text-[9px] font-medium transition-colors',
+              active
+                ? 'border-accent text-accent'
+                : 'border-transparent text-muted hover:text-text',
+            )}
+          >
+            <Icon className="h-4 w-4" aria-hidden="true" />
+            <span className="max-w-[4.25rem] truncate">{t(item.key)}</span>
+          </Link>
+        ) : null;
+      })}
+    </nav>
+    </>
   );
 }
