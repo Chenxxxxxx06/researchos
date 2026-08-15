@@ -118,11 +118,73 @@ html {
 
 .mission-grid {
   background-image:
-    radial-gradient(circle at 78% 22%, rgb(var(--color-success) / 0.1), transparent 34%),
     linear-gradient(rgb(var(--color-border) / 0.42) 1px, transparent 1px),
     linear-gradient(90deg, rgb(var(--color-border) / 0.42) 1px, transparent 1px);
-  background-size: auto, 32px 32px, 32px 32px;
-  background-position: center, -1px -1px, -1px -1px;
+  background-color: rgb(var(--color-surface));
+  background-size: 32px 32px, 32px 32px;
+  background-position: -1px -1px, -1px -1px;
+  box-shadow: inset 0 -24px 48px -48px rgb(var(--color-accent) / 0.4);
+}
+
+.mission-phase-header {
+  box-shadow: inset -12px 0 24px -28px rgb(var(--color-text) / 0.45);
+}
+
+.agent-flow-line.is-live {
+  height: 2px;
+  background-color: rgb(var(--color-border-strong));
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgb(var(--color-accent)) 0,
+    rgb(var(--color-accent)) 6px,
+    transparent 6px,
+    transparent 13px
+  );
+  background-size: 26px 2px;
+  animation: agent-flow 1.4s linear infinite;
+}
+
+.agent-node-enter {
+  animation: agent-node-enter 280ms ease-out both;
+}
+
+.agent-node-enter[data-status='running'],
+.agent-node-enter[data-status='leased'] {
+  box-shadow:
+    0 8px 22px -14px rgb(var(--color-accent) / 0.75),
+    inset 0 0 0 1px rgb(var(--color-accent) / 0.12);
+}
+
+.inspector-panel-enter {
+  animation: inspector-panel-enter 180ms ease-out both;
+}
+
+@keyframes agent-flow {
+  to {
+    background-position: 26px 0;
+  }
+}
+
+@keyframes agent-node-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes inspector-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateX(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* Scrollbar */

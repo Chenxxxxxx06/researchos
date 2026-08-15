@@ -198,8 +198,8 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
           </div>
 
           {taskCount > 0 && (
-            <div className="mt-6 grid gap-4 border-t border-border pt-4 lg:grid-cols-[minmax(15rem,1fr)_repeat(4,minmax(6rem,8rem))]">
-              <div className="min-w-0">
+            <div className="mt-6 grid grid-cols-2 gap-x-0 gap-y-4 border-t border-border pt-4 sm:grid-cols-4 lg:grid-cols-[minmax(15rem,1fr)_repeat(4,minmax(6rem,8rem))]">
+              <div className="col-span-2 min-w-0 pb-1 sm:col-span-4 lg:col-span-1 lg:pb-0">
                 <div className="flex items-center justify-between text-[11px] text-muted">
                   <span>Mission completion</span>
                   <span className="font-mono tabular-nums text-text">{progress}%</span>
@@ -302,7 +302,7 @@ function Metric({
     success: 'text-success',
   };
   return (
-    <div className="border-l border-border pl-4">
+    <div className="border-l border-border px-4 first-of-type:border-l-0 lg:first-of-type:border-l">
       <p className="text-[9px] font-semibold uppercase text-faint">{label}</p>
       <p className={cn('mt-1 font-mono text-lg font-semibold tabular-nums', colors[tone])}>{value}</p>
     </div>
@@ -346,7 +346,10 @@ function Inspector({
 }: InspectorProps) {
   const taskNames = new Map(graph.tasks.map((task) => [task.id, task.title]));
   return (
-    <aside className="min-w-0 bg-surface xl:min-h-full" aria-label="Mission inspector">
+    <aside
+      className="min-w-0 bg-surface xl:sticky xl:top-14 xl:max-h-[calc(100vh-3.5rem)] xl:min-h-[44rem] xl:self-start xl:overflow-y-auto"
+      aria-label="Mission inspector"
+    >
       <Tabs value={tab} onValueChange={onTabChange}>
         <TabsList className="grid grid-cols-4 overflow-x-auto px-2 pt-2">
           <InspectorTab value="task" icon={Sparkles} label="Task" />
@@ -360,7 +363,7 @@ function Inspector({
           <InspectorTab value="events" icon={Activity} label="Events" count={graph.events.length} />
         </TabsList>
 
-        <TabsContent value="task" className="p-4">
+        <TabsContent value="task" className="inspector-panel-enter p-4">
           {!selectedTask && (
             <div className="grid min-h-72 place-items-center px-5 text-center">
               <div>
@@ -448,7 +451,7 @@ function Inspector({
           )}
         </TabsContent>
 
-        <TabsContent value="gates" className="space-y-2 p-3">
+        <TabsContent value="gates" className="inspector-panel-enter space-y-2 p-3">
           {graph.gates.map((gate) => {
             const task = graph.tasks.find((item) => item.id === gate.task_id);
             const actionable = gate.status === 'pending' && task?.status === 'waiting_approval';
@@ -500,7 +503,7 @@ function Inspector({
           )}
         </TabsContent>
 
-        <TabsContent value="artifacts" className="space-y-2 p-3">
+        <TabsContent value="artifacts" className="inspector-panel-enter space-y-2 p-3">
           {graph.artifacts.map((artifact) => (
             <article key={artifact.id} className="rounded-md border border-border bg-bg p-3">
               <div className="flex items-start gap-2">
@@ -522,7 +525,7 @@ function Inspector({
           {graph.artifacts.length === 0 && <InspectorEmpty label="No artifacts yet" />}
         </TabsContent>
 
-        <TabsContent value="events" className="p-4">
+        <TabsContent value="events" className="inspector-panel-enter p-4">
           <ol className="relative space-y-0 before:absolute before:bottom-3 before:left-[5px] before:top-3 before:w-px before:bg-border-strong">
             {graph.events.map((event) => (
               <li key={event.id} className="relative grid grid-cols-[0.75rem_minmax(0,1fr)] gap-3 pb-5 last:pb-0">

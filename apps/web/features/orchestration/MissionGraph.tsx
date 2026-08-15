@@ -93,6 +93,33 @@ export function MissionGraph({
 }: Props) {
   return (
     <div className="min-w-0 bg-bg">
+      <nav
+        aria-label="Research phases"
+        className="sticky top-0 z-20 overflow-x-auto border-b border-border bg-overlay/95 px-3 py-2 backdrop-blur md:hidden"
+      >
+        <ol className="grid min-w-[31rem] grid-cols-4 gap-1">
+          {LANES.map((lane) => {
+            const laneTasks = lane.keys
+              .map((key) => tasks.find((task) => task.task_key === key))
+              .filter((task): task is MissionTask => Boolean(task));
+            const done = laneTasks.filter((task) => task.status === 'completed').length;
+            return (
+              <li key={lane.index}>
+                <a
+                  href={`#mission-phase-${lane.index}`}
+                  className="flex h-9 items-center gap-2 rounded-md px-2 text-[10px] text-muted hover:bg-surface-2 hover:text-text"
+                >
+                  <span className="font-mono text-accent">{lane.index}</span>
+                  <span className="truncate">{lane.title.split(' & ')[0]}</span>
+                  <span className="ml-auto font-mono text-faint">
+                    {done}/{laneTasks.length}
+                  </span>
+                </a>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
       {LANES.map((lane) => {
         const laneTasks = lane.keys
           .map((key) => tasks.find((task) => task.task_key === key))
@@ -103,9 +130,10 @@ export function MissionGraph({
         return (
           <section
             key={lane.title}
-            className="grid border-b border-border last:border-b-0 lg:grid-cols-[12rem_minmax(0,1fr)]"
+            id={`mission-phase-${lane.index}`}
+            className="scroll-mt-12 grid border-b border-border last:border-b-0 lg:grid-cols-[12rem_minmax(0,1fr)]"
           >
-            <header className="relative border-b border-border bg-surface px-5 py-5 lg:border-b-0 lg:border-r">
+            <header className="mission-phase-header relative border-b border-border bg-surface px-5 py-5 lg:border-b-0 lg:border-r">
               <div className="flex items-start justify-between gap-3 lg:block">
                 <div>
                   <span className="font-mono text-[10px] text-faint">PHASE {lane.index}</span>
@@ -138,7 +166,11 @@ export function MissionGraph({
               >
                 <div
                   aria-hidden="true"
-                  className="absolute left-8 right-8 top-[2.15rem] h-px bg-border-strong"
+                  className={cn(
+                    'agent-flow-line absolute left-8 right-8 top-[2.15rem] h-px bg-border-strong',
+                    laneTasks.some((task) => task.status === 'running' || task.status === 'leased') &&
+                      'is-live',
+                  )}
                 />
                 {laneTasks.map((task, index) => (
                   <li key={task.id} className="relative z-10">
@@ -147,6 +179,7 @@ export function MissionGraph({
                       dependencyKeys={dependencies.get(task.id) ?? []}
                       artifactCount={artifacts.filter((item) => item.task_id === task.id).length}
                       selected={selectedTaskId === task.id}
+                      index={index}
                       onClick={() => onSelect(task)}
                     />
                     {index < laneTasks.length - 1 && (
@@ -171,12 +204,14 @@ function TaskNode({
   dependencyKeys,
   artifactCount,
   selected,
+  index,
   onClick,
 }: {
   task: MissionTask;
   dependencyKeys: string[];
   artifactCount: number;
   selected: boolean;
+  index: number;
   onClick: () => void;
 }) {
   const Icon = taskIcon(task.status);
@@ -187,8 +222,10 @@ function TaskNode({
       type="button"
       onClick={onClick}
       aria-pressed={selected}
+      data-status={task.status}
+      style={{ animationDelay: `${index * 45}ms` }}
       className={cn(
-        'group relative flex h-[8.5rem] w-full flex-col overflow-hidden rounded-md border bg-surface p-3 text-left shadow-elev1',
+        'agent-node-enter group relative flex h-[8.5rem] w-full flex-col overflow-hidden rounded-md border bg-surface p-3 text-left shadow-elev1',
         'transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-elev2',
         selected && 'border-accent shadow-elev2 ring-1 ring-accent/20',
         live && 'border-success/50',

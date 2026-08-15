@@ -135,6 +135,7 @@ const graph = {
 };
 
 async function mockMissionControl(page: Page) {
+  const dispatched: Array<Record<string, unknown>> = [];
   await page.context().addCookies([
     { name: 'ros_session', value: 'visual-test', domain: 'localhost', path: '/' },
   ]);
@@ -203,6 +204,17 @@ async function mockMissionControl(page: Page) {
           created_at: NOW,
         },
       ];
+    } else if (
+      path === `/projects/${PROJECT_ID}/orchestration/tasks/task-7/dispatch` &&
+      route.request().method() === 'POST'
+    ) {
+      dispatched.push(route.request().postDataJSON() as Record<string, unknown>);
+      body = {
+        task_id: 'task-7',
+        agent_run_id: 'run-dispatched',
+        status: 'queued',
+        stream: `/projects/${PROJECT_ID}/agent-runs/run-dispatched/stream`,
+      };
     }
     await route.fulfill({
       status: 200,
@@ -214,6 +226,7 @@ async function mockMissionControl(page: Page) {
       body: JSON.stringify(body),
     });
   });
+  return { dispatched };
 }
 
 for (const viewport of [
@@ -222,7 +235,8 @@ for (const viewport of [
 ]) {
   test(`mission graph is connected and stable on ${viewport.name}`, async ({ page }, testInfo) => {
     await page.setViewportSize(viewport);
-    await mockMissionControl(page);
+    if (viewport.name === 'mobile') await page.emulateMedia({ reducedMotion: 'reduce' });
+    const requests = await mockMissionControl(page);
     const errors: string[] = [];
     page.on('console', (message) => {
       if (message.type() === 'error') errors.push(message.text());
@@ -230,11 +244,27 @@ for (const viewport of [
 
     await page.goto(`/projects/${PROJECT_ID}/orchestration`);
     await expect(page.getByRole('heading', { name: 'Mission Control' })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Map unresolved evidence gaps/i })).toBeVisible();
-    await page.getByRole('button', { name: /Map unresolved evidence gaps/i }).click();
+    await expect(page.getByRole('button', { name: /Authorize a research direction/i })).toBeVisible();
+    await page.getByRole('button', { name: /Authorize a research direction/i }).click();
     await expect(page.getByLabel('Agent task instruction')).toBeVisible();
+    await page.getByLabel('Agent task instruction').fill('Verify artifacts, then dispatch the approved direction.');
+    await page.getByLabel('Agent context JSON').fill('{"reviewed":true}');
+    await page.getByRole('button', { name: 'Dispatch agent' }).click();
+    await expect.poll(() => requests.dispatched.length).toBe(1);
+    expect(requests.dispatched[0]).toEqual({
+      message: 'Verify artifacts, then dispatch the approved direction.',
+      context: { reviewed: true },
+    });
     await page.getByRole('tab', { name: /Gates/i }).click();
     await expect(page.getByText('novelty_review')).toBeVisible();
+
+    if (viewport.name === 'mobile') {
+      const durationSeconds = await page.locator('.agent-flow-line.is-live').evaluate((element) => {
+        const value = getComputedStyle(element).animationDuration;
+        return value.endsWith('ms') ? Number.parseFloat(value) / 1000 : Number.parseFloat(value);
+      });
+      expect(durationSeconds).toBeLessThanOrEqual(0.001);
+    }
 
     const overflow = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
