@@ -517,6 +517,9 @@ class ResearchLoopService:
         return mission
 
     async def _response(self, loop: ResearchLoop) -> ResearchLoopResponse:
+        # Database-managed timestamps may be expired after an UPDATE. Refresh
+        # explicitly so response validation never attempts implicit async IO.
+        await self.db.refresh(loop)
         iterations = list(
             (
                 await self.db.execute(

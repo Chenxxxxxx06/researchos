@@ -89,7 +89,7 @@ async def test_ssh_profile_with_execution_history_cannot_be_deleted(
         SSHExecution(
             project_id=uuid.UUID(project_id),
             profile_id=profile_id,
-            user_id=uuid.UUID(user["id"]),
+            user_id=uuid.UUID(user["user"]["id"]),
             argv_json=["python", "train.py"],
             workdir="/srv/research/project",
             status="completed",

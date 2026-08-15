@@ -8,6 +8,7 @@ import uuid
 from collections import Counter
 from datetime import UTC, datetime, timedelta
 
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -248,7 +249,7 @@ class OrchestrationService:
                 task_id=task.id,
                 seq=int(current) + 1 if current is not None else 0,
                 event_type=event_type,
-                payload_json=payload,
+                payload_json=jsonable_encoder(payload),
                 actor_id=actor_id,
                 message=message,
             )
@@ -964,6 +965,7 @@ class OrchestrationService:
             actor_id=actor.id,
         )
         await self.db.commit()
+        await self.db.refresh(task)
         await self.db.refresh(lease)
         return LeaseTaskResponse(
             task=MissionTaskResponse.model_validate(task),
