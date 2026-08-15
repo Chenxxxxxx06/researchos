@@ -1,0 +1,104 @@
+{
+  "project_name": "ResearchOS Demo",
+  "note": "Golden set for the RAG eval script. 'direct' questions quote corpus vocabulary; 'paraphrase' questions restate it. expected_kind is the section kind the answer should come from.",
+  "queries": [
+    {
+      "id": "q01",
+      "style": "direct",
+      "question": "How does layout-aware pretraining improve macro-F1 under limited annotation?",
+      "expected_title_keyword": "Layout-aware",
+      "expected_kind": "method"
+    },
+    {
+      "id": "q02",
+      "style": "paraphrase",
+      "question": "What happens to document classifiers when the scanned text contains recognition errors?",
+      "expected_title_keyword": "OCR noise",
+      "expected_kind": "method"
+    },
+    {
+      "id": "q03",
+      "style": "direct",
+      "question": "adapter tuning frozen multimodal encoder fewer trainable parameters validation score",
+      "expected_title_keyword": "Parameter-efficient",
+      "expected_kind": "method"
+    },
+    {
+      "id": "q04",
+      "style": "paraphrase",
+      "question": "Which training ordering strategy helps form understanding when labels are scarce?",
+      "expected_title_keyword": "Curriculum",
+      "expected_kind": "method"
+    },
+    {
+      "id": "q05",
+      "style": "direct",
+      "question": "cross-domain evaluation invoice extraction held-out organizations domain shift",
+      "expected_title_keyword": "Cross-domain",
+      "expected_kind": "results"
+    },
+    {
+      "id": "q06",
+      "style": "paraphrase",
+      "question": "Does mixing generated layouts with a small verified corpus improve recall?",
+      "expected_title_keyword": "Synthetic augmentation",
+      "expected_kind": "results"
+    },
+    {
+      "id": "q07",
+      "style": "direct",
+      "question": "temperature scaling ensemble uncertainty calibration error held-out split",
+      "expected_title_keyword": "Calibration",
+      "expected_kind": "method"
+    },
+    {
+      "id": "q08",
+      "style": "paraphrase",
+      "question": "How should teams report variance across seeds in a reproducible benchmark?",
+      "expected_title_keyword": "Reproducible benchmarks",
+      "expected_kind": "method"
+    },
+    {
+      "id": "q09",
+      "style": "direct",
+      "question": "multi-head self-attention encoder-decoder model architecture",
+      "expected_title_keyword": "Attention",
+      "expected_kind": "method"
+    },
+    {
+      "id": "q10",
+      "style": "paraphrase",
+      "question": "What BLEU score did the big model reach on English to German translation?",
+      "expected_title_keyword": "Attention",
+      "expected_kind": "results"
+    },
+    {
+      "id": "q11",
+      "style": "paraphrase",
+      "question": "Which hardware and how many hours did training the base model take?",
+      "expected_title_keyword": "Attention",
+      "expected_kind": "experiments"
+    },
+    {
+      "id": "q12",
+      "style": "direct",
+      "question": "scaled dot-product attention softmax sqrt dimension keys",
+      "expected_title_keyword": "Attention",
+      "expected_kind": "method"
+    },
+    {
+      "id": "q13",
+      "style": "paraphrase",
+      "question": "Why is self-attention preferable to recurrent layers for long-range dependencies?",
+      "expected_title_keyword": "Attention",
+      "expected_kind": "other"
+    },
+    {
+      "id": "q14",
+      "style": "direct",
+      "question": "OCR corruption consistency training score drop medium noise",
+      "expected_title_keyword": "OCR noise",
+      "expected_kind": "results"
+    }
+  ]
+}

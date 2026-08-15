@@ -44,7 +44,8 @@ _KIND_RULES: tuple[tuple[tuple[str, ...], PaperSectionKind], ...] = (
     (("introduction",), PaperSectionKind.INTRODUCTION),
     (("background", "preliminar", "notation"), PaperSectionKind.BACKGROUND),
     (("method", "approach", "model", "architecture", "framework"), PaperSectionKind.METHOD),
-    (("experiment", "evaluation", "setup", "implementation"), PaperSectionKind.EXPERIMENTS),
+    (("experiment", "evaluation", "setup", "implementation", "training", "dataset"),
+     PaperSectionKind.EXPERIMENTS),
     (("result", "analysis", "ablation", "discussion"), PaperSectionKind.RESULTS),
     (("related",), PaperSectionKind.RELATED_WORK),
     (("conclusion", "future", "limitation"), PaperSectionKind.CONCLUSION),
@@ -75,21 +76,52 @@ class ParsedSection:
 
 
 def _clean_subtree(node: Node) -> None:
-    """Replace math with alttext; drop figures, SVG, equations, bibliography."""
+    """Replace math (inline and display) with alttext; drop figures/SVG/bibliography.
+
+    Display equations (``table.ltx_equation``) are treated exactly like inline
+    math: the ``math`` replacement above substitutes the alttext when present
+    and keeps the symbol text otherwise. LaTeX alttext is the best plain-text
+    representation of a formula — semantic models parse it and the keyword
+    (FTS) path can match formula symbols — so it is preserved verbatim.
+    """
 
     for math_node in node.css("math"):
         alt = (math_node.attributes or {}).get("alttext")
         if alt:
             math_node.replace_with(alt)
         # Math without alttext keeps its (symbol) text content.
-    for selector in ("figure", "svg", "table.ltx_equation", ".ltx_bibliography"):
+    for selector in ("figure", "svg", ".ltx_bibliography"):
         for child in node.css(selector):
             child.decompose()
 
 
+# Citation markers fragmented by inline tags ("[ 5 , 2 , 35 ]") are collapsed
+# to "[5,2,35]". Only pure digits/commas/whitespace groups are touched.
+_CITATION_GROUP_RE = re.compile(r"\[[\d\s,]+\]")
+# Double period left behind when a math alttext ending in "." is followed by
+# the sentence's own period.
+_DOUBLE_PERIOD_RE = re.compile(r"\.\s+\.")
+
+
+def _normalize_body(text: str) -> str:
+    """Collapse whitespace runs to single spaces and tidy citation/period noise.
+
+    Only whitespace and citation-marker punctuation are touched; math alttext
+    (LaTeX) is preserved character-for-character.
+    """
+
+    text = " ".join(text.split())
+    text = _CITATION_GROUP_RE.sub(
+        lambda match: "[" + re.sub(r"\s+", "", match.group(0)[1:-1]) + "]", text
+    )
+    return _DOUBLE_PERIOD_RE.sub(".", text)
+
+
 def _node_body(node: Node, *, max_chars: int) -> str:
-    text = node.text(separator="\n", strip=True)
-    return text[:max_chars]
+    # Fluent text: inline tags (citations, sub/superscripts) join with a space
+    # instead of fragmenting into lines; _normalize_body then folds the runs.
+    text = node.text(separator=" ", strip=True)
+    return _normalize_body(text)[:max_chars]
 
 
 def _strip_numbering(heading: str) -> str:

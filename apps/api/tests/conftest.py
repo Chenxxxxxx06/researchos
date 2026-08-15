@@ -27,6 +27,9 @@ os.environ.setdefault("ENVIRONMENT", "local")
 os.environ.setdefault("DB_USE_NULLPOOL", "true")
 # Isolated workspace root for IDE tests.
 os.environ.setdefault("WORKSPACE_ROOT", tempfile.mkdtemp(prefix="ros-ws-test-"))
+# Tests must be hermetic: force the offline hashing embedding profile so no
+# real provider (e.g. DashScope, configured in apps/api/.env) is ever called.
+os.environ["EMBEDDING_PROFILE"] = "hashing-1024-v2"
 
 from collections.abc import AsyncIterator  # noqa: E402
 

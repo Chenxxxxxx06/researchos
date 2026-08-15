@@ -83,6 +83,23 @@ class ImportPapersResponse(BaseModel):
     skipped: list[SkippedImport] = Field(default_factory=list)
 
 
+# --- Paper references (delete preflight) --------------------------------------
+class PaperReferenceCounts(BaseModel):
+    """How many downstream artifacts reference a paper, per category."""
+
+    reading_cards: int = 0
+    reading_notes: int = 0
+    review_sections: int = 0
+    experiment_plans: int = 0
+    missions: int = 0
+
+
+class PaperReferencesResponse(BaseModel):
+    paper_id: uuid.UUID
+    references: PaperReferenceCounts
+    blocked: bool
+
+
 # --- Paper sections ----------------------------------------------------------
 class PaperSectionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

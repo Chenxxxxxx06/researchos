@@ -19,7 +19,8 @@ from researchos.missions.repository import MissionRepository
 from researchos.projects.service import ProjectService
 from researchos.research.models import Paper, PaperSection
 
-from .indexing import EMBEDDING_MODEL, ensure_project_chunks, hashing_embedding
+from .embeddings import embed_texts, hashing_embedding
+from .indexing import ensure_project_chunks
 from .models import (
     MissionPaper,
     MissionTopicCluster,
@@ -28,6 +29,7 @@ from .models import (
     ReadingCardVersion,
     ReadingNote,
 )
+from .profiles import get_active_profile
 from .schemas import (
     AddMissionPapersRequest,
     MissionPaperResponse,
@@ -41,6 +43,10 @@ from .schemas import (
 )
 
 _TOKEN_RE = re.compile(r"[\w\u4e00-\u9fff-]+", re.UNICODE)
+# Hybrid retrieval (§7.3): per-leg recall depth, RRF constant, diversity cap.
+_RECALL_PER_LEG = 40
+_RRF_K = 60
+MAX_HITS_PER_PAPER = 3
 
 
 class KnowledgeService:
@@ -514,42 +520,93 @@ class KnowledgeService:
         if not tokens:
             raise ValidationError("Search query has no searchable terms.")
         indexed_papers, indexed_chunks = await ensure_project_chunks(self.db, project_id)
-        query_vector = hashing_embedding(payload.query)
+        profile = get_active_profile()
+        query_vector = (await embed_texts([payload.query], profile))[0]
+
         distance = PaperChunk.embedding.cosine_distance(query_vector)
-        ts_query = func.plainto_tsquery("simple", payload.query)
-        keyword_rank = func.ts_rank_cd(PaperChunk.search_tsv, ts_query)
-        hybrid_score = (1.0 - distance) * 0.68 + func.least(keyword_rank, 1.0) * 0.32
-        statement = (
-            select(
-                PaperChunk,
-                Paper,
-                distance.label("vector_distance"),
-                keyword_rank.label("keyword_rank"),
-                hybrid_score.label("hybrid_score"),
+        # Keyword leg: ts_rank (not ts_rank_cd — cover density scores natural
+        # multi-term queries 0) over an OR tsquery built from the extracted
+        # tokens. Measured on PG16: even ts_rank floors at 1e-20 for AND
+        # tsqueries when fewer than two lexemes match, so AND semantics would
+        # keep partial matches scoreless; the OR form gives every overlap
+        # credit and ranks multi-token matches higher naturally. Tokens come
+        # from _tokens (regex-sanitized), so single-quoting them is safe.
+        ts_query = func.to_tsquery("simple", " | ".join(f"'{token}'" for token in tokens))
+        keyword_rank = func.ts_rank(PaperChunk.search_tsv, ts_query)
+
+        def _filtered(statement):  # identical candidate pool for both legs
+            statement = statement.join(Paper, Paper.id == PaperChunk.paper_id).where(
+                PaperChunk.project_id == project_id
             )
-            .join(Paper, Paper.id == PaperChunk.paper_id)
-            .where(PaperChunk.project_id == project_id)
-        )
-        if payload.mission_id is not None:
-            statement = statement.join(
-                MissionPaper, MissionPaper.paper_id == PaperChunk.paper_id
-            ).where(MissionPaper.mission_id == payload.mission_id)
-        if payload.kinds:
-            statement = statement.where(
-                PaperChunk.section_kind.in_([kind.value for kind in payload.kinds])
-            )
-        rows = (
-            await self.db.execute(
-                statement.order_by(hybrid_score.desc(), PaperChunk.id.asc()).limit(
-                    max(80, payload.limit * 5)
+            if payload.mission_id is not None:
+                statement = statement.join(
+                    MissionPaper, MissionPaper.paper_id == PaperChunk.paper_id
+                ).where(MissionPaper.mission_id == payload.mission_id)
+            if payload.kinds:
+                statement = statement.where(
+                    PaperChunk.section_kind.in_([kind.value for kind in payload.kinds])
                 )
+            return statement
+
+        vector_rows = (
+            await self.db.execute(
+                _filtered(
+                    select(PaperChunk, Paper, distance.label("vector_distance"))
+                ).order_by(distance.asc(), PaperChunk.id.asc()).limit(_RECALL_PER_LEG)
             )
         ).all()
+        keyword_rows = (
+            await self.db.execute(
+                _filtered(select(PaperChunk, Paper, keyword_rank.label("keyword_rank")))
+                # ts_rank returns a 1e-20 floor for documents sharing no
+                # lexeme with the query; real (partial) matches score orders
+                # of magnitude higher, so the threshold admits partial matches
+                # while keeping true non-matches out of the keyword leg.
+                .where(keyword_rank > 1e-10)
+                .order_by(keyword_rank.desc(), PaperChunk.id.asc())
+                .limit(_RECALL_PER_LEG)
+            )
+        ).all()
+
+        papers_by_chunk: dict[uuid.UUID, tuple[PaperChunk, Paper]] = {}
+        vector_leg: dict[uuid.UUID, float] = {}
+        keyword_leg: dict[uuid.UUID, float] = {}
+        for chunk, paper, raw_distance in vector_rows:
+            papers_by_chunk[chunk.id] = (chunk, paper)
+            vector_leg[chunk.id] = max(-1.0, min(1.0, 1.0 - float(raw_distance or 0.0)))
+        for chunk, paper, raw_rank in keyword_rows:
+            papers_by_chunk[chunk.id] = (chunk, paper)
+            keyword_leg[chunk.id] = max(0.0, min(1.0, float(raw_rank or 0.0)))
+
+        rrf_scores = _rrf_fuse(list(vector_leg), list(keyword_leg))
+        ordered = sorted(rrf_scores, key=lambda cid: (-rrf_scores[cid], str(cid)))
+
+        # Diversity: at most MAX_HITS_PER_PAPER hits per paper; if that cannot
+        # fill the requested limit, top up from the remaining candidates.
+        selected: list[uuid.UUID] = []
+        per_paper: Counter[uuid.UUID] = Counter()
+        for chunk_id in ordered:
+            paper_id = papers_by_chunk[chunk_id][0].paper_id
+            if per_paper[paper_id] < MAX_HITS_PER_PAPER:
+                per_paper[paper_id] += 1
+                selected.append(chunk_id)
+                if len(selected) >= payload.limit:
+                    break
+        if len(selected) < payload.limit:
+            for chunk_id in ordered:
+                if chunk_id not in selected:
+                    selected.append(chunk_id)
+                    if len(selected) >= payload.limit:
+                        break
+
         hits: list[RagHitResponse] = []
-        for chunk, paper, raw_distance, raw_keyword, raw_hybrid in rows:
-            vector_score = max(-1.0, min(1.0, 1.0 - float(raw_distance or 0.0)))
-            normalized_keyword = max(0.0, min(1.0, float(raw_keyword or 0.0)))
-            score = max(0.0, min(1.0, float(raw_hybrid or 0.0)))
+        for chunk_id in selected:
+            chunk, paper = papers_by_chunk[chunk_id]
+            reasons: list[str] = []
+            if chunk_id in vector_leg:
+                reasons.append("vector")
+            if chunk_id in keyword_leg:
+                reasons.append("keyword")
             hits.append(
                 RagHitResponse(
                     chunk_id=chunk.id,
@@ -559,9 +616,10 @@ class KnowledgeService:
                     heading=chunk.heading,
                     kind=chunk.section_kind,
                     snippet=_snippet(chunk.content, tokens),
-                    score=round(score, 4),
-                    vector_score=round(vector_score, 4),
-                    keyword_score=round(normalized_keyword, 4),
+                    score=round(rrf_scores[chunk_id], 4),
+                    vector_score=round(vector_leg.get(chunk_id, 0.0), 4),
+                    keyword_score=round(keyword_leg.get(chunk_id, 0.0), 4),
+                    match_reasons=reasons,
                     char_start=chunk.char_start,
                     char_end=chunk.char_end,
                     citation_key=f"{paper.source}:{paper.external_id}",
@@ -569,12 +627,24 @@ class KnowledgeService:
             )
         return RagSearchResponse(
             query=payload.query,
-            mode="hybrid-vector-keyword-v1",
-            embedding_model=EMBEDDING_MODEL,
+            mode="hybrid-vector-keyword-v2",
+            embedding_model=profile.name,
             indexed_papers=indexed_papers,
             indexed_chunks=indexed_chunks,
-            hits=hits[: payload.limit],
+            hits=hits,
         )
+
+
+def _rrf_fuse(
+    vector_ids: list[uuid.UUID], keyword_ids: list[uuid.UUID], *, k: int = _RRF_K
+) -> dict[uuid.UUID, float]:
+    """Reciprocal Rank Fusion: ``score = Σ 1/(k + rank)`` over both legs."""
+
+    scores: dict[uuid.UUID, float] = {}
+    for ids in (vector_ids, keyword_ids):
+        for rank, chunk_id in enumerate(ids, start=1):
+            scores[chunk_id] = scores.get(chunk_id, 0.0) + 1.0 / (k + rank)
+    return scores
 
 
 def _tokens(value: str) -> list[str]:

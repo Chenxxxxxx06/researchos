@@ -7,6 +7,10 @@ import uuid
 from sqlalchemy import delete, func, or_, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from researchos.experiment_plans.models import ExperimentPlan
+from researchos.knowledge.models import MissionPaper, ReadingCard, ReadingNote
+from researchos.reviews.models import ReviewSection
+
 from .enums import PaperSectionKind
 from .models import Idea, Paper, PaperSection, ResearchCritique, ResearchFeedPref
 
@@ -133,6 +137,45 @@ class PaperRepository:
     async def delete(self, paper: Paper) -> None:
         await self.db.delete(paper)
         await self.db.flush()
+
+    async def reference_counts(
+        self, project_id: uuid.UUID, paper_id: uuid.UUID
+    ) -> dict[str, int]:
+        """Count downstream artifacts referencing a paper (delete preflight).
+
+        Reading cards/notes and mission links carry a direct ``paper_id`` FK.
+        Review sections cite papers via ``citations_json`` (list of paper-id
+        strings) and grounded ``claims_json`` entries; experiment plans via
+        ``baselines_json[*].source_paper_id`` — both queried with JSONB
+        containment against the real stored shapes.
+        """
+
+        pid = str(paper_id)
+
+        async def _count(model, *clauses) -> int:  # noqa: ANN001, ANN202 - local helper
+            stmt = (
+                select(func.count())
+                .select_from(model)
+                .where(model.project_id == project_id, *clauses)
+            )
+            return int(await self.db.scalar(stmt) or 0)
+
+        return {
+            "reading_cards": await _count(ReadingCard, ReadingCard.paper_id == paper_id),
+            "reading_notes": await _count(ReadingNote, ReadingNote.paper_id == paper_id),
+            "review_sections": await _count(
+                ReviewSection,
+                or_(
+                    ReviewSection.citations_json.contains([pid]),
+                    ReviewSection.claims_json.contains([{"paper_id": pid}]),
+                ),
+            ),
+            "experiment_plans": await _count(
+                ExperimentPlan,
+                ExperimentPlan.baselines_json.contains([{"source_paper_id": pid}]),
+            ),
+            "missions": await _count(MissionPaper, MissionPaper.paper_id == paper_id),
+        }
 
 
 class PaperSectionRepository:

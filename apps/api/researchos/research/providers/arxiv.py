@@ -173,7 +173,9 @@ class ArxivProvider:
             resp.raise_for_status()
             return resp.text
         async with httpx.AsyncClient(
-            timeout=self._timeout, headers={"User-Agent": "ResearchOS/0.2 (+research-copilot)"}
+            timeout=self._timeout,
+            headers={"User-Agent": "ResearchOS/0.2 (+research-copilot)"},
+            follow_redirects=True,
         ) as client:
             resp = await fetch_with_retry(
                 lambda: client.get(self._base_url, params=params),

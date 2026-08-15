@@ -94,7 +94,10 @@ def test_parse_ar5iv_html_sections_and_kinds() -> None:
     assert "Motivation" in intro.body and "affordable pretraining" in intro.body
 
     method = next(s for s in sections if s.kind is PaperSectionKind.METHOD)
-    assert "L=L_m" in method.body  # math replaced by alttext
+    assert "L=L_m" in method.body  # inline math replaced by alttext
+    # Display math keeps its alttext too (LaTeX preserved verbatim); the raw
+    # symbol markup text is dropped in favor of the alttext.
+    assert r"\frac{1}{\sqrt{d_k}}" in method.body
     assert "DISPLAY_EQUATION_GIBBERISH" not in method.body
     assert "FIGURE_CAPTION_TO_DROP" not in method.body
     assert all("BIBLIOGRAPHY_ENTRY_TO_DROP" not in s.body for s in sections)
@@ -103,6 +106,40 @@ def test_parse_ar5iv_html_sections_and_kinds() -> None:
 def test_parse_ar5iv_html_truncates_bodies() -> None:
     sections = parse_ar5iv_html(AR5IV_HTML, max_chars=40)
     assert all(len(s.body) <= 40 for s in sections)
+
+
+_NORMALIZATION_HTML = """
+<html><body><article>
+<section class="ltx_section" id="S1">
+  <h2 class="ltx_title ltx_title_section"><span class="ltx_tag">3 </span>Training Details</h2>
+  <div class="ltx_para"><p class="ltx_p">Prior work
+  <sup>[</sup><sup>5</sup><sup>,</sup><sup>2</sup><sup>,</sup><sup>35</sup><sup>]</sup> shows gains.
+  The loss <math alttext="\\mathcal{L}=\\frac{1}{N}\\sum_i \\ell_i.">
+  <semantics><mrow><mi>L</mi></mrow></semantics></math> . is minimized.</p></div>
+  <table class="ltx_equation" id="S1.E1"><tr><td class="ltx_eqn_cell">
+  <math display="block"><semantics><mrow><mi>E</mi><mo>=</mo><mi>m</mi>
+  <msup><mi>c</mi><mn>2</mn></msup></mrow></semantics></math>
+  </td></tr></table>
+</section>
+</article></body></html>
+"""
+
+
+def test_parse_ar5iv_html_normalizes_body_and_classifies_training() -> None:
+    (section,) = parse_ar5iv_html(_NORMALIZATION_HTML, max_chars=20_000)
+
+    # "training" heading -> experiments kind.
+    assert section.kind is PaperSectionKind.EXPERIMENTS
+    # Fluent text: no fragmented newlines anywhere in the body.
+    assert "\n" not in section.body
+    # Citation markers fragmented by inline tags collapse to [5,2,35].
+    assert "[5,2,35]" in section.body
+    # LaTeX alttext is preserved verbatim; the double period left by the
+    # math replacement (". .") collapses to a single period.
+    assert r"\mathcal{L}=\frac{1}{N}\sum_i \ell_i." in section.body
+    assert ". ." not in section.body
+    # Display math without alttext keeps its symbol text instead of vanishing.
+    assert "E = m c 2" in section.body
 
 
 # --- ingest paths ------------------------------------------------------------
