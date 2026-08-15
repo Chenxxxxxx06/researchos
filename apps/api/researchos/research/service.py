@@ -67,6 +67,12 @@ class IngestRunningError(AppError):
     message = "Ingestion is already running for this paper."
 
 
+class PaperHasReferencesError(AppError):
+    code = "paper_has_references"
+    http_status = 409
+    message = "Paper is still referenced by project artifacts."
+
+
 class PaperService:
     def __init__(self, db: AsyncSession, *, http_client: httpx.AsyncClient | None = None) -> None:
         self.db = db
@@ -326,11 +332,30 @@ class PaperService:
             raise NotFoundError("Paper not found.")
         return paper
 
-    async def delete(self, actor: User, project_id: uuid.UUID, paper_id: uuid.UUID) -> None:
+    async def get_references(
+        self, actor: User, project_id: uuid.UUID, paper_id: uuid.UUID
+    ) -> dict[str, int]:
+        """Delete preflight: per-category counts of artifacts citing the paper."""
+
+        await self.projects.ensure_access(actor, project_id, ProjectRole.VIEWER)
+        paper = await self.papers.get_by_id(project_id, paper_id)
+        if paper is None:
+            raise NotFoundError("Paper not found.")
+        return await self.papers.reference_counts(project_id, paper_id)
+
+    async def delete(
+        self, actor: User, project_id: uuid.UUID, paper_id: uuid.UUID, *, force: bool = False
+    ) -> None:
         await self.projects.ensure_access(actor, project_id, ProjectRole.RESEARCHER)
         paper = await self.papers.get_by_id(project_id, paper_id)
         if paper is None:
             raise NotFoundError("Paper not found.")
+        if not force:
+            references = await self.papers.reference_counts(project_id, paper_id)
+            if any(references.values()):
+                raise PaperHasReferencesError(
+                    details={"paper_id": str(paper_id), "references": references}
+                )
         await self.papers.delete(paper)
         await self.db.commit()
 

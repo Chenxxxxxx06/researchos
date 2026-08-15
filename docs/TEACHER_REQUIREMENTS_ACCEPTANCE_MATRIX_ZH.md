@@ -20,7 +20,7 @@
 |---|---|---|---|
 | D1 | 需求与业务流程分析 | `TEACHER_REQUIREMENTS_INCREMENTAL_PRODUCT_DESIGN_ZH.md` 第 0—5 节 | 已给出现状审计、增量边界、信息架构、页面操作和 T1—T5 对应表 |
 | D2 | 系统与数据架构设计 | 设计文档第 6、9 节；`missions/`、`knowledge/`、`reviews/`、`experiment_plans/` 等模块 | 五阶段 Mission 是聚合主线，专业模块保持边界；迁移 `0010—0018` 为单一连续链 |
-| D3 | RAG：解析、切分、向量、关键词、引用片段 | `research/ingest.py`、`knowledge/indexing.py`、`knowledge/service.py`、Mission 文献阶段 | PostgreSQL FTS + pgvector HNSW 混合召回；默认 384 维确定性 hashing embedding 可离线复现；结果带 paper/section/chunk 定位 |
+| D3 | RAG：解析、切分、向量、关键词、引用片段 | `research/ingest.py`、`knowledge/indexing.py`、`knowledge/service.py`、Mission 文献阶段；实现细节见 `BLOCK_A_RAG_DELIVERY_ZH.md` | PostgreSQL FTS + pgvector HNSW 混合召回，RRF 融合（v2）；双 embedding profile 统一 1024 维：百炼 text-embedding-v4（在线）+ 确定性 hashing（离线 CI 可复现）；结果带 paper/section/chunk 定位与 match_reasons |
 | D4 | 大模型提示词与结构化输出 | `agents/runtime/*_agent.py` 与 `agents/llm/mock.py` | 阅读卡、章节综述、实验方案、SQL、引用均使用结构化 schema；综述/基线证据经过 UUID 与原文引句白名单校验 |
 | D5 | 多类专项 Agent | AgentType 与五个专项 runtime；主题聚类为确定性服务 | 每种产物有真实运行入口、AgentRun、持久化输出和人工复核状态，不只是菜单名称 |
 | D6 | 研究前端 | `features/missions/`、Reading Room、Research Inbox、Management Workspace | 主题到实验方案的主线及所有教师要求入口已可见；中英文主界面、加载/空/错误/冲突状态沿用现有设计系统 |

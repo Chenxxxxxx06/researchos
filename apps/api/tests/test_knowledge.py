@@ -5,12 +5,15 @@ from __future__ import annotations
 import uuid
 
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from researchos.agents.llm.mock import MockLLMProvider
 from researchos.agents.runtime.runtime import AgentRuntime
 from researchos.identity.models import User
+from researchos.knowledge.indexing import ensure_project_chunks
+from researchos.knowledge.models import PaperChunk
+from researchos.knowledge.profiles import get_active_profile
 from researchos.research.enums import PaperIngestStatus, PaperSectionKind
 from researchos.research.models import Paper, PaperSection
 
@@ -85,8 +88,8 @@ async def test_mission_knowledge_end_to_end(
         headers=csrf_headers(client),
     )
     assert search.status_code == 200
-    assert search.json()["mode"] == "hybrid-vector-keyword-v1"
-    assert search.json()["embedding_model"] == "hashing-384-v1"
+    assert search.json()["mode"] == "hybrid-vector-keyword-v2"
+    assert search.json()["embedding_model"] == "hashing-1024-v2"
     assert search.json()["hits"][0]["section_id"] == str(section.id)
 
     clustered = await client.post(
@@ -150,3 +153,102 @@ async def test_mission_knowledge_end_to_end(
         f"{base}/papers/{paper.id}/notes", params={"mission_id": mission["id"]}
     )
     assert notes.json()[0]["section_id"] == str(section.id)
+
+
+async def test_ensure_project_chunks_rebuilds_on_profile_mismatch(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    project, _, paper, _ = await _setup(client, db_session)
+    project_id = uuid.UUID(project["id"])
+    profile = get_active_profile()
+
+    # First pass indexes the paper under the active profile.
+    papers, chunks = await ensure_project_chunks(db_session, project_id)
+    assert papers == 1 and chunks >= 1
+    stored = list((await db_session.execute(select(PaperChunk))).scalars().all())
+    assert stored
+    assert all(chunk.embedding_model == profile.name for chunk in stored)
+    assert all(len(chunk.embedding) == profile.dimensions for chunk in stored)
+    original_ids = {chunk.id for chunk in stored}
+
+    # Up-to-date chunks are left alone.
+    assert await ensure_project_chunks(db_session, project_id) == (0, 0)
+
+    # Simulate chunks built under a previous profile: they must be rebuilt.
+    await db_session.execute(
+        update(PaperChunk)
+        .where(PaperChunk.paper_id == paper.id)
+        .values(embedding_model="hashing-384-v1")
+    )
+    await db_session.commit()
+    papers_again, _ = await ensure_project_chunks(db_session, project_id)
+    assert papers_again == 1
+    rebuilt = list((await db_session.execute(select(PaperChunk))).scalars().all())
+    assert all(chunk.embedding_model == profile.name for chunk in rebuilt)
+    assert original_ids.isdisjoint(chunk.id for chunk in rebuilt)
+
+
+async def test_note_update_optimistic_lock(client: AsyncClient, db_session: AsyncSession) -> None:
+    project, mission, paper, section = await _setup(client, db_session)
+    base = f"/projects/{project['id']}"
+
+    created = await client.post(
+        f"{base}/papers/{paper.id}/notes",
+        json={
+            "mission_id": mission["id"],
+            "section_id": str(section.id),
+            "quote": "epistemic uncertainty",
+            "content": "Initial note.",
+            "tags": ["method"],
+        },
+        headers=csrf_headers(client),
+    )
+    assert created.status_code == 201
+    note = created.json()
+    assert note["version"] == 1
+
+    updated = await client.patch(
+        f"{base}/notes/{note['id']}",
+        json={"expected_version": 1, "content": "Revised note.", "tags": ["method", "todo"]},
+        headers=csrf_headers(client),
+    )
+    assert updated.status_code == 200
+    assert updated.json()["version"] == 2
+    assert updated.json()["content"] == "Revised note."
+
+    # A stale expected_version must be rejected with a 409 conflict.
+    conflict = await client.patch(
+        f"{base}/notes/{note['id']}",
+        json={"expected_version": 1, "content": "Stale write."},
+        headers=csrf_headers(client),
+    )
+    assert conflict.status_code == 409
+    assert conflict.json()["error"]["code"] == "reading_note_version_conflict"
+
+    # The rejected write must not have landed.
+    notes = await client.get(f"{base}/papers/{paper.id}/notes")
+    assert notes.json()[0]["content"] == "Revised note."
+    assert notes.json()[0]["version"] == 2
+
+
+async def test_note_delete_lifecycle(client: AsyncClient, db_session: AsyncSession) -> None:
+    project, _, paper, _ = await _setup(client, db_session)
+    base = f"/projects/{project['id']}"
+
+    created = await client.post(
+        f"{base}/papers/{paper.id}/notes",
+        json={"quote": "calibration loss", "content": "To be deleted."},
+        headers=csrf_headers(client),
+    )
+    assert created.status_code == 201
+    note_id = created.json()["id"]
+
+    deleted = await client.delete(f"{base}/notes/{note_id}", headers=csrf_headers(client))
+    assert deleted.status_code == 204
+
+    notes = await client.get(f"{base}/papers/{paper.id}/notes")
+    assert notes.json() == []
+
+    # Deleting twice (or patching a gone note) is a 404.
+    again = await client.delete(f"{base}/notes/{note_id}", headers=csrf_headers(client))
+    assert again.status_code == 404
