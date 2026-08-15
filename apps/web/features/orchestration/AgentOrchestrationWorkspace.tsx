@@ -2,10 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  AlertTriangle,
-  Bot,
+  Activity,
   Check,
-  CheckCircle2,
   Clock3,
   FileCheck2,
   GitFork,
@@ -13,14 +11,17 @@ import {
   Play,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import { Badge, type BadgeProps } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { listMissions } from '@/lib/api/missions';
 import {
   bootstrapOrchestrationGraph,
@@ -30,43 +31,20 @@ import {
   tickOrchestration,
   type ApprovalGate,
   type MissionTask,
-  type MissionTaskStatus,
   type OrchestrationGraph,
 } from '@/lib/api/orchestration';
 import { cn } from '@/lib/utils';
 
+import { MissionGraph, TASK_STATUS } from './MissionGraph';
 import { ResearchLoopWorkbench } from './ResearchLoopWorkbench';
 
-const LANES: Array<{ title: string; keys: string[] }> = [
-  {
-    title: 'EVIDENCE & DIRECTION',
-    keys: ['scope', 'discover', 'read', 'synthesize', 'gap', 'critic', 'direction'],
-  },
-  {
-    title: 'REPOSITORY & BUILD',
-    keys: ['repository', 'baseline', 'coding', 'experiment_plan'],
-  },
-  { title: 'EXPERIMENT & ANALYSIS', keys: ['experiment_run', 'reproduce', 'analyze'] },
-  { title: 'WRITE & RELEASE', keys: ['write', 'review', 'release'] },
-];
-
-const STATUS: Record<MissionTaskStatus, { label: string; variant: BadgeProps['variant'] }> = {
-  draft: { label: 'Blocked', variant: 'neutral' },
-  ready: { label: 'Ready', variant: 'info' },
-  leased: { label: 'Leased', variant: 'accent' },
-  running: { label: 'Running', variant: 'accent' },
-  artifact_ready: { label: 'Artifact ready', variant: 'info' },
-  waiting_approval: { label: 'Approval', variant: 'warn' },
-  completed: { label: 'Completed', variant: 'success' },
-  retryable_failed: { label: 'Retry queued', variant: 'warn' },
-  terminal_failed: { label: 'Failed', variant: 'danger' },
-  cancelled: { label: 'Cancelled', variant: 'outline' },
-};
+type InspectorTab = 'task' | 'gates' | 'artifacts' | 'events';
 
 export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }) {
   const queryClient = useQueryClient();
   const [missionId, setMissionId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('task');
   const [message, setMessage] = useState('');
   const [contextText, setContextText] = useState('{}');
   const [contextError, setContextError] = useState<string | null>(null);
@@ -93,6 +71,9 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
 
   const selectedTask = graph.data?.tasks.find((task) => task.id === selectedTaskId) ?? null;
   const selectedMission = missions.data?.items.find((mission) => mission.id === missionId);
+  const completed = graph.data?.counts.completed ?? 0;
+  const taskCount = graph.data?.tasks.length ?? 0;
+  const progress = taskCount ? Math.round((completed / taskCount) * 100) : 0;
 
   const invalidate = () =>
     queryClient.invalidateQueries({
@@ -134,9 +115,10 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
 
   const openTask = (task: MissionTask) => {
     setSelectedTaskId(task.id);
+    setInspectorTab('task');
     setMessage(
       `Execute "${task.title}" for mission "${selectedMission?.topic ?? ''}". ` +
-        'Inspect existing artifacts first, satisfy the task acceptance criteria, and return only verifiable outputs.',
+        'Inspect existing artifacts first, satisfy the acceptance criteria, and return only verifiable outputs.',
     );
     setContextText(JSON.stringify(task.input_json, null, 2));
     setContextError(null);
@@ -170,48 +152,81 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
   }
 
   return (
-    <div className="-m-6 min-h-[calc(100vh-3.5rem)] bg-bg lg:-m-8">
-      <header className="border-b border-border bg-surface px-6 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="flex items-center gap-2 text-lg font-semibold text-text">
-              <Network className="h-5 w-5 text-accent" /> Mission Control
-            </h1>
-            <p className="mt-1 truncate text-xs text-muted">
-              {selectedMission?.objective || selectedMission?.topic}
-            </p>
+    <div className="-m-6 min-h-[calc(100vh-3.5rem)] overflow-x-hidden bg-bg lg:-m-8">
+      <header className="mission-grid border-b border-border px-5 py-5 sm:px-7 sm:py-6">
+        <div className="mx-auto max-w-[112rem]">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 max-w-3xl">
+              <div className="flex items-center gap-2 font-mono text-[10px] uppercase text-muted">
+                <Network className="h-3.5 w-3.5 text-accent" /> Autonomous research system
+                <span className="h-1 w-1 rounded-full bg-success" /> live graph
+              </div>
+              <h1 className="mt-2 text-xl font-semibold text-text sm:text-2xl">Mission Control</h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+                {selectedMission?.objective || selectedMission?.topic}
+              </p>
+            </div>
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <label className="min-w-0 flex-1 sm:w-72 sm:flex-none">
+                <span className="sr-only">Mission</span>
+                <select
+                  value={missionId ?? ''}
+                  onChange={(event) => {
+                    setMissionId(event.target.value);
+                    setSelectedTaskId(null);
+                    setInspectorTab('task');
+                  }}
+                  className="h-9 w-full rounded-md border border-border-strong bg-surface px-3 text-xs text-text shadow-elev1"
+                >
+                  {missions.data.items.map((mission) => (
+                    <option key={mission.id} value={mission.id}>
+                      {mission.topic}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={tick.isPending}
+                disabled={!graph.data?.tasks.length}
+                onClick={() => tick.mutate()}
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Reconcile
+              </Button>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={missionId ?? ''}
-              onChange={(event) => {
-                setMissionId(event.target.value);
-                setSelectedTaskId(null);
-              }}
-              className="h-8 max-w-72 rounded-md border border-border-strong bg-bg px-2 text-xs text-text"
-            >
-              {missions.data.items.map((mission) => (
-                <option key={mission.id} value={mission.id}>
-                  {mission.topic}
-                </option>
-              ))}
-            </select>
-            <Button
-              size="sm"
-              variant="secondary"
-              loading={tick.isPending}
-              disabled={!graph.data?.tasks.length}
-              onClick={() => tick.mutate()}
-            >
-              <RefreshCw className="h-3.5 w-3.5" /> Reconcile
-            </Button>
-          </div>
+
+          {taskCount > 0 && (
+            <div className="mt-6 grid gap-4 border-t border-border pt-4 lg:grid-cols-[minmax(15rem,1fr)_repeat(4,minmax(6rem,8rem))]">
+              <div className="min-w-0">
+                <div className="flex items-center justify-between text-[11px] text-muted">
+                  <span>Mission completion</span>
+                  <span className="font-mono tabular-nums text-text">{progress}%</span>
+                </div>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-sm bg-surface-2">
+                  <div
+                    className="h-full bg-accent transition-[width] duration-500"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+              <Metric label="Ready" value={graph.data?.counts.ready ?? 0} tone="info" />
+              <Metric
+                label="Running"
+                value={(graph.data?.counts.running ?? 0) + (graph.data?.counts.leased ?? 0)}
+                tone="accent"
+              />
+              <Metric label="Gates" value={graph.data?.counts.waiting_approval ?? 0} tone="warn" />
+              <Metric label="Artifacts" value={graph.data?.artifacts.length ?? 0} tone="success" />
+            </div>
+          )}
         </div>
       </header>
 
       {!graph.isLoading && graph.data?.tasks.length === 0 && (
         <section className="border-b border-border bg-info-bg px-6 py-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="mx-auto flex max-w-[112rem] flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-info">该 Mission 尚未创建内部任务图</p>
               <p className="mt-1 text-xs text-muted">17 个节点 · 16 条依赖 · 6 个强制审批 Gate</p>
@@ -223,28 +238,10 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
         </section>
       )}
 
-      {graph.data && graph.data.tasks.length > 0 && (
-        <>
-          <section className="grid grid-cols-2 border-b border-border bg-surface md:grid-cols-5">
-            <Metric label="TOTAL" value={graph.data.tasks.length} />
-            <Metric label="READY" value={graph.data.counts.ready ?? 0} tone="info" />
-            <Metric
-              label="RUNNING"
-              value={(graph.data.counts.running ?? 0) + (graph.data.counts.leased ?? 0)}
-              tone="accent"
-            />
-            <Metric
-              label="APPROVAL"
-              value={graph.data.counts.waiting_approval ?? 0}
-              tone="warn"
-            />
-            <Metric
-              label="ARTIFACTS"
-              value={graph.data.artifacts.length}
-              tone="success"
-            />
-          </section>
+      {graph.isLoading && <Skeleton className="m-6 h-[36rem] lg:m-8" />}
 
+      {graph.data && graph.data.tasks.length > 0 && (
+        <div className="mx-auto max-w-[112rem]">
           {missionId && (
             <ResearchLoopWorkbench
               projectId={projectId}
@@ -256,186 +253,34 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
             />
           )}
 
-          <main className="grid min-h-[40rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div className="min-w-0 border-r border-border">
-              {LANES.map((lane) => {
-                const tasks = lane.keys
-                  .map((key) => graph.data.tasks.find((task) => task.task_key === key))
-                  .filter((task): task is MissionTask => Boolean(task));
-                return (
-                  <section key={lane.title} className="border-b border-border px-5 py-4">
-                    <h2 className="text-[10px] font-semibold tracking-[0.16em] text-faint">
-                      {lane.title}
-                    </h2>
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">
-                      {tasks.map((task) => (
-                        <TaskTile
-                          key={task.id}
-                          task={task}
-                          dependencies={dependencies.get(task.id) ?? []}
-                          artifactCount={
-                            graph.data.artifacts.filter((item) => item.task_id === task.id).length
-                          }
-                          selected={selectedTaskId === task.id}
-                          onClick={() => openTask(task)}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                );
-              })}
-            </div>
-
-            <aside className="bg-surface">
-              <section className="border-b border-border p-4">
-                <h2 className="flex items-center gap-2 text-xs font-semibold text-text">
-                  <ShieldCheck className="h-4 w-4 text-warn" /> Approval Gates
-                </h2>
-                <div className="mt-3 space-y-2">
-                  {graph.data.gates.map((gate) => {
-                    const task = graph.data.tasks.find((item) => item.id === gate.task_id);
-                    return (
-                      <div key={gate.id} className="border-b border-border pb-2 last:border-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[11px] font-medium text-text">
-                            {gate.gate_kind}
-                          </span>
-                          <Badge
-                            size="sm"
-                            variant={
-                              gate.status === 'approved'
-                                ? 'success'
-                                : gate.status === 'rejected'
-                                  ? 'danger'
-                                  : 'warn'
-                            }
-                          >
-                            {gate.status}
-                          </Badge>
-                        </div>
-                        <p className="mt-0.5 truncate text-[10px] text-faint">{task?.title}</p>
-                        {gate.status === 'pending' && task?.status === 'waiting_approval' && (
-                          <div className="mt-2 flex gap-1">
-                            <Button
-                              size="sm"
-                              className="h-6 px-2 text-[10px]"
-                              loading={
-                                gateDecision.isPending && gateDecision.variables?.gate.id === gate.id
-                              }
-                              onClick={() => gateDecision.mutate({ gate, decision: 'approve' })}
-                            >
-                              <Check className="h-3 w-3" /> Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-2 text-[10px] text-danger"
-                              onClick={() => gateDecision.mutate({ gate, decision: 'reject' })}
-                            >
-                              <X className="h-3 w-3" /> Reject
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                {gateDecision.error instanceof Error && (
-                  <p className="mt-2 text-[10px] text-danger">{gateDecision.error.message}</p>
-                )}
-              </section>
-
-              <section className="p-4">
-                <h2 className="flex items-center gap-2 text-xs font-semibold text-text">
-                  <FileCheck2 className="h-4 w-4 text-success" /> Artifact Registry
-                </h2>
-                <div className="mt-3 space-y-2">
-                  {graph.data.artifacts.slice(0, 12).map((artifact) => (
-                    <div
-                      key={artifact.id}
-                      className="min-w-0 border-b border-border pb-2 text-[10px] last:border-0"
-                    >
-                      <p className="truncate font-medium text-text">
-                        {artifact.schema_name}/v{artifact.schema_version}
-                      </p>
-                      <p className="mt-0.5 truncate font-mono text-faint">
-                        {artifact.content_hash.slice(0, 16)}
-                      </p>
-                    </div>
-                  ))}
-                  {graph.data.artifacts.length === 0 && (
-                    <p className="text-[10px] text-faint">No artifacts</p>
-                  )}
-                </div>
-              </section>
-              <section className="border-t border-border p-4">
-                <h2 className="flex items-center gap-2 text-xs font-semibold text-text">
-                  <Clock3 className="h-4 w-4 text-info" /> Task Events
-                </h2>
-                <div className="mt-3 space-y-2">
-                  {graph.data.events.slice(0, 10).map((event) => (
-                    <div key={event.id} className="border-b border-border pb-2 text-[10px] last:border-0">
-                      <p className="truncate font-medium text-text">{event.event_type}</p>
-                      <p className="mt-0.5 text-faint">
-                        {new Date(event.created_at).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </aside>
-          </main>
-        </>
-      )}
-
-      {selectedTask && (
-        <section className="sticky bottom-0 border-t border-border bg-overlay px-5 py-4 shadow-elev3">
-          <div className="grid gap-3 xl:grid-cols-[minmax(16rem,0.7fr)_minmax(20rem,1fr)_minmax(18rem,0.8fr)_auto]">
-            <div>
-              <p className="text-xs font-semibold text-text">{selectedTask.title}</p>
-              <p className="mt-1 font-mono text-[10px] text-faint">
-                {selectedTask.idempotency_key}
-              </p>
-              {selectedTask.agent_run_id && (
-                <p className="mt-1 text-[10px] text-accent">
-                  Run {selectedTask.agent_run_id.slice(0, 8)}
-                </p>
-              )}
-            </div>
-            <textarea
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              rows={3}
-              className="w-full rounded-md border border-border-strong bg-bg p-2 text-[11px] text-text"
-              aria-label="Agent task message"
-            />
-            <div>
-              <textarea
-                value={contextText}
-                onChange={(event) => setContextText(event.target.value)}
-                rows={3}
-                className="w-full rounded-md border border-border-strong bg-bg p-2 font-mono text-[10px] text-text"
-                aria-label="Agent context JSON"
+          <main className="grid min-h-[44rem] xl:grid-cols-[minmax(0,1fr)_23rem]">
+            <div className="min-w-0 border-b border-border xl:border-b-0 xl:border-r">
+              <MissionGraph
+                tasks={graph.data.tasks}
+                dependencies={dependencies}
+                artifacts={graph.data.artifacts}
+                selectedTaskId={selectedTaskId}
+                onSelect={openTask}
               />
-              {contextError && <p className="mt-1 text-[10px] text-danger">{contextError}</p>}
             </div>
-            <Button
-              className="self-end"
-              loading={dispatch.isPending}
-              disabled={
-                selectedTask.status !== 'ready' ||
-                !selectedTask.agent_type ||
-                !message.trim()
-              }
-              onClick={submitDispatch}
-            >
-              <Play className="h-4 w-4" /> Dispatch
-            </Button>
-          </div>
-          {dispatch.error instanceof Error && (
-            <p className="mt-2 text-[10px] text-danger">{dispatch.error.message}</p>
-          )}
-        </section>
+
+            <Inspector
+              graph={graph.data}
+              selectedTask={selectedTask}
+              tab={inspectorTab}
+              onTabChange={(value) => setInspectorTab(value as InspectorTab)}
+              message={message}
+              contextText={contextText}
+              contextError={contextError}
+              onMessageChange={setMessage}
+              onContextChange={setContextText}
+              onDispatch={submitDispatch}
+              dispatchPending={dispatch.isPending}
+              dispatchError={dispatch.error instanceof Error ? dispatch.error.message : null}
+              gateDecision={gateDecision}
+            />
+          </main>
+        </div>
       )}
     </div>
   );
@@ -444,81 +289,301 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
 function Metric({
   label,
   value,
-  tone = 'neutral',
+  tone,
 }: {
   label: string;
   value: number;
-  tone?: 'neutral' | 'info' | 'accent' | 'warn' | 'success';
+  tone: 'info' | 'accent' | 'warn' | 'success';
 }) {
   const colors = {
-    neutral: 'text-text',
     info: 'text-info',
     accent: 'text-accent',
     warn: 'text-warn',
     success: 'text-success',
   };
   return (
-    <div className="border-r border-border px-5 py-3 last:border-r-0">
-      <p className="text-[9px] font-semibold tracking-[0.14em] text-faint">{label}</p>
-      <p className={cn('mt-1 text-xl font-semibold', colors[tone])}>{value}</p>
+    <div className="border-l border-border pl-4">
+      <p className="text-[9px] font-semibold uppercase text-faint">{label}</p>
+      <p className={cn('mt-1 font-mono text-lg font-semibold tabular-nums', colors[tone])}>{value}</p>
     </div>
   );
 }
 
-function TaskTile({
-  task,
-  dependencies,
-  artifactCount,
-  selected,
-  onClick,
-}: {
-  task: MissionTask;
-  dependencies: string[];
-  artifactCount: number;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  const Icon =
-    task.status === 'completed'
-      ? CheckCircle2
-      : task.status === 'terminal_failed'
-        ? AlertTriangle
-        : task.status === 'waiting_approval'
-          ? ShieldCheck
-          : task.status === 'running'
-            ? Bot
-            : Clock3;
-  const status = STATUS[task.status];
+interface InspectorProps {
+  graph: OrchestrationGraph;
+  selectedTask: MissionTask | null;
+  tab: InspectorTab;
+  onTabChange: (value: string) => void;
+  message: string;
+  contextText: string;
+  contextError: string | null;
+  onMessageChange: (value: string) => void;
+  onContextChange: (value: string) => void;
+  onDispatch: () => void;
+  dispatchPending: boolean;
+  dispatchError: string | null;
+  gateDecision: ReturnType<typeof useMutation<
+    MissionTask,
+    Error,
+    { gate: ApprovalGate; decision: 'approve' | 'reject' }
+  >>;
+}
+
+function Inspector({
+  graph,
+  selectedTask,
+  tab,
+  onTabChange,
+  message,
+  contextText,
+  contextError,
+  onMessageChange,
+  onContextChange,
+  onDispatch,
+  dispatchPending,
+  dispatchError,
+  gateDecision,
+}: InspectorProps) {
+  const taskNames = new Map(graph.tasks.map((task) => [task.id, task.title]));
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'min-h-28 rounded-md border bg-surface p-3 text-left transition-colors',
-        selected
-          ? 'border-accent ring-1 ring-accent/30'
-          : 'border-border hover:border-border-strong',
-      )}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <Icon className="h-4 w-4 shrink-0 text-muted" />
-        <Badge size="sm" variant={status.variant}>
-          {status.label}
-        </Badge>
-      </div>
-      <p className="mt-2 text-xs font-medium leading-4 text-text">{task.title}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] text-faint">
-        <span>{task.role}</span>
-        <span>
-          {task.attempt}/{task.max_attempts}
-        </span>
-        {artifactCount > 0 && <span>{artifactCount} artifact</span>}
-      </div>
-      {dependencies.length > 0 && (
-        <p className="mt-1 truncate font-mono text-[9px] text-faint">
-          {'<-'} {dependencies.join(', ')}
-        </p>
-      )}
-    </button>
+    <aside className="min-w-0 bg-surface xl:min-h-full" aria-label="Mission inspector">
+      <Tabs value={tab} onValueChange={onTabChange}>
+        <TabsList className="grid grid-cols-4 overflow-x-auto px-2 pt-2">
+          <InspectorTab value="task" icon={Sparkles} label="Task" />
+          <InspectorTab value="gates" icon={ShieldCheck} label="Gates" count={graph.gates.length} />
+          <InspectorTab
+            value="artifacts"
+            icon={FileCheck2}
+            label="Files"
+            count={graph.artifacts.length}
+          />
+          <InspectorTab value="events" icon={Activity} label="Events" count={graph.events.length} />
+        </TabsList>
+
+        <TabsContent value="task" className="p-4">
+          {!selectedTask && (
+            <div className="grid min-h-72 place-items-center px-5 text-center">
+              <div>
+                <Sparkles className="mx-auto h-5 w-5 text-faint" />
+                <p className="mt-3 text-xs font-semibold text-text">Select an Agent task</p>
+                <p className="mt-1 text-[11px] leading-5 text-muted">
+                  Inspect its contract, edit the instruction and dispatch it from here.
+                </p>
+              </div>
+            </div>
+          )}
+          {selectedTask && (
+            <div>
+              <div className="flex items-start justify-between gap-3 border-b border-border pb-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold leading-5 text-text">{selectedTask.title}</p>
+                  <p className="mt-1 truncate font-mono text-[9px] text-faint">
+                    {selectedTask.idempotency_key}
+                  </p>
+                </div>
+                <Badge size="sm" variant={TASK_STATUS[selectedTask.status].variant}>
+                  {TASK_STATUS[selectedTask.status].label}
+                </Badge>
+              </div>
+
+              <dl className="grid grid-cols-2 gap-x-3 gap-y-3 border-b border-border py-4 text-[10px]">
+                <Detail label="Agent" value={selectedTask.agent_type ?? 'Unassigned'} />
+                <Detail label="Role" value={selectedTask.role} />
+                <Detail label="Priority" value={String(selectedTask.priority)} />
+                <Detail label="Attempt" value={`${selectedTask.attempt}/${selectedTask.max_attempts}`} />
+              </dl>
+
+              {selectedTask.acceptance_json.length > 0 && (
+                <section className="border-b border-border py-4">
+                  <h3 className="text-[10px] font-semibold uppercase text-faint">Acceptance</h3>
+                  <ul className="mt-2 space-y-2">
+                    {selectedTask.acceptance_json.map((criterion) => (
+                      <li key={criterion} className="flex gap-2 text-[11px] leading-4 text-muted">
+                        <Check className="mt-0.5 h-3 w-3 shrink-0 text-success" /> {criterion}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              <label className="mt-4 block">
+                <span className="mb-1.5 block text-[10px] font-semibold uppercase text-faint">
+                  Instruction
+                </span>
+                <Textarea
+                  value={message}
+                  onChange={(event) => onMessageChange(event.target.value)}
+                  rows={5}
+                  className="resize-y text-[11px] leading-5"
+                  aria-label="Agent task instruction"
+                />
+              </label>
+              <label className="mt-3 block">
+                <span className="mb-1.5 block text-[10px] font-semibold uppercase text-faint">
+                  Context JSON
+                </span>
+                <Textarea
+                  value={contextText}
+                  onChange={(event) => onContextChange(event.target.value)}
+                  rows={6}
+                  className="resize-y font-mono text-[10px] leading-4"
+                  aria-invalid={Boolean(contextError)}
+                  aria-label="Agent context JSON"
+                />
+              </label>
+              {contextError && <p className="mt-1 text-[10px] text-danger">{contextError}</p>}
+              <Button
+                className="mt-3 w-full"
+                size="sm"
+                loading={dispatchPending}
+                disabled={
+                  selectedTask.status !== 'ready' || !selectedTask.agent_type || !message.trim()
+                }
+                onClick={onDispatch}
+              >
+                <Play className="h-3.5 w-3.5" /> Dispatch agent
+              </Button>
+              {dispatchError && <p className="mt-2 text-[10px] text-danger">{dispatchError}</p>}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="gates" className="space-y-2 p-3">
+          {graph.gates.map((gate) => {
+            const task = graph.tasks.find((item) => item.id === gate.task_id);
+            const actionable = gate.status === 'pending' && task?.status === 'waiting_approval';
+            return (
+              <article key={gate.id} className="rounded-md border border-border bg-bg p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-text">{gate.gate_kind}</p>
+                    <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-muted">{task?.title}</p>
+                  </div>
+                  <Badge
+                    size="sm"
+                    variant={
+                      gate.status === 'approved'
+                        ? 'success'
+                        : gate.status === 'rejected'
+                          ? 'danger'
+                          : 'warn'
+                    }
+                  >
+                    {gate.status}
+                  </Badge>
+                </div>
+                {actionable && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3">
+                    <Button
+                      size="sm"
+                      loading={gateDecision.isPending && gateDecision.variables?.gate.id === gate.id}
+                      onClick={() => gateDecision.mutate({ gate, decision: 'approve' })}
+                    >
+                      <Check className="h-3.5 w-3.5" /> Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-danger"
+                      onClick={() => gateDecision.mutate({ gate, decision: 'reject' })}
+                    >
+                      <X className="h-3.5 w-3.5" /> Reject
+                    </Button>
+                  </div>
+                )}
+              </article>
+            );
+          })}
+          {graph.gates.length === 0 && <InspectorEmpty label="No approval gates" />}
+          {gateDecision.error instanceof Error && (
+            <p className="text-[10px] text-danger">{gateDecision.error.message}</p>
+          )}
+        </TabsContent>
+
+        <TabsContent value="artifacts" className="space-y-2 p-3">
+          {graph.artifacts.map((artifact) => (
+            <article key={artifact.id} className="rounded-md border border-border bg-bg p-3">
+              <div className="flex items-start gap-2">
+                <FileCheck2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-semibold text-text">
+                    {artifact.schema_name}/v{artifact.schema_version}
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-muted">
+                    {taskNames.get(artifact.task_id) ?? 'Unknown producer'}
+                  </p>
+                  <p className="mt-2 break-all font-mono text-[9px] leading-4 text-faint">
+                    sha256:{artifact.content_hash}
+                  </p>
+                </div>
+              </div>
+            </article>
+          ))}
+          {graph.artifacts.length === 0 && <InspectorEmpty label="No artifacts yet" />}
+        </TabsContent>
+
+        <TabsContent value="events" className="p-4">
+          <ol className="relative space-y-0 before:absolute before:bottom-3 before:left-[5px] before:top-3 before:w-px before:bg-border-strong">
+            {graph.events.map((event) => (
+              <li key={event.id} className="relative grid grid-cols-[0.75rem_minmax(0,1fr)] gap-3 pb-5 last:pb-0">
+                <span className="relative z-10 mt-1 h-2.5 w-2.5 rounded-full border-2 border-surface bg-accent" />
+                <div className="min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="truncate text-[11px] font-semibold text-text">{event.event_type}</p>
+                    <time className="shrink-0 font-mono text-[9px] text-faint">
+                      {new Date(event.created_at).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </time>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-muted">
+                    {event.message || taskNames.get(event.task_id) || `event #${event.seq}`}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          {graph.events.length === 0 && <InspectorEmpty label="No task events" />}
+        </TabsContent>
+      </Tabs>
+    </aside>
+  );
+}
+
+function InspectorTab({
+  value,
+  icon: Icon,
+  label,
+  count,
+}: {
+  value: InspectorTab;
+  icon: typeof Clock3;
+  label: string;
+  count?: number;
+}) {
+  return (
+    <TabsTrigger value={value} className="min-w-0 px-1.5 text-[10px] sm:px-2">
+      <span className="inline-flex min-w-0 items-center gap-1">
+        <Icon className="h-3 w-3 shrink-0" />
+        <span className="truncate">{label}</span>
+        {count !== undefined && <span className="font-mono text-faint">{count}</span>}
+      </span>
+    </TabsTrigger>
+  );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-faint">{label}</dt>
+      <dd className="mt-0.5 truncate font-medium text-text">{value}</dd>
+    </div>
+  );
+}
+
+function InspectorEmpty({ label }: { label: string }) {
+  return (
+    <div className="grid min-h-48 place-items-center text-center text-[11px] text-faint">{label}</div>
   );
 }
