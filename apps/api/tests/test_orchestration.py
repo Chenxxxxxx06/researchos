@@ -1,5 +1,12 @@
 """Durable DAG bootstrap, gate, lease, and artifact flow."""
 
+import uuid
+
+from sqlalchemy import select
+
+from researchos.orchestration.enums import MissionTaskStatus
+from researchos.orchestration.models import MissionTask
+
 from .helpers import csrf_headers, register
 
 
@@ -94,3 +101,110 @@ async def test_bootstrap_gate_lease_submit_and_promote(client) -> None:
     )
     assert duplicate.status_code == 201
     assert len(duplicate.json()["tasks"]) == 17
+
+
+async def test_research_loop_keeps_candidate_and_unlocks_downstream(client, db_session) -> None:
+    project_id, mission_id = await _project_and_mission(client)
+    headers = csrf_headers(client)
+    base = f"/projects/{project_id}/orchestration"
+    await client.post(f"{base}/missions/{mission_id}/bootstrap", headers=headers)
+    task = await db_session.scalar(
+        select(MissionTask).where(
+            MissionTask.mission_id == uuid.UUID(mission_id),
+            MissionTask.task_key == "experiment_run",
+        )
+    )
+    assert task is not None
+    task.status = MissionTaskStatus.READY
+    await db_session.commit()
+
+    experiment = (
+        await client.post(
+            f"/projects/{project_id}/experiments",
+            json={"name": "Bounded optimizer"},
+            headers=headers,
+        )
+    ).json()
+    baseline = (
+        await client.post(
+            f"/projects/{project_id}/experiments/{experiment['id']}/runs",
+            json={"name": "baseline", "status": "completed", "git_commit": "a" * 40},
+            headers=headers,
+        )
+    ).json()
+    await client.post(
+        f"/projects/{project_id}/experiment-runs/{baseline['id']}/metrics",
+        json={"points": [{"name": "val_loss", "step": 1, "value": 1.0}]},
+        headers=headers,
+    )
+    created = await client.post(
+        f"{base}/missions/{mission_id}/research-loops",
+        json={
+            "name": "Loss search",
+            "metric_name": "val_loss",
+            "metric_direction": "min",
+            "baseline_run_id": baseline["id"],
+            "fixed_budget_seconds": 300,
+            "max_iterations": 1,
+            "patience": 1,
+            "min_delta": 0.01,
+            "editable_scopes": ["src"],
+            "protected_scopes": ["src/eval.py"],
+        },
+        headers=headers,
+    )
+    assert created.status_code == 201
+    loop = created.json()
+    proposed = await client.post(
+        f"{base}/research-loops/{loop['id']}/iterations",
+        json={
+            "hypothesis": "A smaller learning rate will stabilize validation loss.",
+            "component": "optimizer.learning_rate",
+            "expected_effect": "Reduce final validation loss without extra complexity.",
+            "changed_paths": ["src/train.py"],
+        },
+        headers=headers,
+    )
+    assert proposed.status_code == 201
+    iteration = proposed.json()["iterations"][0]
+    candidate = (
+        await client.post(
+            f"/projects/{project_id}/experiments/{experiment['id']}/runs",
+            json={
+                "name": "candidate-1",
+                "status": "completed",
+                "git_commit": "b" * 40,
+                "config": {"research_loop_iteration_id": iteration["id"]},
+            },
+            headers=headers,
+        )
+    ).json()
+    await client.post(
+        f"/projects/{project_id}/experiment-runs/{candidate['id']}/metrics",
+        json={"points": [{"name": "val_loss", "step": 1, "value": 0.9}]},
+        headers=headers,
+    )
+    evaluated = await client.post(
+        f"{base}/research-iterations/{iteration['id']}/evaluate",
+        json={
+            "experiment_run_id": candidate["id"],
+            "complexity_delta": 0,
+            "critic_score": 0.9,
+            "rule_checks": {"reproducible": True, "artifact_integrity": True},
+        },
+        headers=headers,
+    )
+    assert evaluated.status_code == 200
+    result = evaluated.json()
+    assert result["status"] == "completed"
+    assert result["best_run_id"] == candidate["id"]
+    assert result["best_metric_value"] == 0.9
+    assert result["iterations"][0]["status"] == "kept"
+
+    graph = (await client.get(f"{base}/missions/{mission_id}")).json()
+    experiment_task = next(
+        item for item in graph["tasks"] if item["task_key"] == "experiment_run"
+    )
+    reproduce = next(item for item in graph["tasks"] if item["task_key"] == "reproduce")
+    assert experiment_task["status"] == "completed"
+    assert reproduce["status"] == "ready"

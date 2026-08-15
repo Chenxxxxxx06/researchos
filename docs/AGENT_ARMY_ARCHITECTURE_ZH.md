@@ -92,6 +92,10 @@ Coordinator 不是生成内容的 Agent。它只负责：
 - 在失败、超预算、无进展或需要人工决策时暂停；
 - 记录所有状态变化和人工决定。
 
+ResearchOS 的 `experiment_run` 节点不是一次性的“跑个脚本”按钮。它可以进入持久化
+Research Loop，由一组版本化 Iteration 在节点内部执行候选搜索；只有 Loop 收敛或人工
+finalize 后，节点才完成并解锁复现与分析。
+
 ## 5. 端到端研究链路
 
 ```mermaid
@@ -202,6 +206,25 @@ any non-terminal -> cancelled
 在以下情况停止：DAG 完成、重复失败达到上限、连续两轮无新 Artifact、预算达到 90%、证据或
 完整性 gate 失败、用户暂停或取消。
 
+候选实验采用四阶段循环：
+
+```text
+propose one component
+-> apply traceable change
+-> run under fixed budget
+-> evaluate metric + rules + critic
+-> keep | discard | crash
+-> next iteration | finalize best
+```
+
+- 基线和候选必须绑定真实 `ExperimentRun`、Git commit 和原始 metric；
+- 一轮只修改一个声明组件，所有文件必须处于 editable scope 且不能命中 protected scope；
+- 服务端读取主指标并计算 improvement，客户端不能直接提交“提升了”的结论；
+- 规则检查、固定时间预算、变更可追踪性、复杂度预算和 Critic 阈值全部通过才可 keep；
+- 指标不退化且代码更简单时允许作为 simplicity win 保留；
+- discard/crash 不删除，作为后续 Agent 的负结果记忆；
+- 达到 `max_iterations` 或连续无提升 `patience` 后确定性 finalize 当前最佳版本。
+
 ## 10. 模型与上下文策略
 
 - 模型配置属于项目，但每个 Task 固定 `llm_config_id + model + prompt_revision` 快照；
@@ -263,6 +286,9 @@ Patch apply、主指标选择、结论升级、主分支合并、公开发布和
 - 每个任务使用隔离 worktree；
 - Coding 输出 PatchProposal，验证后人工 apply；
 - Experiment Planner 输出不可变 DAG，Runner 记录原始指标，Verifier 重跑关键结果。
+- Alembic `0025` 新增 `research_loops` 与 `research_loop_iterations`，把 baseline、候选变更、
+  Patch、AgentRun、ExperimentRun、commit、主指标、Critic、规则检查和 keep/discard 决策串成
+  不可变实验账本；Loop 完成后自动写入 hashed Artifact 并推进 `reproduce` 下游。
 
 ### P4：Evidence-bound writing
 
@@ -283,3 +309,34 @@ Patch apply、主指标选择、结论升级、主分支合并、公开发布和
 6. 任意文稿主张可追踪到论文或实验 Artifact；
 7. 模型、Prompt、Skill、Tool 版本可从 Run 完整复盘；
 8. 预算耗尽、连续失败、证据不足和用户暂停均能确定性停止。
+
+## 14. 外部架构参考与本项目取舍
+
+### AutoDesign
+
+参考 [Yaxin9Luo/AutoDesign](https://github.com/Yaxin9Luo/AutoDesign) 的 MIT 开源说明与
+README 中的 meta-harness 方法，采用以下思想：
+
+- 内层生成/修订和外层 harness 优化分离；
+- 每轮执行 `rollout -> evaluation -> update proposal -> acceptance`；
+- 一次只更新一个组件；
+- 规则验证器和 Critic 独立；
+- 失败候选保留轨迹，平台期允许 Human-in-the-loop 重定向。
+
+ResearchOS 没有复制其海报生成实现。这里把相同控制原则应用到论文证据、代码补丁和实验
+候选，并使用本项目已有的 MissionTask、PatchProposal、ExperimentRun 和 Artifact 模型。
+
+### autoresearch
+
+参考 [karpathy/autoresearch](https://github.com/karpathy/autoresearch) 的实验协议：固定时间预算、
+单一主指标、baseline first、每轮 commit、`keep/discard/crash` 账本、未提升回退和连续执行。
+
+ResearchOS 不采用无边界的 `LOOP FOREVER`。科研平台还涉及付费算力、第三方仓库、多人共享
+分支和论文结论，因此增加最大迭代数、停滞 patience、权限 scope、复杂度预算、Critic 阈值和
+人工 pause/finalize。连续运行由持久化状态机实现，而不是让一个 Prompt 永不退出。
+
+### 交互设计参考
+
+用户提供的 CSDN 汇总页用于视觉方向调研：后续 Mission Control 采用连续状态过渡、进度连线、
+局部展开、滚动进入和背景层次，但不会把科研控制台改造成展示型落地页。可读性、审计密度、
+键盘操作、reduced-motion 和移动端无溢出仍是硬约束。

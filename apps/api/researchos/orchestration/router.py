@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, status
 
 from researchos.common.deps import CurrentUser, DbSession, require_csrf
 
+from .research_loop_service import ResearchLoopService
 from .schemas import (
     CoordinatorTickResponse,
     DispatchTaskRequest,
@@ -18,6 +19,11 @@ from .schemas import (
     LeaseTaskResponse,
     MissionTaskResponse,
     OrchestrationGraphResponse,
+    ResearchIterationCreateRequest,
+    ResearchIterationEvaluateRequest,
+    ResearchLoopControlRequest,
+    ResearchLoopCreateRequest,
+    ResearchLoopResponse,
     SubmitLeaseRequest,
     TaskLeaseResponse,
 )
@@ -162,3 +168,80 @@ async def decide_approval_gate(
         note=payload.note,
     )
     return MissionTaskResponse.model_validate(task)
+
+
+@router.get(
+    "/missions/{mission_id}/research-loops",
+    response_model=list[ResearchLoopResponse],
+)
+async def list_research_loops(
+    project_id: uuid.UUID,
+    mission_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+) -> list[ResearchLoopResponse]:
+    return await ResearchLoopService(db).list_loops(user, project_id, mission_id)
+
+
+@router.post(
+    "/missions/{mission_id}/research-loops",
+    response_model=ResearchLoopResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_csrf)],
+)
+async def create_research_loop(
+    project_id: uuid.UUID,
+    mission_id: uuid.UUID,
+    payload: ResearchLoopCreateRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> ResearchLoopResponse:
+    return await ResearchLoopService(db).create_loop(user, project_id, mission_id, payload)
+
+
+@router.post(
+    "/research-loops/{loop_id}/iterations",
+    response_model=ResearchLoopResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_csrf)],
+)
+async def create_research_iteration(
+    project_id: uuid.UUID,
+    loop_id: uuid.UUID,
+    payload: ResearchIterationCreateRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> ResearchLoopResponse:
+    return await ResearchLoopService(db).create_iteration(user, project_id, loop_id, payload)
+
+
+@router.post(
+    "/research-iterations/{iteration_id}/evaluate",
+    response_model=ResearchLoopResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def evaluate_research_iteration(
+    project_id: uuid.UUID,
+    iteration_id: uuid.UUID,
+    payload: ResearchIterationEvaluateRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> ResearchLoopResponse:
+    return await ResearchLoopService(db).evaluate_iteration(
+        user, project_id, iteration_id, payload
+    )
+
+
+@router.post(
+    "/research-loops/{loop_id}/control",
+    response_model=ResearchLoopResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def control_research_loop(
+    project_id: uuid.UUID,
+    loop_id: uuid.UUID,
+    payload: ResearchLoopControlRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> ResearchLoopResponse:
+    return await ResearchLoopService(db).control(user, project_id, loop_id, payload)

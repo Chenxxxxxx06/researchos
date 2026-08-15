@@ -46,6 +46,8 @@ from researchos.common.redis import close_redis, get_redis  # noqa: E402
 from researchos.main import create_app  # noqa: E402
 
 _TABLES = [
+    "research_loop_iterations",
+    "research_loops",
     "task_events",
     "approval_gates",
     "task_artifacts",

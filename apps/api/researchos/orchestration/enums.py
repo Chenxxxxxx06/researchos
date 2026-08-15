@@ -28,3 +28,18 @@ class ArtifactVisibility(StrEnum):
     PRIVATE = "private"
     TEAM = "team"
     PUBLISHED = "published"
+
+
+class ResearchLoopStatus(StrEnum):
+    ACTIVE = "active"
+    PAUSED = "paused"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+
+class ResearchIterationStatus(StrEnum):
+    PROPOSED = "proposed"
+    RUNNING = "running"
+    KEPT = "kept"
+    DISCARDED = "discarded"
+    CRASHED = "crashed"

@@ -7,6 +7,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -188,3 +189,95 @@ class TaskEvent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ResearchLoop(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "research_loops"
+    __table_args__ = (
+        Index("ix_research_loops_mission_status", "mission_id", "status"),
+    )
+
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    mission_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("research_missions.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    task_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("mission_tasks.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="active")
+    metric_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    metric_direction: Mapped[str] = mapped_column(String(8), nullable=False)
+    metric_aggregation: Mapped[str] = mapped_column(String(16), nullable=False, default="final")
+    baseline_run_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("experiment_runs.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    best_run_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("experiment_runs.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    baseline_metric_value: Mapped[float] = mapped_column(Float, nullable=False)
+    best_metric_value: Mapped[float] = mapped_column(Float, nullable=False)
+    fixed_budget_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
+    max_iterations: Mapped[int] = mapped_column(Integer, nullable=False)
+    patience: Mapped[int] = mapped_column(Integer, nullable=False)
+    min_delta: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    max_complexity_delta: Mapped[int] = mapped_column(Integer, nullable=False, default=200)
+    critic_threshold: Mapped[float] = mapped_column(Float, nullable=False, default=0.7)
+    current_iteration: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    no_improvement_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    editable_scope_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    protected_scope_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    stop_reason: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+
+
+class ResearchLoopIteration(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "research_loop_iterations"
+    __table_args__ = (
+        UniqueConstraint("loop_id", "iteration_number", name="uq_research_loop_iteration"),
+        Index("ix_research_loop_iterations_status", "loop_id", "status"),
+    )
+
+    loop_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("research_loops.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    mission_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("research_missions.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    task_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("mission_tasks.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    iteration_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="proposed")
+    hypothesis: Mapped[str] = mapped_column(Text, nullable=False)
+    component: Mapped[str] = mapped_column(String(120), nullable=False)
+    expected_effect: Mapped[str] = mapped_column(Text, nullable=False)
+    changed_paths_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    patch_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("patch_proposals.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    agent_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("agent_runs.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    experiment_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("experiment_runs.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    code_commit_sha: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    metric_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    improvement: Mapped[float | None] = mapped_column(Float, nullable=True)
+    complexity_delta: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    critic_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    rule_checks_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    decision_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True
+    )

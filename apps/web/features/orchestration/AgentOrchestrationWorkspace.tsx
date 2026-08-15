@@ -35,6 +35,8 @@ import {
 } from '@/lib/api/orchestration';
 import { cn } from '@/lib/utils';
 
+import { ResearchLoopWorkbench } from './ResearchLoopWorkbench';
+
 const LANES: Array<{ title: string; keys: string[] }> = [
   {
     title: 'EVIDENCE & DIRECTION',
@@ -242,6 +244,17 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
               tone="success"
             />
           </section>
+
+          {missionId && (
+            <ResearchLoopWorkbench
+              projectId={projectId}
+              missionId={missionId}
+              experimentTaskReady={
+                graph.data.tasks.find((task) => task.task_key === 'experiment_run')?.status ===
+                'ready'
+              }
+            />
+          )}
 
           <main className="grid min-h-[40rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
             <div className="min-w-0 border-r border-border">

@@ -169,3 +169,101 @@ class CoordinatorTickResponse(BaseModel):
     promoted: int
     reclaimed: int
     reconciled: int
+
+
+class ResearchLoopCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    metric_name: str = Field(min_length=1, max_length=120)
+    metric_direction: Literal["min", "max"]
+    metric_aggregation: Literal["final", "best"] = "final"
+    baseline_run_id: uuid.UUID
+    fixed_budget_seconds: int = Field(default=300, ge=30, le=86_400)
+    max_iterations: int = Field(default=12, ge=1, le=500)
+    patience: int = Field(default=4, ge=1, le=100)
+    min_delta: float = Field(default=0.0, ge=0)
+    max_complexity_delta: int = Field(default=200, ge=-10_000, le=100_000)
+    critic_threshold: float = Field(default=0.7, ge=0, le=1)
+    editable_scopes: list[str] = Field(min_length=1, max_length=100)
+    protected_scopes: list[str] = Field(default_factory=list, max_length=100)
+
+
+class ResearchIterationCreateRequest(BaseModel):
+    hypothesis: str = Field(min_length=1, max_length=5000)
+    component: str = Field(min_length=1, max_length=120)
+    expected_effect: str = Field(min_length=1, max_length=5000)
+    changed_paths: list[str] = Field(min_length=1, max_length=100)
+    agent_run_id: uuid.UUID | None = None
+
+
+class ResearchIterationEvaluateRequest(BaseModel):
+    experiment_run_id: uuid.UUID
+    patch_id: uuid.UUID | None = None
+    complexity_delta: int = Field(ge=-100_000, le=100_000)
+    critic_score: float = Field(ge=0, le=1)
+    rule_checks: dict[str, bool] = Field(min_length=1, max_length=100)
+
+
+class ResearchLoopControlRequest(BaseModel):
+    action: Literal["pause", "resume", "finalize", "cancel"]
+    reason: str = Field(default="", max_length=2000)
+
+
+class ResearchLoopIterationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    loop_id: uuid.UUID
+    project_id: uuid.UUID
+    mission_id: uuid.UUID
+    task_id: uuid.UUID
+    iteration_number: int
+    status: str
+    hypothesis: str
+    component: str
+    expected_effect: str
+    changed_paths_json: list
+    patch_id: uuid.UUID | None
+    agent_run_id: uuid.UUID | None
+    experiment_run_id: uuid.UUID | None
+    code_commit_sha: str | None
+    metric_value: float | None
+    improvement: float | None
+    complexity_delta: int | None
+    critic_score: float | None
+    rule_checks_json: dict
+    decision_json: dict
+    started_at: datetime | None
+    finished_at: datetime | None
+    created_at: datetime
+
+
+class ResearchLoopResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    project_id: uuid.UUID
+    mission_id: uuid.UUID
+    task_id: uuid.UUID
+    name: str
+    status: str
+    metric_name: str
+    metric_direction: str
+    metric_aggregation: str
+    baseline_run_id: uuid.UUID
+    best_run_id: uuid.UUID
+    baseline_metric_value: float
+    best_metric_value: float
+    fixed_budget_seconds: int
+    max_iterations: int
+    patience: int
+    min_delta: float
+    max_complexity_delta: int
+    critic_threshold: float
+    current_iteration: int
+    no_improvement_count: int
+    editable_scope_json: list
+    protected_scope_json: list
+    stop_reason: str | None
+    created_at: datetime
+    updated_at: datetime
+    iterations: list[ResearchLoopIterationResponse] = Field(default_factory=list)
