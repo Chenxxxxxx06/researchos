@@ -88,8 +88,12 @@ def get_local_workspace_selection(project_id: uuid.UUID | str) -> LocalWorkspace
     default_root = _default_workspace_root(project_id)
     data = _load_mount_metadata(project_id)
     active = data.get("active_root")
-    uses_default = not isinstance(active, str) or not active.strip()
-    root = default_root if uses_default else Path(active).expanduser()
+    if isinstance(active, str) and active.strip():
+        root = Path(active).expanduser()
+        uses_default = False
+    else:
+        root = default_root
+        uses_default = True
 
     recent: list[Path] = []
     raw_recent = data.get("recent_roots", [])

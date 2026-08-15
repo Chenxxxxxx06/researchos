@@ -93,7 +93,7 @@ async def test_connection(profile: SSHProfile) -> dict:
             "ok": True,
             "message": "Host key, authentication, and remote workdir verified.",
             "latency_ms": int((time.perf_counter() - started) * 1000),
-            "server_version": str(connection.get_server_version()),
+            "server_version": str(connection.get_extra_info("server_version", "")),
         }
 
 
@@ -118,7 +118,7 @@ async def build_tree(profile: SSHProfile) -> dict:
                 if counter[0] > _MAX_TREE_ENTRIES:
                     break
                 directory_entry = await sftp.isdir(path)
-                node = {
+                node: dict[str, Any] = {
                     "name": name,
                     "path": relative,
                     "type": "dir" if directory_entry else "file",
@@ -147,7 +147,8 @@ async def read_file(profile: SSHProfile, relative: str) -> dict:
                 "content": None,
             }
         async with sftp.open(path, "rb") as handle:
-            raw = await handle.read(_MAX_FILE_BYTES + 1)
+            raw_data = await handle.read(_MAX_FILE_BYTES + 1)
+        raw = raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data
         binary = b"\x00" in raw[:8192]
         return {
             "path": relative,
@@ -176,7 +177,10 @@ async def write_file(
         if exists:
             path = await _verified_path(sftp, root, relative)
             async with sftp.open(path, "rb") as handle:
-                current = await handle.read(_MAX_FILE_BYTES + 1)
+                current_data = await handle.read(_MAX_FILE_BYTES + 1)
+            current = (
+                current_data.encode("utf-8") if isinstance(current_data, str) else current_data
+            )
             actual_sha = hashlib.sha256(current).hexdigest()
         if actual_sha != base_sha:
             raise ConflictError(

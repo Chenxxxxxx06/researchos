@@ -26,7 +26,7 @@ jobs:
         image: redis:7-alpine
         ports: ["6379:6379"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Verify tag
         shell: bash
         run: |
@@ -35,7 +35,7 @@ jobs:
             echo "Tag $GITHUB_REF_NAME does not match VERSION ($expected)"
             exit 1
           }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Install and verify backend
@@ -52,10 +52,10 @@ jobs:
           SECRET_KEY: release-ci-secret
           DB_USE_NULLPOOL: "true"
           WORKSPACE_ROOT: /tmp/ros-release-workspaces
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: "9.15.0"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: pnpm
