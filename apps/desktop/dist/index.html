@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>ResearchOS Desktop</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="intro" aria-labelledby="product-title">
+        <div class="brand-row">
+          <img src="./researchos-icon.png" alt="" width="44" height="44" />
+          <div>
+            <strong>ResearchOS</strong>
+            <span>Desktop workspace</span>
+          </div>
+        </div>
+        <div class="intro-copy">
+          <p class="kicker">EVIDENCE-FIRST RESEARCH</p>
+          <h1 id="product-title">让文献、代码、实验与论文保持在同一条证据链上。</h1>
+          <p>Desktop 负责连接你的 ResearchOS 服务。工作区准备完成后会直接进入项目界面。</p>
+        </div>
+        <ol class="flow" aria-label="ResearchOS workflow">
+          <li><span>01</span>资料与文献证据</li>
+          <li><span>02</span>Mission 与 Agent 审批</li>
+          <li><span>03</span>代码与实验运行</li>
+          <li><span>04</span>论文与成果发布</li>
+        </ol>
+      </section>
+
+      <section class="connection" aria-labelledby="connection-title">
+        <div class="connection-card">
+          <div class="status-line">
+            <span class="status-indicator" id="status-indicator" aria-hidden="true"></span>
+            <span id="status-text">正在检查本地工作区</span>
+          </div>
+          <h2 id="connection-title">连接 ResearchOS</h2>
+          <p class="supporting">默认连接本机生产服务，也可以填写课题组部署的 HTTPS 地址。</p>
+
+          <form id="connection-form" novalidate>
+            <label for="endpoint">工作区地址</label>
+            <div class="input-row">
+              <input id="endpoint" name="endpoint" type="url" autocomplete="url" spellcheck="false" value="http://localhost:3000" aria-describedby="endpoint-help connection-error" />
+              <button type="submit">连接</button>
+            </div>
+            <p id="endpoint-help" class="helper">示例：http://localhost:3000 或 https://research.example.edu</p>
+            <p id="connection-error" class="error" role="alert" hidden></p>
+          </form>
+
+          <div class="readiness">
+            <div><span>Shell</span><strong>Ready</strong></div>
+            <div><span>Workspace</span><strong id="workspace-state">Checking</strong></div>
+            <div><span>Mode</span><strong>Connected</strong></div>
+          </div>
+
+          <button type="button" class="secondary-action" id="retry-button">重新检查</button>
+        </div>
+        <p class="privacy">地址只保存在当前设备。密钥和 SSH 凭据不会进入 Desktop 启动页。</p>
+      </section>
+    </main>
+  </body>
+</html>

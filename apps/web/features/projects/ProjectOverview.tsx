@@ -107,7 +107,7 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
   ];
 
   return (
-    <div className="-m-6 min-h-[calc(100dvh-3.5rem)] bg-bg lg:-m-8">
+    <div className="-m-5 min-h-[calc(100dvh-4rem)] bg-bg lg:-m-6 xl:-m-8">
       <section className="mission-grid relative overflow-hidden border-b border-border bg-surface px-6 py-10 lg:px-10 lg:py-12">
         <div className="relative grid items-end gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <div>
@@ -149,22 +149,24 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
       </section>
 
       <section className="px-6 py-8 lg:px-10 lg:py-10">
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-          <div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-success">RESEARCH LOOP</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-text">{zh ? '从输入到发布，一条可追溯链路' : 'One traceable path from input to release'}</h2></div>
-          <p className="max-w-lg text-xs leading-5 text-muted">{zh ? '每一步都链接到真实工作区；状态只由当前数据库对象计算，不使用演示进度。' : 'Every step opens a real workspace. Status is calculated from persisted objects, never demo progress.'}</p>
+        <div className="mb-6 max-w-3xl">
+          <p className="text-xs font-medium text-accent">Research loop</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-text">{zh ? '从输入到发布，一条可追溯链路' : 'One traceable path from input to release'}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{zh ? '状态只由真实项目对象计算。打开任一步即可继续工作，不使用演示进度。' : 'Every state comes from persisted project objects. Open any step to continue with no demo progress.'}</p>
         </div>
-        <div className="grid gap-3 xl:grid-cols-5">
-          {flow.map((step) => {
+        <div className="workspace-panel overflow-hidden">
+          {flow.map((step, position) => {
             const Icon = step.icon;
             return (
-              <Link key={step.index} href={step.href} className="group relative flex min-h-[15rem] flex-col border border-border bg-surface p-5 shadow-sm hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-md">
-                <div className="flex items-start justify-between">
-                  <span className="font-mono text-[10px] text-faint">{step.index}</span>
-                  <span className={`flex h-8 w-8 items-center justify-center ${step.ready ? 'bg-success-bg text-success' : 'bg-surface-2 text-muted'}`}>{step.ready ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}</span>
-                </div>
-                <h3 className="mt-7 text-base font-semibold tracking-tight text-text">{step.title}</h3>
-                <p className="mt-2 flex-1 text-xs leading-5 text-muted">{step.description}</p>
-                <div className="mt-5 flex items-center justify-between border-t border-border pt-3"><span className="font-mono text-[10px] text-faint">{step.evidence}</span><ChevronRight className="h-4 w-4 text-faint transition-transform group-hover:translate-x-1 group-hover:text-accent" /></div>
+              <Link key={step.index} href={step.href} className="group grid min-h-24 grid-cols-[2.5rem_2.5rem_minmax(0,1fr)_1.5rem] items-center gap-4 border-b border-border px-4 py-4 last:border-b-0 hover:bg-surface-2/65 sm:grid-cols-[2.5rem_2.5rem_minmax(12rem,0.75fr)_minmax(16rem,1.25fr)_1.5rem] lg:grid-cols-[2.5rem_2.5rem_minmax(12rem,0.75fr)_minmax(16rem,1.25fr)_auto_1.5rem] sm:px-5">
+                <span className="font-mono text-[11px] text-faint">{String(position + 1).padStart(2, '0')}</span>
+                <span className={`grid h-9 w-9 place-items-center rounded-md ${step.ready ? 'bg-success-bg text-success' : 'bg-surface-2 text-muted'}`}>
+                  {step.ready ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                </span>
+                <h3 className="text-sm font-semibold tracking-[-0.01em] text-text">{step.title}</h3>
+                <p className="hidden text-xs leading-5 text-muted sm:block">{step.description}</p>
+                <span className="hidden whitespace-nowrap font-mono text-[10px] text-faint lg:block">{step.evidence}</span>
+                <ChevronRight className="h-4 w-4 text-faint transition-transform group-hover:translate-x-1 group-hover:text-accent" />
               </Link>
             );
           })}

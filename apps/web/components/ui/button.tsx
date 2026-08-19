@@ -1,3 +1,4 @@
+import { LoaderCircle } from 'lucide-react';
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -6,11 +7,11 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'destructive';
 type Size = 'sm' | 'md' | 'lg' | 'icon';
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-accent text-accent-fg hover:bg-accent-hover',
-  secondary: 'border border-border-strong bg-surface text-text hover:bg-surface-2',
-  ghost: 'text-text hover:bg-surface-2',
-  outline: 'border border-border bg-transparent text-text hover:bg-surface-2',
-  destructive: 'bg-danger text-danger-bg hover:opacity-90',
+  primary: 'border border-accent bg-accent text-accent-fg shadow-elev1 hover:border-accent-hover hover:bg-accent-hover',
+  secondary: 'border border-border-strong bg-surface text-text shadow-elev1 hover:bg-surface-2',
+  ghost: 'border border-transparent text-text hover:border-border hover:bg-surface-2',
+  outline: 'border border-border-strong bg-transparent text-text hover:bg-surface-2',
+  destructive: 'border border-danger bg-danger text-white hover:opacity-90',
 };
 
 const SIZES: Record<Size, string> = {
@@ -34,31 +35,17 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       aria-busy={loading || undefined}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60',
-        'disabled:pointer-events-none disabled:opacity-50',
+        'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md font-semibold',
+        'transition-[color,background-color,border-color,box-shadow,transform] duration-150',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg',
+        'disabled:pointer-events-none disabled:opacity-45',
         VARIANTS[variant],
         SIZES[size],
         className,
       )}
       {...props}
     >
-      {loading && (
-        <svg
-          className="h-3.5 w-3.5 animate-spin"
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden="true"
-        >
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25" />
-          <path
-            d="M22 12a10 10 0 0 1-10 10"
-            stroke="currentColor"
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
-        </svg>
-      )}
+      {loading && <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
       {children}
     </button>
   ),

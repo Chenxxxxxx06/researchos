@@ -9,27 +9,28 @@
  * script in app/layout.tsx; runtime toggling in lib/theme).
  */
 :root {
-  --color-bg: 250 250 250;
-  --color-surface: 255 255 255;
-  --color-surface-2: 245 245 245;
+  --color-bg: 244 247 245;
+  --color-surface: 251 252 251;
+  --color-surface-2: 235 240 237;
+  --color-surface-3: 223 230 226;
   --color-overlay: 255 255 255;
-  --color-border: 229 229 229;
-  --color-border-strong: 212 212 212;
-  --color-text: 23 23 23;
-  --color-text-muted: 115 115 115;
-  --color-text-faint: 163 163 163;
-  --color-accent: 20 83 45;
-  --color-accent-fg: 255 255 255;
-  --color-accent-hover: 22 101 52;
-  --color-focus: 22 163 74;
-  --color-success: 22 163 74;
-  --color-success-bg: 240 253 244;
-  --color-warn: 217 119 6;
-  --color-warn-bg: 255 251 235;
-  --color-danger: 220 38 38;
-  --color-danger-bg: 254 242 242;
-  --color-info: 37 99 235;
-  --color-info-bg: 239 246 255;
+  --color-border: 216 224 219;
+  --color-border-strong: 191 203 196;
+  --color-text: 18 27 23;
+  --color-text-muted: 84 101 92;
+  --color-text-faint: 126 143 134;
+  --color-accent: 15 105 73;
+  --color-accent-fg: 247 255 251;
+  --color-accent-hover: 11 82 57;
+  --color-focus: 30 139 98;
+  --color-success: 18 128 84;
+  --color-success-bg: 229 247 237;
+  --color-warn: 180 103 14;
+  --color-warn-bg: 255 246 224;
+  --color-danger: 190 49 68;
+  --color-danger-bg: 255 238 241;
+  --color-info: 43 102 154;
+  --color-info-bg: 232 243 250;
 
   /* Transitional gray compat ramp (Layer 2): `white` + `neutral-*` classes in
      not-yet-migrated feature files resolve to these; the dark block below
@@ -48,41 +49,43 @@
   --gray-950: 10 10 10;
 
   /* Elevation + radii (non-color, plain values). */
-  --shadow-1: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-2: 0 4px 12px -2px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.06);
-  --shadow-3: 0 12px 32px -8px rgb(0 0 0 / 0.18), 0 4px 12px -4px rgb(0 0 0 / 0.08);
+  --shadow-1: 0 1px 2px rgb(20 59 42 / 0.06), 0 1px 0 rgb(255 255 255 / 0.72) inset;
+  --shadow-2: 0 12px 30px -18px rgb(20 59 42 / 0.28), 0 2px 8px -4px rgb(20 59 42 / 0.12);
+  --shadow-3: 0 24px 64px -24px rgb(12 42 29 / 0.38), 0 8px 24px -12px rgb(12 42 29 / 0.16);
   --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
 
-  --font-sans: 'Geist', 'Aptos', 'Segoe UI Variable', 'Segoe UI',
-    'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-sans: var(--font-geist-sans), 'Aptos', 'Segoe UI Variable', 'Segoe UI',
+    'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+  --font-mono: var(--font-geist-mono), 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
 
   color-scheme: light;
 }
 
 :root[data-theme='dark'] {
-  --color-bg: 12 12 14;
-  --color-surface: 24 24 27;
-  --color-surface-2: 39 39 42;
-  --color-overlay: 31 31 35;
-  --color-border: 46 46 51;
-  --color-border-strong: 63 63 70;
-  --color-text: 244 244 245;
-  --color-text-muted: 161 161 170;
-  --color-text-faint: 113 113 122;
-  --color-accent: 134 239 172;
-  --color-accent-fg: 8 35 20;
-  --color-accent-hover: 187 247 208;
-  --color-focus: 74 222 128;
-  --color-success: 74 222 128;
-  --color-success-bg: 20 45 31;
-  --color-warn: 251 191 36;
-  --color-warn-bg: 54 42 17;
-  --color-danger: 248 113 113;
-  --color-danger-bg: 55 24 24;
-  --color-info: 96 165 250;
-  --color-info-bg: 23 37 60;
+  --color-bg: 10 15 12;
+  --color-surface: 16 23 19;
+  --color-surface-2: 24 33 28;
+  --color-surface-3: 34 45 39;
+  --color-overlay: 20 28 23;
+  --color-border: 39 52 45;
+  --color-border-strong: 57 73 64;
+  --color-text: 237 244 240;
+  --color-text-muted: 157 174 165;
+  --color-text-faint: 104 124 113;
+  --color-accent: 91 211 155;
+  --color-accent-fg: 7 31 21;
+  --color-accent-hover: 130 229 180;
+  --color-focus: 83 199 147;
+  --color-success: 89 205 151;
+  --color-success-bg: 18 53 37;
+  --color-warn: 239 179 83;
+  --color-warn-bg: 55 41 20;
+  --color-danger: 242 122 137;
+  --color-danger-bg: 57 26 32;
+  --color-info: 117 177 221;
+  --color-info-bg: 25 44 58;
 
   /* Inverted gray ladder: `bg-white` cards become dark surfaces, the neutral
      text ramp flips to light-on-dark. `--gray-50` (page canvases) sits below
@@ -109,21 +112,62 @@
 
 body {
   @apply bg-bg text-text antialiased;
+  min-width: 320px;
   font-family: var(--font-sans);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  text-rendering: optimizeLegibility;
 }
 
 html {
   scroll-behavior: smooth;
 }
 
+::selection {
+  color: rgb(var(--color-text));
+  background: rgb(var(--color-accent) / 0.2);
+}
+
+.font-mono,
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
 .mission-grid {
   background-image:
-    linear-gradient(rgb(var(--color-border) / 0.42) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(var(--color-border) / 0.42) 1px, transparent 1px);
+    linear-gradient(rgb(var(--color-border) / 0.28) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--color-border) / 0.28) 1px, transparent 1px),
+    radial-gradient(circle at 92% 8%, rgb(var(--color-accent) / 0.09), transparent 30%);
   background-color: rgb(var(--color-surface));
-  background-size: 32px 32px, 32px 32px;
-  background-position: -1px -1px, -1px -1px;
-  box-shadow: inset 0 -24px 48px -48px rgb(var(--color-accent) / 0.4);
+  background-size: 40px 40px, 40px 40px, 100% 100%;
+  background-position: -1px -1px, -1px -1px, 0 0;
+}
+
+.workspace-panel {
+  border: 1px solid rgb(var(--color-border));
+  border-radius: var(--radius-lg);
+  background: rgb(var(--color-surface));
+  box-shadow: var(--shadow-1);
+}
+
+.workspace-toolbar {
+  border-bottom: 1px solid rgb(var(--color-border));
+  background: rgb(var(--color-surface) / 0.92);
+  backdrop-filter: blur(18px) saturate(130%);
+}
+
+.desktop-drag-region {
+  -webkit-app-region: drag;
+}
+
+.desktop-no-drag,
+.desktop-drag-region button,
+.desktop-drag-region a,
+.desktop-drag-region input,
+.desktop-drag-region select {
+  -webkit-app-region: no-drag;
 }
 
 .mission-phase-header {

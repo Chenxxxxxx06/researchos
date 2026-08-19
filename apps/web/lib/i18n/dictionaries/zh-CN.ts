@@ -51,6 +51,7 @@ export const zhCN = {
   'nav.allProjects': '全部项目',
   'nav.switchProject': '切换项目',
   'nav.currentProject': '当前项目',
+  'nav.more': '更多',
 
   'toast.dismiss': '关闭通知',
 
@@ -68,14 +69,14 @@ export const zhCN = {
 
   'nav.overview': '项目总览',
   'nav.missions': '科研任务',
-  'nav.research': 'Research Copilot',
+  'nav.research': '资料与证据',
   'nav.references': '文献中心',
   'nav.inbox': '科研收件箱',
   'nav.orchestration': 'Agent 协作',
   'nav.deadlines': '会议 DDL',
   'nav.ide': 'AI IDE',
-  'nav.experiments': '实验面板',
-  'nav.paper': '论文工作区',
+  'nav.experiments': '实验',
+  'nav.paper': '论文',
   'nav.reviewer': '模拟审稿',
   'nav.release': '成果发布',
   'nav.skills': '技能市场',

@@ -88,7 +88,7 @@ export function ReviewerWorkspace({ projectId }: { projectId: string }) {
   const output = run.data?.output_json?.message;
 
   return (
-    <div className="-m-6 min-h-[calc(100dvh-3.5rem)] bg-bg lg:-m-8">
+    <div className="-m-5 min-h-[calc(100dvh-4rem)] bg-bg lg:-m-6 xl:-m-8">
       <header className="mission-grid border-b border-border bg-surface px-6 py-7 lg:px-8">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div>

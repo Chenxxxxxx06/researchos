@@ -53,6 +53,7 @@ export const enUS: Record<DictKey, string> = {
   'nav.allProjects': 'All projects',
   'nav.switchProject': 'Switch project',
   'nav.currentProject': 'Current project',
+  'nav.more': 'More',
 
   'toast.dismiss': 'Dismiss notification',
 
@@ -70,7 +71,7 @@ export const enUS: Record<DictKey, string> = {
 
   'nav.overview': 'Overview',
   'nav.missions': 'Research Missions',
-  'nav.research': 'Research Copilot',
+  'nav.research': 'Evidence',
   'nav.references': 'References',
   'nav.inbox': 'Research Inbox',
   'nav.orchestration': 'Agent Collaboration',

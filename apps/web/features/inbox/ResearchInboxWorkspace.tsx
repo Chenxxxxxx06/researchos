@@ -90,7 +90,7 @@ export function ResearchInboxWorkspace({ projectId }: { projectId: string }) {
   });
 
   return (
-    <div className="-m-6 min-h-[calc(100vh-3.5rem)] bg-bg">
+    <div className="-m-5 min-h-[calc(100vh-4rem)] bg-bg lg:-m-6 xl:-m-8">
       <header className="border-b border-border bg-surface px-6 py-4">
         <h1 className="flex items-center gap-2 text-lg font-semibold text-text">
           <Inbox className="h-5 w-5" /> Research Inbox

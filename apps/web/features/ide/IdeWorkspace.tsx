@@ -87,7 +87,7 @@ export function IdeWorkspace({
   }, [buffers]);
 
   return (
-    <div className="relative -m-6 flex h-[calc(100vh-3.5rem)] flex-col lg:-m-8">
+    <div className="relative -m-6 flex h-[calc(100vh-4rem)] flex-col lg:-m-8">
       <RuntimeSwitcher
         projectId={projectId}
         profileId={sshProfileId}
@@ -99,7 +99,7 @@ export function IdeWorkspace({
       />
       <div className="flex min-h-0 flex-1">
         {/* Left rail */}
-        <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-surface">
+        <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-surface">
           <div className="flex border-b border-border">
             <RailTab active={leftTab === 'explorer'} onClick={() => setLeftTab('explorer')}>
               {t('ide.explorer')}
@@ -143,13 +143,13 @@ export function IdeWorkspace({
           <div className="min-h-0 flex-1">
             <EditorPane projectId={projectId} sshProfileId={sshProfileId} />
           </div>
-          <div className="h-40 shrink-0 border-t border-border">
+          <div className="h-44 shrink-0 border-t border-border">
             <TerminalPanel projectId={projectId} sshProfileId={sshProfileId} />
           </div>
         </div>
 
         {/* Right rail */}
-        {!sshProfileId ? <aside className="flex w-[26rem] shrink-0 flex-col border-l border-border bg-surface">
+        {!sshProfileId ? <aside className="flex w-[22rem] shrink-0 flex-col border-l border-border bg-surface 2xl:w-[24rem]">
           <div className="flex border-b border-border">
             <RailTab active={rightTab === 'chat'} onClick={() => setRightTab('chat')}>
               {t('ide.chat')}
@@ -165,7 +165,7 @@ export function IdeWorkspace({
               <GitTimelinePanel projectId={projectId} />
             )}
           </div>
-        </aside> : <aside className="flex w-72 shrink-0 flex-col justify-center border-l border-border bg-surface p-6"><Server className="h-6 w-6 text-accent" /><h2 className="mt-4 text-sm font-semibold text-text">SSH 远程工作区</h2><p className="mt-2 text-xs leading-6 text-muted">当前文件通过 SFTP 直接读取和保存，终端命令具有超时、白名单和审计记录。Coding Agent 与 Git 补丁仍只作用于本地工作区，避免把未经审查的 Agent 写入直接发送到远端。</p></aside>}
+        </aside> : <aside className="flex w-72 shrink-0 flex-col justify-center border-l border-border bg-surface p-6 2xl:w-80"><Server className="h-6 w-6 text-accent" /><h2 className="mt-4 text-sm font-semibold text-text">SSH 远程工作区</h2><p className="mt-2 text-xs leading-6 text-muted">当前文件通过 SFTP 直接读取和保存，终端命令具有超时、白名单和审计记录。Coding Agent 与 Git 补丁仍只作用于本地工作区，避免把未经审查的 Agent 写入直接发送到远端。</p></aside>}
       </div>
 
       <ConnectionStatusPill projectId={projectId} />
