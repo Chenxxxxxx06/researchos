@@ -9,6 +9,7 @@ param(
 $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $runtimeDir = Join-Path $repoRoot "artifacts\site-runtime"
+$apiPortFile = Join-Path $runtimeDir "api.port"
 $apiDir = Join-Path $repoRoot "apps\api"
 $workerDir = Join-Path $repoRoot "apps\worker"
 $webDir = Join-Path $repoRoot "apps\web"
@@ -18,14 +19,27 @@ $alembicExe = Join-Path $apiDir ".venv\Scripts\alembic.exe"
 $pythonExe = Join-Path $apiDir ".venv\Scripts\python.exe"
 $nextBin = Join-Path $webDir "node_modules\next\dist\bin\next"
 
-$env:POSTGRES_HOST_PORT = "55432"
+$apiPort = 8000
+if ($env:RESEARCHOS_API_PORT -match "^\d+$") {
+    $apiPort = [int]$env:RESEARCHOS_API_PORT
+} elseif (Test-Path -LiteralPath $apiPortFile) {
+    $savedApiPort = (Get-Content -LiteralPath $apiPortFile -Raw).Trim()
+    if ($savedApiPort -match "^\d+$") { $apiPort = [int]$savedApiPort }
+}
+$apiBaseUrl = "http://localhost:$apiPort"
+
+$postgresHostPort = 15432
+if ($env:POSTGRES_HOST_PORT -match "^\d+$") {
+    $postgresHostPort = [int]$env:POSTGRES_HOST_PORT
+}
+$env:POSTGRES_HOST_PORT = "$postgresHostPort"
 $env:REDIS_HOST_PORT = "56379"
 $env:ENVIRONMENT = "local"
-$env:POSTGRES_DSN = "postgresql+asyncpg://researchos:researchos@localhost:55432/researchos"
+$env:POSTGRES_DSN = "postgresql+asyncpg://researchos:researchos@localhost:$postgresHostPort/researchos"
 $env:REDIS_URL = "redis://localhost:56379/0"
 $env:S3_ENDPOINT_URL = "http://localhost:9000"
 $env:CORS_ORIGINS = "http://localhost:3000"
-$env:NEXT_PUBLIC_API_BASE_URL = "http://localhost:8000"
+$env:NEXT_PUBLIC_API_BASE_URL = $apiBaseUrl
 $env:DB_USE_NULLPOOL = "true"
 $env:WORKSPACE_ROOT = Join-Path $repoRoot "data\workspaces"
 
@@ -183,12 +197,41 @@ function Assert-LocalDependencies {
     return $node.Source
 }
 
+function Resolve-ApiPort {
+    if (Test-RecordedProcess "api") { return }
+
+    $explicitPort = $env:RESEARCHOS_API_PORT -match "^\d+$"
+    $candidatePorts = if ($explicitPort) {
+        @($script:apiPort)
+    } else {
+        @($script:apiPort) + @(18000..18020)
+    }
+    foreach ($candidatePort in $candidatePorts | Select-Object -Unique) {
+        $listener = Get-NetTCPConnection `
+            -LocalPort $candidatePort `
+            -State Listen `
+            -ErrorAction SilentlyContinue
+        if (-not $listener) {
+            if ($candidatePort -ne $script:apiPort) {
+                Write-Host "    API port $($script:apiPort) is occupied; using $candidatePort" -ForegroundColor Yellow
+            }
+            $script:apiPort = $candidatePort
+            $script:apiBaseUrl = "http://localhost:$candidatePort"
+            $env:NEXT_PUBLIC_API_BASE_URL = $script:apiBaseUrl
+            Set-Content -LiteralPath $apiPortFile -Value $candidatePort -Encoding ascii
+            return
+        }
+    }
+    throw "No available API port was found. Tried: $($candidatePorts -join ', ')."
+}
+
 function Start-Site {
     New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
     New-Item -ItemType Directory -Path $env:WORKSPACE_ROOT -Force | Out-Null
     $nodeExe = Assert-LocalDependencies
     $dockerExe = Resolve-Docker
     Ensure-DockerEngine $dockerExe
+    Resolve-ApiPort
 
     Write-Step "Starting cached infrastructure images (Postgres, Redis, MinIO)"
     & $dockerExe compose -f $composeFile up -d postgres redis minio
@@ -206,18 +249,18 @@ function Start-Site {
     }
 
     Write-Step "Starting API, background agent worker, and web UI"
-    Start-RecordedProcess "api" $pythonExe @("-m", "uvicorn", "researchos.main:app", "--host", "127.0.0.1", "--port", "8000") $apiDir
+    Start-RecordedProcess "api" $pythonExe @("-m", "uvicorn", "researchos.main:app", "--host", "127.0.0.1", "--port", "$apiPort") $apiDir
     Start-RecordedProcess "worker" $pythonExe @("-m", "celery", "-A", "researchos_worker.app", "worker", "--loglevel=info", "--pool=solo", "--queues=agents,ingestion,runtime,latex,experiments,skills,default") $workerDir
     Start-RecordedProcess "web" $nodeExe @($nextBin, "dev", "-p", "3000") $webDir
 
-    Wait-Http "API" "http://localhost:8000/healthz"
+    Wait-Http "API" "$apiBaseUrl/healthz"
     Wait-Http "Web" "http://localhost:3000/login"
-    Wait-Http "Dependencies" "http://localhost:8000/readyz"
+    Wait-Http "Dependencies" "$apiBaseUrl/readyz"
 
     Write-Host ""
     Write-Host "ResearchOS is ready." -ForegroundColor Green
     Write-Host "  Web:      http://localhost:3000/login"
-    Write-Host "  API docs: http://localhost:8000/docs"
+    Write-Host "  API docs: $apiBaseUrl/docs"
     Write-Host "  Account:  demo@researchos.dev / demo-password-123"
     Write-Host "  Logs:     artifacts\site-runtime"
 }
@@ -246,7 +289,7 @@ function Show-Status {
         Write-Host ("  {0,-8} {1}" -f $name, $label) -ForegroundColor $color
     }
     Write-Host ("  web      {0}" -f $(if (Test-Http "http://localhost:3000/login") { "HTTP OK" } else { "HTTP DOWN" }))
-    Write-Host ("  api      {0}" -f $(if (Test-Http "http://localhost:8000/healthz") { "HTTP OK" } else { "HTTP DOWN" }))
+    Write-Host ("  api      {0} ({1})" -f $(if (Test-Http "$apiBaseUrl/healthz") { "HTTP OK" } else { "HTTP DOWN" }), $apiBaseUrl)
     if (Test-DockerEngine $dockerExe) {
         & $dockerExe compose -f $composeFile ps postgres redis minio
     } else {
@@ -257,8 +300,8 @@ function Show-Status {
 function Verify-Site {
     Write-Step "Checking web and dependency readiness"
     if (-not (Test-Http "http://localhost:3000/login")) { throw "Web login page is unavailable." }
-    if (-not (Test-Http "http://localhost:8000/readyz")) { throw "API dependencies are not ready." }
-    & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "smoke_api.ps1")
+    if (-not (Test-Http "$apiBaseUrl/readyz")) { throw "API dependencies are not ready." }
+    & powershell -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot "smoke_api.ps1") -BaseUrl $apiBaseUrl
     if ($LASTEXITCODE -ne 0) { throw "API smoke test failed." }
     Write-Host "Website verification passed." -ForegroundColor Green
 }

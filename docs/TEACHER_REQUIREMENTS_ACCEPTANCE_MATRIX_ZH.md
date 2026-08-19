@@ -47,7 +47,7 @@ pnpm site:verify
 
 # API：完整 PostgreSQL/pgvector + Redis 集成套件
 cd apps/api
-$env:POSTGRES_DSN='postgresql+asyncpg://researchos:researchos@localhost:55432/researchos_test'
+$env:POSTGRES_DSN='postgresql+asyncpg://researchos:researchos@localhost:15432/researchos_test'
 $env:REDIS_URL='redis://localhost:56379/15'
 $env:DB_USE_NULLPOOL='true'
 uv run pytest tests -q
@@ -61,7 +61,7 @@ pnpm build
 pnpm exec playwright test
 ```
 
-本机普通 PostgreSQL 不需要安装扩展。快速启动器使用 `pgvector/pgvector:pg16` 镜像，并把数据库与 Redis 分别映射到 `55432`、`56379`，避免占用常见的 `5432`、`6379`。迁移和 Demo seed 会在每次 `site:up` 时幂等执行。
+本机普通 PostgreSQL 不需要安装扩展。快速启动器使用 `pgvector/pgvector:pg16` 镜像，并把数据库与 Redis 分别映射到 `15432`、`56379`，避免占用常见的 `5432`、`6379`。迁移和 Demo seed 会在每次 `site:up` 时幂等执行。
 
 ### 2026-08-07 实机结果
 

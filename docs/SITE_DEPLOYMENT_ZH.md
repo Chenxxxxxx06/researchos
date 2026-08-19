@@ -6,7 +6,7 @@
 
 | 层 | 运行方式 | 端口 | 用途 |
 |---|---|---:|---|
-| PostgreSQL + pgvector | Docker 缓存镜像 `pgvector/pgvector:pg16` | `55432` | 业务数据、全文检索、向量索引 |
+| PostgreSQL + pgvector | Docker 缓存镜像 `pgvector/pgvector:pg16` | `15432` | 业务数据、全文检索、向量索引 |
 | Redis | Docker 缓存镜像 `redis:7-alpine` | `56379` | Agent 队列与运行状态 |
 | MinIO | Docker 缓存镜像 `minio/minio` | `9000/9001` | 对象存储与就绪探针 |
 | FastAPI | G 盘项目虚拟环境 | `8000` | API、认证、业务与 Agent 调度 |
