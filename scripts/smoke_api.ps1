@@ -31,9 +31,13 @@ $orgId = $orgs[0].id
 Assert "orgs"  { if (-not $orgId) { throw "no org" } }
 
 $projPage = Invoke-RestMethod -Uri "$BaseUrl/projects?organization_id=$orgId" -WebSession $sess
-$projId = $projPage.items[0].id
+# Several tests intentionally create empty projects. Select the deterministic
+# seeded fixture instead of relying on mutable list order.
+$demoProject = $projPage.items | Where-Object { $_.name -eq "ResearchOS Demo" } | Select-Object -First 1
+if (-not $demoProject) { $demoProject = $projPage.items | Select-Object -First 1 }
+$projId = $demoProject.id
 Assert "projects" { if (-not $projId) { throw "no project" } }
-Write-Host "  INFO projectId=$projId" -Fore Gray
+Write-Host "  INFO projectId=$projId name=$($demoProject.name)" -Fore Gray
 
 # --- Research ---
 $papers = Invoke-RestMethod -Uri "$BaseUrl/projects/$projId/papers" -WebSession $sess

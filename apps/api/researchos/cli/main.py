@@ -58,7 +58,7 @@ EXTERNAL_ADAPTERS: tuple[ExternalAdapter, ...] = (
         "executable": "openclaw",
         "project": "OpenClaw",
         "url": "https://github.com/openclaw/openclaw",
-        "integration": "gateway/workspace concepts only; bridge planned",
+        "integration": "ready via researchos --json orchestration lease/heartbeat/submit",
     },
     {
         "name": "nanobot",
@@ -318,6 +318,58 @@ def build_parser() -> argparse.ArgumentParser:
     )
     missions_citation_show.add_argument("mission_id")
 
+    orchestration = sub.add_parser(
+        "orchestration",
+        help="Control the durable Agent DAG from OpenClaw or another external worker.",
+    )
+    orchestration_sub = orchestration.add_subparsers(
+        dest="orchestration_command", required=True
+    )
+    orchestration_graph = orchestration_sub.add_parser("graph", help="Read a Mission DAG.")
+    orchestration_graph.add_argument("mission_id")
+    orchestration_bootstrap = orchestration_sub.add_parser(
+        "bootstrap", help="Create the standard 17-node Agent DAG idempotently."
+    )
+    orchestration_bootstrap.add_argument("mission_id")
+    orchestration_tick = orchestration_sub.add_parser(
+        "tick", help="Reconcile leases, Agent runs, gates, and ready tasks."
+    )
+    orchestration_tick.add_argument("mission_id")
+    orchestration_dispatch = orchestration_sub.add_parser(
+        "dispatch", help="Dispatch one ready task to the built-in Agent runtime."
+    )
+    orchestration_dispatch.add_argument("task_id")
+    orchestration_dispatch.add_argument("message")
+    orchestration_dispatch.add_argument("--context-json", default="{}")
+    orchestration_lease = orchestration_sub.add_parser(
+        "lease", help="Lease the next ready task to an external worker."
+    )
+    orchestration_lease.add_argument("--owner", default="openclaw")
+    orchestration_lease.add_argument("--role")
+    orchestration_lease.add_argument("--lease-seconds", type=int, default=120)
+    orchestration_heartbeat = orchestration_sub.add_parser(
+        "heartbeat", help="Extend an external task lease."
+    )
+    orchestration_heartbeat.add_argument("lease_token")
+    orchestration_heartbeat.add_argument("--lease-seconds", type=int, default=120)
+    orchestration_heartbeat.add_argument("--running", action="store_true")
+    orchestration_submit = orchestration_sub.add_parser(
+        "submit", help="Submit a leased task with hashed artifacts."
+    )
+    orchestration_submit.add_argument("lease_token")
+    orchestration_submit.add_argument("--output-json", default="{}")
+    orchestration_submit.add_argument(
+        "--artifacts-json",
+        default="[]",
+        help="JSON array or @path of ArtifactSubmission objects.",
+    )
+    orchestration_gate = orchestration_sub.add_parser(
+        "gate", help="Approve or reject one human approval gate."
+    )
+    orchestration_gate.add_argument("gate_id")
+    orchestration_gate.add_argument("decision", choices=("approve", "reject"))
+    orchestration_gate.add_argument("--note", default="")
+
     adapters = sub.add_parser("adapters", help="Inspect optional external harness adapters.")
     adapters.add_argument("action", choices=("list", "doctor"), default="list", nargs="?")
 
@@ -407,6 +459,8 @@ def dispatch(args: argparse.Namespace) -> int:
         return command_mission(client, project_id, root, args)
     if args.command == "missions":
         return command_missions(client, project_id, args)
+    if args.command == "orchestration":
+        return command_orchestration(client, project_id, args)
     raise RuntimeError(f"Unsupported command: {args.command}")
 
 
@@ -604,6 +658,102 @@ def command_runs(client: ResearchOSClient, project_id: str, args: argparse.Names
         return emit(args, run, _format_run(run))
     run = client.request("POST", f"{base}/{args.run_id}/cancel")
     return emit(args, run, _format_run(run))
+
+
+def command_orchestration(
+    client: ResearchOSClient, project_id: str, args: argparse.Namespace
+) -> int:
+    """Operate the durable Agent DAG through the same control plane as the Web UI."""
+
+    base = f"/projects/{project_id}/orchestration"
+    command = args.orchestration_command
+    if command == "graph":
+        graph = client.request("GET", f"{base}/missions/{args.mission_id}")
+        return emit(args, graph, _format_orchestration_graph(graph))
+    if command == "bootstrap":
+        graph = client.request("POST", f"{base}/missions/{args.mission_id}/bootstrap")
+        return emit(args, graph, _format_orchestration_graph(graph))
+    if command == "tick":
+        result = client.request("POST", f"{base}/missions/{args.mission_id}/tick")
+        graph = result.get("graph", {})
+        summary = (
+            f"promoted={result.get('promoted', 0)} reclaimed={result.get('reclaimed', 0)} "
+            f"reconciled={result.get('reconciled', 0)}\n{_format_orchestration_graph(graph)}"
+        )
+        return emit(args, result, summary)
+    if command == "dispatch":
+        result = client.request(
+            "POST",
+            f"{base}/tasks/{args.task_id}/dispatch",
+            body={
+                "message": args.message,
+                "context": _parse_json_object(args.context_json, label="context"),
+            },
+        )
+        return emit(
+            args,
+            result,
+            f"task={result.get('task_id')} run={result.get('agent_run_id')} "
+            f"status={result.get('status')}",
+        )
+    if command == "lease":
+        result = client.request(
+            "POST",
+            f"{base}/leases/next",
+            body={
+                "owner": args.owner,
+                "role": args.role,
+                "lease_seconds": args.lease_seconds,
+            },
+        )
+        task = result.get("task", {})
+        return emit(
+            args,
+            result,
+            f"lease={result.get('lease_token')} task={task.get('id')} "
+            f"key={task.get('task_key')} expires={result.get('expires_at')}",
+        )
+    if command == "heartbeat":
+        result = client.request(
+            "POST",
+            f"{base}/leases/{args.lease_token}/heartbeat",
+            body={
+                "lease_seconds": args.lease_seconds,
+                "running": args.running,
+            },
+        )
+        return emit(
+            args,
+            result,
+            f"lease={result.get('token')} heartbeat={result.get('heartbeat_at')} "
+            f"expires={result.get('expires_at')}",
+        )
+    if command == "submit":
+        result = client.request(
+            "POST",
+            f"{base}/leases/{args.lease_token}/submit",
+            body={
+                "output": _parse_json_object(args.output_json, label="output"),
+                "artifacts": _parse_json_array(args.artifacts_json, label="artifacts"),
+            },
+        )
+        return emit(
+            args,
+            result,
+            f"task={result.get('id')} key={result.get('task_key')} "
+            f"status={result.get('status')}",
+        )
+    result = client.request(
+        "POST",
+        f"{base}/gates/{args.gate_id}/decision",
+        body={"decision": args.decision, "note": args.note},
+    )
+    return emit(
+        args,
+        result,
+        f"gate={args.gate_id} decision={args.decision} "
+        f"task={result.get('task_key')} status={result.get('status')}",
+    )
 
 
 def command_missions(client: ResearchOSClient, project_id: str, args: argparse.Namespace) -> int:
@@ -1068,6 +1218,22 @@ def _format_missions(page: dict[str, Any]) -> str:
     )
 
 
+def _format_orchestration_graph(graph: dict[str, Any]) -> str:
+    counts = graph.get("counts", {})
+    header = (
+        f"mission={graph.get('mission_id')} tasks={len(graph.get('tasks', []))} "
+        f"ready={counts.get('ready', 0)} running={counts.get('running', 0)} "
+        f"waiting_approval={counts.get('waiting_approval', 0)} "
+        f"completed={counts.get('completed', 0)}"
+    )
+    rows = [
+        f"  {item.get('task_key', ''):18} {item.get('status', ''):18} "
+        f"role={item.get('role', ''):20} agent={item.get('agent_type') or '-'}"
+        for item in graph.get("tasks", [])
+    ]
+    return "\n".join([header, *rows])
+
+
 def _format_mission(mission: dict[str, Any]) -> str:
     lines = [
         f"{mission.get('id')}  [{mission.get('status')}]  {mission.get('progress', 0):.1f}%",
@@ -1217,6 +1383,21 @@ def _parse_json_object(raw: str, *, label: str) -> dict[str, Any]:
         raise ValueError(f"Invalid {label} JSON: {exc.msg}.") from exc
     if not isinstance(value, dict):
         raise ValueError(f"{label.capitalize()} JSON must be an object.")
+    return value
+
+
+def _parse_json_array(raw: str, *, label: str) -> list[dict[str, Any]]:
+    """Read a JSON array of objects from an inline value or an @file argument."""
+
+    if raw.startswith("@"):
+        path = Path(raw[1:]).expanduser()
+        raw = path.read_text(encoding="utf-8")
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid {label} JSON: {exc.msg}.") from exc
+    if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
+        raise ValueError(f"{label.capitalize()} JSON must be an array of objects.")
     return value
 
 

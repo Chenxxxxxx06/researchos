@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Underline-style tabs with WAI-ARIA tablist semantics and roving tabindex.
+ * Compact workspace tabs with WAI-ARIA semantics and restrained transitions.
  */
 
 import {
@@ -96,11 +96,11 @@ export function TabsTrigger({ value, children, disabled, className }: TabsTrigge
       disabled={disabled}
       onClick={() => ctx.onValueChange(value)}
       className={cn(
-        '-mb-px border-b-2 px-3 py-2 text-sm font-medium outline-none transition-colors',
+        '-mb-px border-b-2 px-3 py-2 text-sm font-medium outline-none transition-[color,border-color,background-color,transform] duration-150',
         'focus-visible:ring-2 focus-visible:ring-focus/60 disabled:opacity-50',
         selected
-          ? 'border-accent text-text'
-          : 'border-transparent text-muted hover:border-border-strong hover:text-text',
+          ? 'border-accent bg-accent/5 text-text'
+          : 'border-transparent text-muted hover:border-border-strong hover:bg-surface-2/65 hover:text-text',
         className,
       )}
     >
@@ -122,7 +122,7 @@ export function TabsContent({ value, className, ...props }: TabsContentProps) {
       id={`${ctx.baseId}-panel-${value}`}
       aria-labelledby={`${ctx.baseId}-tab-${value}`}
       tabIndex={0}
-      className={cn('pt-3 outline-none', className)}
+      className={cn('ui-panel-enter pt-3 outline-none', className)}
       {...props}
     />
   );

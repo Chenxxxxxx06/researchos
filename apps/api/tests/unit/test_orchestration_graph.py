@@ -2,6 +2,7 @@
 
 import pytest
 
+from researchos.agents.enums import AgentType
 from researchos.common.errors import ValidationError
 from researchos.orchestration.service import (
     _DEPENDENCIES,
@@ -27,6 +28,20 @@ def test_standard_graph_template_has_unique_valid_references() -> None:
     assert len(_DEPENDENCIES) == len(set(_DEPENDENCIES))
     assert len(gate_keys) == len(set(gate_keys))
     assert all(task_key in task_keys for task_key, _, _, _ in _GATES)
+    supported_agents = {item.value for item in AgentType}
+    configured_agents = {str(item["agent"]) for item in _TASK_TEMPLATE if item.get("agent")}
+    assert configured_agents <= supported_agents
+    assert {str(item["role"]) for item in _TASK_TEMPLATE} >= {
+        "coordinator",
+        "evidence",
+        "reader",
+        "critic",
+        "coding",
+        "experiment_runner",
+        "writer",
+        "reviewer",
+        "release",
+    }
     validate_acyclic(set(task_keys), list(_DEPENDENCIES))
 
 

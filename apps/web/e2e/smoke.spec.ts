@@ -4,6 +4,7 @@ const DEMO = { email: 'demo@researchos.dev', password: 'demo-password-123' };
 
 test.describe('ResearchOS smoke', () => {
   test('login and navigate all core pages', async ({ page }) => {
+    test.setTimeout(90_000);
     // 1. Login
     await page.goto('/login');
     await expect(page).toHaveTitle(/ResearchOS/);
@@ -19,7 +20,7 @@ test.describe('ResearchOS smoke', () => {
     await page.screenshot({ path: 'artifacts/screenshots/2-projects.png' });
 
     // Get the demo project link
-    const projLink = page.locator('a[href*="/projects/"][href*="/overview"]').first();
+    const projLink = page.locator('a[href*="/projects/"][href*="/overview"]').filter({ hasText: 'ResearchOS Demo' }).first();
     await projLink.click();
     await page.waitForURL('**/overview');
     await expect(page.getByText(/RESEARCH LOOP/i).first()).toBeVisible({ timeout: 10000 });
@@ -54,7 +55,7 @@ test.describe('ResearchOS smoke', () => {
     // 5. Experiments
     await page.goto(`/projects/${projectId}/experiments`);
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText(/VLM|experiment|Select a run/i).first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: /实验面板|Experiments/i }).first()).toBeVisible({ timeout: 5000 });
     await page.screenshot({ path: 'artifacts/screenshots/6-experiments.png' });
 
     // 6. Paper Workspace

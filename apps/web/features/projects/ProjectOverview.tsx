@@ -13,7 +13,6 @@ import {
   Megaphone,
   Route,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -26,6 +25,8 @@ import { getManagementSummary } from '@/lib/api/management';
 import { listMissions } from '@/lib/api/missions';
 import { getProject, type Project } from '@/lib/api/projects';
 import { useI18n } from '@/lib/i18n';
+
+import { MissionComposer } from './MissionComposer';
 
 export function ProjectOverview({ projectId }: { projectId: string }) {
   const { locale } = useI18n();
@@ -119,16 +120,7 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
             <p className="mt-4 max-w-2xl text-sm leading-7 text-muted">
               {project.data.description ?? (zh ? '把零散研究材料转成可追溯的文献证据、实验设计与论文成果。' : 'Turn scattered research material into traceable evidence, experiment designs, and paper outputs.')}
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Link href={latestMission ? `/projects/${projectId}/missions/${latestMission.id}` : `/projects/${projectId}/missions`} className="inline-flex h-10 items-center gap-2 bg-accent px-4 text-sm font-semibold text-accent-fg shadow-sm hover:bg-accent-hover">
-                <Sparkles className="h-4 w-4" />
-                {latestMission ? (zh ? '继续最近任务' : 'Continue latest mission') : (zh ? '创建科研任务' : 'Create a research mission')}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link href={`/projects/${projectId}/inbox`} className="inline-flex h-10 items-center gap-2 border border-border-strong bg-surface px-4 text-sm font-medium text-text hover:bg-surface-2">
-                <Inbox className="h-4 w-4" />{zh ? '导入研究材料' : 'Import research material'}
-              </Link>
-            </div>
+            <MissionComposer projectId={projectId} latestMissionId={latestMission?.id} />
           </div>
           <div className="border border-border bg-overlay/90 p-5 shadow-md backdrop-blur">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-faint">{zh ? '项目实况' : 'Live project state'}</p>

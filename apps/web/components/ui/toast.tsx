@@ -120,7 +120,7 @@ function ToastCard({ item }: { item: ToastItem }) {
       onMouseEnter={pause}
       onMouseLeave={resume}
       className={cn(
-        'pointer-events-auto flex w-80 items-start gap-2.5 rounded-md border border-border border-l-2',
+        'ui-panel-enter pointer-events-auto flex w-80 items-start gap-2.5 rounded-md border border-border border-l-2',
         'bg-overlay p-3 shadow-elev2',
         classes.border,
       )}

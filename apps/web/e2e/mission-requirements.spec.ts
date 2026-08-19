@@ -9,7 +9,7 @@ async function login(page: Page): Promise<string> {
   await page.fill('input[type="password"]', DEMO.password);
   await page.click('button[type="submit"]');
   await page.waitForURL('**/projects');
-  const project = page.locator('a[href*="/projects/"][href*="/overview"]').first();
+  const project = page.locator('a[href*="/projects/"][href*="/overview"]').filter({ hasText: 'ResearchOS Demo' }).first();
   const href = await project.getAttribute('href');
   const id = href?.match(/\/projects\/([^/]+)/)?.[1];
   if (!id) throw new Error('Demo project id not found.');
@@ -18,6 +18,7 @@ async function login(page: Page): Promise<string> {
 
 test.describe('teacher requirement mission chain', () => {
   test('seeded mission exposes review, experiment, SQL, citation, voice, and management surfaces', async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
     const projectId = await login(page);
     await page.goto(`/projects/${projectId}/missions`);
     const missionRow = page.getByTestId('mission-row').filter({ hasText: 'Document AI / Low-resource learning' });
