@@ -35,6 +35,8 @@ import {
   type SuggestionOp,
 } from '@/lib/api/documents';
 import { Button } from '@/components/ui/button';
+import { EvidenceStamp } from '@/components/provenance/EvidenceStamp';
+import { ProvenanceTrace } from '@/components/provenance/ProvenanceTrace';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/toast';
@@ -369,7 +371,7 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
               <button
                 key={template.id}
                 type="button"
-                className="group rounded-xl border border-border bg-surface p-5 text-left transition hover:border-primary hover:shadow-sm disabled:opacity-50"
+                className="group rounded-xl border border-border bg-surface p-5 text-left transition hover:border-primary disabled:opacity-50"
                 disabled={create.isPending}
                 onClick={() => create.mutate(template.id)}
               >
@@ -387,7 +389,7 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="-m-6 flex h-[calc(100vh-3.5rem)] min-h-0">
+    <div className="-m-6 flex h-[calc(100vh-3rem)] min-h-0">
       <aside className="flex w-72 shrink-0 flex-col border-r border-border bg-surface">
         <AssistantDock projectId={projectId} latexProjectId={lid as string} onInsert={insertAtCursor} />
       </aside>
@@ -398,6 +400,14 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
             {t('paper.editor')}
           </span>
           <span className="text-xs text-faint">{MAIN}</span>
+          {file.data && (
+            <EvidenceStamp
+              status={dirty ? 'unsaved' : 'saved'}
+              tone={dirty ? 'warn' : 'success'}
+              id={`v${file.data.version}`}
+              date={new Date(file.data.updated_at).toLocaleDateString()}
+            />
+          )}
           <div className="ml-auto flex items-center gap-2">
             <span className="text-[11px] text-muted">
               {dirty

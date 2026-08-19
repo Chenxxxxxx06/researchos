@@ -19,6 +19,8 @@ import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { EvidenceStamp } from '@/components/provenance/EvidenceStamp';
+import { ProvenanceTrace } from '@/components/provenance/ProvenanceTrace';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api/client';
 import { listInboxItems } from '@/lib/api/inbox';
@@ -107,30 +109,44 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
   ];
 
   return (
-    <div className="-m-6 min-h-[calc(100dvh-3.5rem)] bg-bg lg:-m-8">
+    <div className="-m-6 min-h-[calc(100dvh-3rem)] bg-bg lg:-m-8">
       <section className="mission-grid relative overflow-hidden border-b border-border bg-surface px-6 py-10 lg:px-10 lg:py-12">
         <div className="relative grid items-end gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="success" size="sm">RESEARCH WORKSPACE</Badge>
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-faint">{project.data.status}</span>
+              <EvidenceStamp
+                status={project.data.status}
+                tone={project.data.status === 'active' ? 'success' : 'neutral'}
+                id={project.data.id.slice(0, 8)}
+                date={new Date(project.data.updated_at).toLocaleDateString()}
+              />
+              <Badge variant="neutral" size="sm">RESEARCH WORKSPACE</Badge>
             </div>
-            <h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-[-0.055em] text-text lg:text-5xl">{project.data.name}</h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-muted">
+            <h1 className="mt-5 max-w-4xl text-3xl font-semibold tracking-[-0.045em] text-text lg:text-4xl">{project.data.name}</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
               {project.data.description ?? (zh ? '把零散研究材料转成可追溯的文献证据、实验设计与论文成果。' : 'Turn scattered research material into traceable evidence, experiment designs, and paper outputs.')}
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Link href={latestMission ? `/projects/${projectId}/missions/${latestMission.id}` : `/projects/${projectId}/missions`} className="inline-flex h-10 items-center gap-2 bg-accent px-4 text-sm font-semibold text-accent-fg shadow-sm hover:bg-accent-hover">
+            <ProvenanceTrace
+              className="mt-5"
+              nodes={[
+                { label: zh ? '来源' : 'Source', state: 'done' },
+                { label: zh ? '任务' : 'Mission', state: 'done' },
+                { label: zh ? '实验' : 'Experiment', state: (counts?.experiment_plans ?? 0) > 0 ? 'active' : 'todo' },
+                { label: zh ? '论文' : 'Paper', state: 'todo' },
+              ]}
+            />
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <Link href={latestMission ? `/projects/${projectId}/missions/${latestMission.id}` : `/projects/${projectId}/missions`} className="inline-flex h-9 items-center gap-2 bg-accent px-3.5 text-sm font-medium text-accent-fg hover:bg-accent-hover">
                 <Sparkles className="h-4 w-4" />
                 {latestMission ? (zh ? '继续最近任务' : 'Continue latest mission') : (zh ? '创建科研任务' : 'Create a research mission')}
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link href={`/projects/${projectId}/inbox`} className="inline-flex h-10 items-center gap-2 border border-border-strong bg-surface px-4 text-sm font-medium text-text hover:bg-surface-2">
+              <Link href={`/projects/${projectId}/inbox`} className="inline-flex h-9 items-center gap-2 border border-border-strong bg-surface px-3.5 text-sm font-medium text-text hover:bg-surface-2">
                 <Inbox className="h-4 w-4" />{zh ? '导入研究材料' : 'Import research material'}
               </Link>
             </div>
           </div>
-          <div className="border border-border bg-overlay/90 p-5 shadow-md backdrop-blur">
+          <div className="border border-border bg-overlay/90 p-5 backdrop-blur">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-faint">{zh ? '项目实况' : 'Live project state'}</p>
             <div className="mt-4 grid grid-cols-2 gap-px bg-border">
               <Stat label={zh ? '文献' : 'Papers'} value={counts?.papers} />
@@ -157,7 +173,7 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
           {flow.map((step) => {
             const Icon = step.icon;
             return (
-              <Link key={step.index} href={step.href} className="group relative flex min-h-[15rem] flex-col border border-border bg-surface p-5 shadow-sm hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-md">
+              <Link key={step.index} href={step.href} className="group relative flex min-h-[14rem] flex-col border border-border bg-surface p-5 hover:-translate-y-0.5 hover:border-accent/50">
                 <div className="flex items-start justify-between">
                   <span className="font-mono text-[10px] text-faint">{step.index}</span>
                   <span className={`flex h-8 w-8 items-center justify-center ${step.ready ? 'bg-success-bg text-success' : 'bg-surface-2 text-muted'}`}>{step.ready ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}</span>

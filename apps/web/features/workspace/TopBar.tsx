@@ -19,11 +19,11 @@ export function TopBar({ me }: { me: MeResponse }) {
   const setPaletteOpen = useCommandStore((s) => s.setOpen);
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between gap-1 border-b border-border bg-surface/95 px-2 backdrop-blur sm:px-5">
+    <header className="flex h-12 shrink-0 items-center justify-between gap-1 border-b border-border bg-surface/95 px-3 backdrop-blur sm:px-5">
       <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
         <Link
           href="/projects"
-          className="text-[15px] font-bold tracking-tight text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60"
+          className="text-sm font-semibold tracking-tight text-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/60"
         >
           {t('app.name')}
         </Link>

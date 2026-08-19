@@ -37,6 +37,8 @@ import {
 } from '@/lib/api/missions';
 import { useI18n } from '@/lib/i18n';
 import { Badge } from '@/components/ui/badge';
+import { EvidenceStamp } from '@/components/provenance/EvidenceStamp';
+import { ProvenanceTrace } from '@/components/provenance/ProvenanceTrace';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -218,7 +220,7 @@ export function MissionWorkspace({ projectId, missionId }: { projectId: string; 
   const copy = workspaceCopy(lang, current.step_kind);
 
   return (
-    <div className="-m-6 min-h-[calc(100dvh-3.5rem)] bg-bg">
+    <div className="-m-6 min-h-[calc(100dvh-3rem)] bg-bg">
       <header className="border-b border-border bg-surface px-6 pb-6 pt-5 lg:px-8">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0 flex-1">
@@ -227,6 +229,12 @@ export function MissionWorkspace({ projectId, missionId }: { projectId: string; 
               {lang === 'zh' ? '全部科研任务' : 'All missions'}
             </Link>
             <div className="flex flex-wrap items-center gap-2">
+              <EvidenceStamp
+                status={mission.status}
+                tone={mission.status === 'completed' ? 'success' : mission.status === 'paused' ? 'warn' : 'accent'}
+                id={mission.id.slice(0, 8)}
+                date={new Date(mission.updated_at).toLocaleDateString()}
+              />
               <Badge variant={mission.status === 'completed' ? 'success' : mission.status === 'paused' ? 'warn' : 'info'} dot>
                 {missionStatusLabel(mission.status, lang)}
               </Badge>
@@ -254,6 +262,16 @@ export function MissionWorkspace({ projectId, missionId }: { projectId: string; 
           </div>
           <span className="font-mono text-xs tabular-nums text-muted">{mission.progress.toFixed(0)}%</span>
         </div>
+        <ProvenanceTrace
+          className="mt-4"
+          nodes={[
+            { label: lang === 'zh' ? '范围' : 'Scope', state: mission.progress >= 20 ? 'done' : 'active' },
+            { label: lang === 'zh' ? '文献' : 'Literature', state: mission.progress >= 40 ? 'done' : mission.progress >= 20 ? 'active' : 'todo' },
+            { label: lang === 'zh' ? '精读' : 'Reading', state: mission.progress >= 60 ? 'done' : mission.progress >= 40 ? 'active' : 'todo' },
+            { label: lang === 'zh' ? '综述' : 'Review', state: mission.progress >= 80 ? 'done' : mission.progress >= 60 ? 'active' : 'todo' },
+            { label: lang === 'zh' ? '实验方案' : 'Experiment plan', state: mission.progress >= 100 ? 'done' : mission.progress >= 80 ? 'active' : 'todo' },
+          ]}
+        />
       </header>
 
       <StepRoadmap mission={mission} lang={lang} />

@@ -29,10 +29,12 @@ import { listIdeas } from '@/lib/api/ideas';
 import { listPapers } from '@/lib/api/papers';
 import { listLLMConfigs } from '@/lib/api/llmConfig';
 import { installSkill } from '@/lib/api/skills';
+import { EvidenceStamp } from '@/components/provenance/EvidenceStamp';
+import { ProvenanceTrace } from '@/components/provenance/ProvenanceTrace';
 import { cn } from '@/lib/utils';
 
 const nodeClass =
-  'min-w-[8rem] rounded-xl border border-border bg-surface px-3 py-3 shadow-elev1';
+  'min-w-[8rem] rounded-xl border border-border bg-surface px-3 py-3';
 
 export function ExperimentFlowOverview({ projectId }: { projectId: string }) {
   const papers = useQuery({
@@ -71,10 +73,22 @@ export function ExperimentFlowOverview({ projectId }: { projectId: string }) {
   return (
     <div className="space-y-6">
       <section>
-        <h2 className="text-lg font-semibold text-text">科研数据链路</h2>
-        <p className="mt-1 text-sm text-muted">
-          每一步都保留来源和版本关系，使论文结论可以回溯到文献、代码、运行指标和图表。
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-text">科研数据链路</h2>
+            <p className="mt-1 text-sm text-muted">
+              每一步都保留来源和版本关系，使论文结论可以回溯到文献、代码、运行指标和图表。
+            </p>
+          </div>
+          <ProvenanceTrace
+            nodes={[
+              { label: '文献', state: (papers.data?.total ?? 0) > 0 ? 'done' : 'todo' },
+              { label: '假设', state: (ideas.data?.total ?? 0) > 0 ? 'done' : 'todo' },
+              { label: '实验', state: allRuns.length > 0 ? 'done' : 'todo' },
+              { label: '论文', state: 'todo' },
+            ]}
+          />
+        </div>
         <div className="mt-4 flex items-stretch gap-2 overflow-x-auto pb-2">
           {stages.map((stage, index) => {
             const Icon = stage.icon;
@@ -213,7 +227,7 @@ function RunProgress({ run }: { run: ExperimentRun }) {
     typeof run.config_json.current_step === 'string' ? run.config_json.current_step : null;
   const progress = Math.max(0, Math.min(100, run.progress ?? 0));
   return (
-    <article className="rounded-xl border border-border bg-surface p-4 shadow-elev1">
+    <article className="rounded-xl border border-border bg-surface p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-text">{run.name}</p>
@@ -222,6 +236,14 @@ function RunProgress({ run }: { run: ExperimentRun }) {
           </p>
         </div>
         <span className="font-mono text-xs text-muted">{progress.toFixed(0)}%</span>
+      </div>
+      <div className="mt-3">
+        <EvidenceStamp
+          status={run.status}
+          tone={run.status === 'completed' ? 'success' : run.status === 'failed' ? 'danger' : run.status === 'running' ? 'accent' : 'neutral'}
+          id={run.id.slice(0, 8)}
+          date={new Date(run.created_at).toLocaleDateString()}
+        />
       </div>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-3">
         <div

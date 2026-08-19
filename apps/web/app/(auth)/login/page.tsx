@@ -10,9 +10,9 @@ import { LoginForm } from '@/features/auth/LoginForm';
 export default function LoginPage() {
   const { t } = useI18n();
   return (
-    <Card className="shadow-elev2">
+    <Card>
       <CardContent className="p-6">
-        <h2 className="mb-5 text-base font-semibold text-text">{t('auth.signInTitle')}</h2>
+        <h2 className="mb-5 text-sm font-semibold text-text">{t('auth.signInTitle')}</h2>
         <Suspense fallback={null}>
           <LoginForm />
         </Suspense>

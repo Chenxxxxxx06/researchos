@@ -70,10 +70,10 @@ export function SideRail() {
 
   return (
     <>
-    <nav className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 overflow-y-auto border-r border-border bg-surface/90 py-4 backdrop-blur lg:block">
+    <nav className="sticky top-12 hidden h-[calc(100dvh-3rem)] w-[220px] shrink-0 overflow-y-auto border-r border-border bg-surface/90 py-3 backdrop-blur lg:block">
       <Link
         href="/projects"
-        className="mx-3 mb-5 flex items-center gap-2 rounded-md border border-transparent px-3 py-2 text-sm font-semibold text-text hover:border-border hover:bg-surface-2"
+        className="mx-3 mb-4 flex items-center gap-2 rounded-md border border-transparent px-3 py-1.5 text-sm font-semibold text-text hover:border-border hover:bg-surface-2"
       >
         <FolderKanban className="h-4 w-4" aria-hidden="true" /> {t('nav.projects')}
       </Link>
@@ -96,13 +96,13 @@ export function SideRail() {
                     href={href}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'relative flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                      'relative flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
                       active
-                        ? 'bg-accent text-accent-fg shadow-sm before:absolute before:-left-2 before:h-5 before:w-0.5 before:bg-accent'
+                        ? 'bg-surface-2 text-text before:absolute before:-left-2 before:h-4 before:w-0.5 before:bg-accent'
                         : 'text-muted hover:bg-surface-2 hover:text-text',
                     )}
                   >
-                    <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> {t(item.key)}
+                    <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-accent' : 'text-muted')} aria-hidden="true" /> {t(item.key)}
                   </Link>
                 </Tooltip>
               ) : (

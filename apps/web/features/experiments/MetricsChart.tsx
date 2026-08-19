@@ -47,7 +47,7 @@ export function MetricsChart({ projectId, runId }: { projectId: string; runId: s
 
   if (isLoading) return <Skeleton className="h-[240px] w-full" />;
   if (isError) return <p className="text-xs text-red-600">{t('common.error')}</p>;
-  if (points.length === 0) return <p className="text-xs text-neutral-500">{t('common.empty')}</p>;
+  if (points.length === 0) return <p className="text-xs text-muted">{t('common.empty')}</p>;
 
   return (
     <ResponsiveContainer width="100%" height={240}>

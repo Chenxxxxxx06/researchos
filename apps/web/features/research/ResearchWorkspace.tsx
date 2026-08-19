@@ -32,7 +32,7 @@ export function ResearchWorkspace({ projectId }: { projectId: string }) {
   const focusDiscover = () => setTab('discover');
 
   return (
-    <div className="-m-6 flex h-[calc(100vh-3.5rem)]">
+    <div className="-m-6 flex h-[calc(100vh-3rem)]">
       <aside className="flex w-64 shrink-0 flex-col overflow-hidden border-r border-border bg-surface">
         <div className="flex-1 overflow-y-auto p-3">
           <PaperLibrary projectId={projectId} onFocusDiscover={focusDiscover} />

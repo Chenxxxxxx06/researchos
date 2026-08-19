@@ -27,8 +27,8 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen p-6">
-        <Skeleton className="mb-4 h-14 w-full" />
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="mb-3 h-10 w-full" />
+        <Skeleton className="h-[32rem] w-full" />
       </div>
     );
   }
@@ -44,7 +44,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
         <TopBar me={me} />
         <div className="flex flex-1 items-start">
           <SideRail />
-          <main className="min-w-0 flex-1 bg-bg p-6 pb-20 lg:p-8">{children}</main>
+          <main className="min-w-0 flex-1 bg-bg p-4 pb-20 lg:p-6">{children}</main>
         </div>
       </div>
       <CommandPalette />

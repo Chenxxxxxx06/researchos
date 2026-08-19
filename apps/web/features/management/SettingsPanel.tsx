@@ -259,7 +259,7 @@ function formForConfig(config: LLMConfig) {
 
 function SettingsSection({ icon: Icon, title, description, action, children }: { icon: typeof Palette; title: string; description: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="border border-border bg-surface p-5 shadow-sm">
+    <section className="border border-border bg-surface p-5">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <span className="flex h-8 w-8 items-center justify-center bg-accent/10 text-accent"><Icon className="h-4 w-4" /></span>

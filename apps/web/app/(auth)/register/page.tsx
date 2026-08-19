@@ -9,9 +9,9 @@ import { RegisterForm } from '@/features/auth/RegisterForm';
 export default function RegisterPage() {
   const { t } = useI18n();
   return (
-    <Card className="shadow-elev2">
+    <Card>
       <CardContent className="p-6">
-        <h2 className="mb-4 text-base font-semibold text-text">{t('auth.createAccount')}</h2>
+        <h2 className="mb-4 text-sm font-semibold text-text">{t('auth.createAccount')}</h2>
         <RegisterForm />
         <p className="mt-4 text-center text-sm text-muted">
           {t('auth.haveAccount')}{' '}

@@ -98,7 +98,7 @@ export function TerminalPanel({ projectId, sshProfileId }: { projectId: string; 
           type="button"
           onClick={submit}
           disabled={run.isPending}
-          className="rounded p-1 text-[#aaa] hover:bg-[#333] hover:text-white disabled:opacity-50"
+          className="rounded p-1 text-[#aaa] hover:bg-[#333] hover:text-[#f0f0f0] disabled:opacity-50"
           aria-label="Run command"
         >
           {run.isPending ? (

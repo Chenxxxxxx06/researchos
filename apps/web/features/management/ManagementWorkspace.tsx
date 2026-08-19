@@ -55,7 +55,7 @@ export function ManagementWorkspace({ projectId }: { projectId: string }) {
   ];
 
   return (
-    <div className="-m-6 min-h-[calc(100dvh-3.5rem)] bg-bg lg:-m-8">
+    <div className="-m-6 min-h-[calc(100dvh-3rem)] bg-bg lg:-m-8">
       <header className="mission-grid border-b border-border bg-surface px-6 py-7 lg:px-8">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
@@ -103,7 +103,7 @@ export function ManagementWorkspace({ projectId }: { projectId: string }) {
         </nav>
 
         {tab === 'settings' ? <SettingsPanel projectId={projectId} /> : (
-          <section className="overflow-x-auto border border-border bg-surface shadow-sm">
+          <section className="overflow-x-auto border border-border bg-surface">
             {tab === 'researchers' && (
               <table className="w-full min-w-[44rem] text-left text-xs">
                 <Head values={[zh ? '人员' : 'Researcher', 'Email', zh ? '项目角色' : 'Project role', zh ? '状态' : 'Status']} />
