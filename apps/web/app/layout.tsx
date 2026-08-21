@@ -1,3 +1,4 @@
+import { GeistMono, GeistSans } from 'geist/font';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
@@ -47,7 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: BOOT_SCRIPT }} />
       </head>
-      <body>
+      <body className={`${GeistSans.variable} ${GeistMono.variable}`}>
         <Providers>{children}</Providers>
       </body>
     </html>

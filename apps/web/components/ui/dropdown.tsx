@@ -148,7 +148,7 @@ export function Dropdown({ trigger, align = 'start', children, className, panelC
           role="menu"
           onKeyDown={onPanelKeyDown}
           className={cn(
-            'absolute z-50 min-w-44 rounded-md border border-border bg-overlay py-1 shadow-elev2',
+            'ui-popover-enter absolute z-50 min-w-44 rounded-md border border-border bg-overlay py-1 shadow-elev2',
             align === 'end' ? 'right-0' : 'left-0',
             flipUp ? 'bottom-full mb-1' : 'top-full mt-1',
             panelClassName,
@@ -194,8 +194,8 @@ export function DropdownItem({
         onSelect?.();
       }}
       className={cn(
-        'flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm outline-none',
-        'focus:bg-surface-2 hover:bg-surface-2 disabled:opacity-50',
+        'flex w-full items-center gap-2 px-3 py-2 text-left text-sm outline-none transition-[background-color,color,transform] duration-150',
+        'focus:bg-surface-2 hover:translate-x-0.5 hover:bg-surface-2 disabled:opacity-50',
         destructive ? 'text-danger' : 'text-text',
         className,
       )}
@@ -228,8 +228,8 @@ export function DropdownRadioItem({ children, checked, onSelect, icon: Icon, cla
         onSelect?.();
       }}
       className={cn(
-        'flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-text outline-none',
-        'focus:bg-surface-2 hover:bg-surface-2',
+        'flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text outline-none transition-[background-color,color,transform] duration-150',
+        'focus:bg-surface-2 hover:translate-x-0.5 hover:bg-surface-2',
         className,
       )}
     >

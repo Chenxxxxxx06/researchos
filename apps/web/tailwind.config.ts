@@ -27,6 +27,7 @@ const config: Config = {
         bg: 'rgb(var(--color-bg) / <alpha-value>)',
         surface: 'rgb(var(--color-surface) / <alpha-value>)',
         'surface-2': 'rgb(var(--color-surface-2) / <alpha-value>)',
+        'surface-3': 'rgb(var(--color-surface-3) / <alpha-value>)',
         overlay: 'rgb(var(--color-overlay) / <alpha-value>)',
         border: 'rgb(var(--color-border) / <alpha-value>)',
         'border-strong': 'rgb(var(--color-border-strong) / <alpha-value>)',
@@ -87,7 +88,6 @@ const config: Config = {
       fontFamily: {
         sans: 'var(--font-sans)',
         mono: 'var(--font-mono)',
-        display: 'var(--font-display)',
       },
     },
   },

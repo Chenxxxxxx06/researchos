@@ -6,7 +6,13 @@ import json
 
 from researchos.cli.config import CLIConfig
 from researchos.cli.context import ContextBuilder
-from researchos.cli.main import build_parser, command_missions, find_project_root, main
+from researchos.cli.main import (
+    build_parser,
+    command_missions,
+    command_orchestration,
+    find_project_root,
+    main,
+)
 from researchos.cli.memory import MemoryStore
 from researchos.cli.session import SessionStore
 
@@ -124,6 +130,72 @@ class _MissionClient:
             "topic": "Grounded review",
             "steps": [],
         }
+
+
+def test_cli_orchestration_lease_exposes_external_worker_contract(capsys) -> None:
+    args = build_parser().parse_args(
+        [
+            "--json",
+            "orchestration",
+            "lease",
+            "--owner",
+            "openclaw-lab",
+            "--role",
+            "evidence",
+            "--lease-seconds",
+            "90",
+        ]
+    )
+    client = _MissionClient()
+    client.request = lambda method, path, body=None, query=None: {
+        "task": {"id": "task-1", "task_key": "discover"},
+        "lease_token": "lease-1",
+        "expires_at": "2026-08-19T00:00:00Z",
+    } if method == "POST" else None
+
+    assert command_orchestration(client, "project-1", args) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["task"]["task_key"] == "discover"
+    assert output["lease_token"] == "lease-1"
+
+
+def test_cli_orchestration_submit_requires_hashed_artifact_contract(capsys) -> None:
+    args = build_parser().parse_args(
+        [
+            "--json",
+            "orchestration",
+            "submit",
+            "lease-1",
+            "--output-json",
+            '{"papers":12}',
+            "--artifacts-json",
+            '[{"schema_name":"paper-set/v1","content_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","metadata":{"papers":12}}]',
+        ]
+    )
+    calls = []
+
+    class Client:
+        def request(self, method, path, *, body=None, query=None):
+            calls.append((method, path, body, query))
+            return {"id": "task-1", "task_key": "discover", "status": "completed"}
+
+    assert command_orchestration(Client(), "project-1", args) == 0
+    assert calls[0] == (
+        "POST",
+        "/projects/project-1/orchestration/leases/lease-1/submit",
+        {
+            "output": {"papers": 12},
+            "artifacts": [
+                {
+                    "schema_name": "paper-set/v1",
+                    "content_hash": "a" * 64,
+                    "metadata": {"papers": 12},
+                }
+            ],
+        },
+        None,
+    )
+    assert json.loads(capsys.readouterr().out)["status"] == "completed"
 
 
 def test_cli_missions_create_targets_shared_api(capsys) -> None:

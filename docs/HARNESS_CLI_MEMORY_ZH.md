@@ -154,8 +154,25 @@ researchos adapters list
 researchos adapters doctor
 ```
 
-这一命令只发现已安装的 Claude、Codex、OpenClaw、nanobot 并提供链接，不会偷偷
-安装或执行第三方程序。
+这一命令发现已安装的 Claude、Codex、OpenClaw、nanobot，不会偷偷执行第三方程序。
+OpenClaw 已可通过受约束的 Worker Lease 协议控制正式 Mission DAG：
+
+```bash
+# 读取并对账 17 节点 Agent 链路
+researchos --json orchestration graph <mission-id>
+researchos --json orchestration tick <mission-id>
+
+# OpenClaw 或其他外部 Worker 领取一个已解锁任务
+researchos --json orchestration lease --owner openclaw --role evidence --lease-seconds 120
+researchos --json orchestration heartbeat <lease-token> --running --lease-seconds 120
+
+# 交付真实 output 和带 SHA-256 的 Artifact
+researchos --json orchestration submit <lease-token> \
+  --output-json @output.json --artifacts-json @artifacts.json
+```
+
+外部 Worker 不能绕过依赖、租约和人工 Gate。Scope、仓库导入、补丁应用、付费计算与
+发布审批仍要求用户明确决定。OpenClaw 工作区 Skill 见 `integrations/openclaw/SKILL.md`。
 
 ## 4. 为什么科研记忆不能只是聊天记录
 

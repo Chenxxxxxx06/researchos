@@ -88,7 +88,7 @@ export function ReviewerWorkspace({ projectId }: { projectId: string }) {
   const output = run.data?.output_json?.message;
 
   return (
-    <div className="-m-6 min-h-[calc(100dvh-3rem)] bg-bg lg:-m-8">
+    <div className="-m-5 min-h-[calc(100dvh-4rem)] bg-bg lg:-m-6 xl:-m-8">
       <header className="mission-grid border-b border-border bg-surface px-6 py-7 lg:px-8">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div>
@@ -101,7 +101,7 @@ export function ReviewerWorkspace({ projectId }: { projectId: string }) {
       </header>
 
       <div className="grid gap-6 p-6 xl:grid-cols-[27rem_minmax(0,1fr)] lg:p-8">
-        <section className="h-fit border border-border bg-surface p-5">
+        <section className="h-fit border border-border bg-surface p-5 shadow-sm">
           <div className="flex items-center justify-between"><h2 className="text-sm font-semibold text-text">01 · 构建审稿证据包</h2><FileSearch2 className="h-4 w-4 text-accent" /></div>
           <label className="mt-5 block text-xs font-medium text-text">目标会议 / 期刊
             <select value={venue} onChange={(event) => setVenue(event.target.value)} className="mt-1 h-10 w-full border border-border-strong bg-surface px-3 text-sm">
@@ -119,7 +119,7 @@ export function ReviewerWorkspace({ projectId }: { projectId: string }) {
           </label>
           <button type="button" onClick={() => setIncludeExperiments((value) => !value)} className="mt-3 flex w-full items-center justify-between border border-border bg-surface-2/40 p-3 text-left">
             <span><span className="flex items-center gap-2 text-xs font-medium text-text"><FlaskConical className="h-3.5 w-3.5" />附加实验记录</span><span className="mt-1 block text-[10px] text-muted">{experimentEvidence.data?.length ?? 0} 个完成运行 · 指标原值</span></span>
-            <span className={`flex h-5 w-5 items-center justify-center border ${includeExperiments ? 'border-success bg-success text-surface' : 'border-border-strong'}`}>{includeExperiments && <CheckCircle2 className="h-3.5 w-3.5" />}</span>
+            <span className={`flex h-5 w-5 items-center justify-center border ${includeExperiments ? 'border-success bg-success text-white' : 'border-border-strong'}`}>{includeExperiments && <CheckCircle2 className="h-3.5 w-3.5" />}</span>
           </button>
           <Button className="mt-4 w-full" onClick={() => start.mutate()} loading={start.isPending} disabled={!realProviderReady || manuscript.trim().length < 80 || experimentEvidence.isLoading}>
             <Sparkles className="h-4 w-4" />开始证据约束审稿
@@ -129,7 +129,7 @@ export function ReviewerWorkspace({ projectId }: { projectId: string }) {
           {start.error && <p className="mt-3 border border-danger/20 bg-danger-bg p-3 text-xs text-danger">{start.error instanceof Error ? start.error.message : '启动失败'}</p>}
         </section>
 
-        <section className="min-h-[38rem] border border-border bg-surface">
+        <section className="min-h-[38rem] border border-border bg-surface shadow-sm">
           <div className="flex items-center justify-between border-b border-border px-5 py-4"><h2 className="text-sm font-semibold text-text">02 · 审稿报告与修改优先级</h2>{run.data && <span className="font-mono text-[10px] uppercase text-faint">{run.data.status}</span>}</div>
           <div className="p-5">
             {!runId && <div className="flex min-h-[28rem] flex-col items-center justify-center text-center"><AlertTriangle className="h-7 w-7 text-warn" /><p className="mt-4 max-w-md text-sm leading-7 text-muted">报告会逐条检查主张是否被稿件与实验数据支撑，区分致命有效性问题、证据缺口和表达改进，并给出至少两个 Reviewer-Challenger 深挖问题。</p></div>}

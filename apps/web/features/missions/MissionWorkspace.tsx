@@ -36,9 +36,9 @@ import {
   type MissionStepStatus,
 } from '@/lib/api/missions';
 import { useI18n } from '@/lib/i18n';
-import { Badge } from '@/components/ui/badge';
 import { EvidenceStamp } from '@/components/provenance/EvidenceStamp';
 import { ProvenanceTrace } from '@/components/provenance/ProvenanceTrace';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -220,7 +220,7 @@ export function MissionWorkspace({ projectId, missionId }: { projectId: string; 
   const copy = workspaceCopy(lang, current.step_kind);
 
   return (
-    <div className="-m-6 min-h-[calc(100dvh-3rem)] bg-bg">
+    <div className="-m-5 min-h-[calc(100dvh-4rem)] bg-bg lg:-m-6 xl:-m-8">
       <header className="border-b border-border bg-surface px-6 pb-6 pt-5 lg:px-8">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0 flex-1">

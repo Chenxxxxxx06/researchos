@@ -225,7 +225,9 @@ function mentorPrompt(input: { paperCount: number; ideaCount: number; experiment
 function RunProgress({ run }: { run: ExperimentRun }) {
   const currentStep =
     typeof run.config_json.current_step === 'string' ? run.config_json.current_step : null;
-  const progress = Math.max(0, Math.min(100, run.progress ?? 0));
+  const progress = run.status === 'completed'
+    ? 100
+    : Math.max(0, Math.min(100, run.progress ?? 0));
   return (
     <article className="rounded-xl border border-border bg-surface p-4">
       <div className="flex items-center justify-between gap-3">

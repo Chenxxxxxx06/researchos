@@ -27,8 +27,8 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen p-6">
-        <Skeleton className="mb-3 h-10 w-full" />
-        <Skeleton className="h-[32rem] w-full" />
+        <Skeleton className="mb-4 h-14 w-full" />
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }
@@ -40,11 +40,14 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   return (
     <ShortcutProvider>
       <WorkspaceCommands />
-      <div className="flex min-h-screen flex-col">
+      <a href="#workspace-content" className="sr-only z-50 rounded-md bg-accent px-4 py-2 text-accent-fg focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
+        Skip to workspace content
+      </a>
+      <div className="flex min-h-[100dvh] flex-col bg-bg">
         <TopBar me={me} />
         <div className="flex flex-1 items-start">
           <SideRail />
-          <main className="min-w-0 flex-1 bg-bg p-4 pb-20 lg:p-6">{children}</main>
+          <main id="workspace-content" className="min-w-0 flex-1 bg-bg p-5 pb-24 lg:p-6 lg:pb-6 xl:p-8">{children}</main>
         </div>
       </div>
       <CommandPalette />

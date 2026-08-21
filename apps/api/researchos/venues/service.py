@@ -7,7 +7,7 @@ keeps this endpoint from becoming an SSRF proxy.
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime, tzinfo
+from datetime import UTC, datetime, timedelta, timezone, tzinfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
@@ -18,6 +18,7 @@ from .schemas import VenueDeadline, VenueDeadlineFeed
 
 CCFDDL_ICAL_URL = "https://ccfddl.com/conference/deadlines_zh.ics"
 _DATE_FORMATS = ("%Y%m%dT%H%M%SZ", "%Y%m%dT%H%M%S", "%Y%m%d")
+_MAX_FEED_ITEMS = 500
 
 
 class VenueDeadlineService:
@@ -33,14 +34,35 @@ class VenueDeadlineService:
         except httpx.HTTPError as exc:
             raise DependencyError("CCFDDL deadline feed is temporarily unavailable.") from exc
 
-        items = _parse_calendar(response.text)
-        items.sort(key=lambda item: item.starts_at)
+        fetched_at = datetime.now(UTC)
+        items = _select_relevant_items(
+            _parse_calendar(response.text),
+            now=fetched_at,
+            limit=_MAX_FEED_ITEMS,
+        )
         return VenueDeadlineFeed(
             source_name="ccfddl/ccf-deadlines",
             source_url=CCFDDL_ICAL_URL,
-            fetched_at=datetime.now(UTC),
-            items=items[:500],
+            fetched_at=fetched_at,
+            items=items,
         )
+
+
+def _select_relevant_items(
+    items: list[VenueDeadline],
+    *,
+    now: datetime,
+    limit: int,
+) -> list[VenueDeadline]:
+    """Keep upcoming deadlines and fill remaining capacity with recent history."""
+    if limit <= 0:
+        return []
+    ordered = sorted(items, key=lambda item: item.starts_at)
+    upcoming = [item for item in ordered if item.starts_at >= now]
+    if len(upcoming) >= limit:
+        return upcoming[:limit]
+    history = [item for item in ordered if item.starts_at < now]
+    return history[-(limit - len(upcoming)) :] + upcoming
 
 
 def _parse_calendar(raw: str) -> list[VenueDeadline]:
@@ -64,9 +86,12 @@ def _parse_calendar(raw: str) -> list[VenueDeadline]:
                     events.append(event)
             current = None
             continue
-        if current is None or ":" not in line:
+        if current is None:
             continue
-        key_part, value = line.split(":", 1)
+        content_line = _split_content_line(line)
+        if content_line is None:
+            continue
+        key_part, value = content_line
         key, _, params = key_part.partition(";")
         current[key.upper()] = (params, _unescape(value))
     return events
@@ -94,20 +119,56 @@ def _event_from_fields(fields: dict[str, tuple[str, str]]) -> VenueDeadline | No
     )
 
 
+def _split_content_line(line: str) -> tuple[str, str] | None:
+    """Split an iCalendar content line at the first colon outside quotes."""
+    quoted = False
+    escaped = False
+    for index, character in enumerate(line):
+        if escaped:
+            escaped = False
+            continue
+        if character == "\\":
+            escaped = True
+            continue
+        if character == '"':
+            quoted = not quoted
+            continue
+        if character == ":" and not quoted:
+            return line[:index], line[index + 1 :]
+    return None
+
+
 def _parse_datetime(params: str, value: str) -> datetime | None:
-    timezone: tzinfo = UTC
-    match = re.search(r"(?:^|;)TZID=([^;:]+)", params)
+    parsed_timezone: tzinfo = UTC
+    match = re.search(r'(?:^|;)TZID=(?:"([^"]+)"|([^;]+))', params)
     if match:
-        try:
-            timezone = ZoneInfo(match.group(1))
-        except ZoneInfoNotFoundError:
-            timezone = UTC
+        timezone_name = (match.group(1) or match.group(2)).strip()
+        offset_match = re.fullmatch(
+            r"(?:UTC|GMT)([+-])(\d{1,2})(?::?(\d{2}))?",
+            timezone_name,
+            re.IGNORECASE,
+        )
+        if offset_match:
+            hours = int(offset_match.group(2))
+            minutes = int(offset_match.group(3) or 0)
+            offset = timedelta(hours=hours, minutes=minutes)
+            if offset_match.group(1) == "-":
+                offset = -offset
+            try:
+                parsed_timezone = timezone(offset, name=timezone_name.upper())
+            except ValueError:
+                parsed_timezone = UTC
+        else:
+            try:
+                parsed_timezone = ZoneInfo(timezone_name)
+            except (ZoneInfoNotFoundError, OSError, ValueError):
+                parsed_timezone = UTC
     for date_format in _DATE_FORMATS:
         try:
             result = datetime.strptime(value, date_format)
             if date_format.endswith("Z"):
                 return result.replace(tzinfo=UTC)
-            return result.replace(tzinfo=timezone)
+            return result.replace(tzinfo=parsed_timezone)
         except ValueError:
             continue
     return None

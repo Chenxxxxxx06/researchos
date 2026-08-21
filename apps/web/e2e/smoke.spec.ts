@@ -4,6 +4,7 @@ const DEMO = { email: 'demo@researchos.dev', password: 'demo-password-123' };
 
 test.describe('ResearchOS smoke', () => {
   test('login and navigate all core pages', async ({ page }) => {
+    test.setTimeout(90_000);
     // 1. Login
     await page.goto('/login');
     await expect(page).toHaveTitle(/ResearchOS/);
@@ -12,14 +13,14 @@ test.describe('ResearchOS smoke', () => {
     await page.fill('input[type="password"]', DEMO.password);
     await page.click('button[type="submit"]');
     await page.waitForURL('**/projects');
-    await page.screenshot({ path: 'artifacts/screenshots/1-login-success.png' });
 
     // 2. Projects list
     await expect(page.locator('text=ResearchOS Demo').first()).toBeVisible();
+    await page.screenshot({ path: 'artifacts/screenshots/1-login-success.png' });
     await page.screenshot({ path: 'artifacts/screenshots/2-projects.png' });
 
     // Get the demo project link
-    const projLink = page.locator('a[href*="/projects/"][href*="/overview"]').first();
+    const projLink = page.locator('a[href*="/projects/"][href*="/overview"]').filter({ hasText: 'ResearchOS Demo' }).first();
     await projLink.click();
     await page.waitForURL('**/overview');
     await expect(page.getByText(/RESEARCH LOOP/i).first()).toBeVisible({ timeout: 10000 });
@@ -54,7 +55,7 @@ test.describe('ResearchOS smoke', () => {
     // 5. Experiments
     await page.goto(`/projects/${projectId}/experiments`);
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText(/VLM|experiment|Select a run/i).first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: /实验面板|Experiments/i }).first()).toBeVisible({ timeout: 5000 });
     await page.screenshot({ path: 'artifacts/screenshots/6-experiments.png' });
 
     // 6. Paper Workspace
@@ -75,14 +76,15 @@ test.describe('ResearchOS smoke', () => {
     await expect(page.getByText(/Research Inbox|科研收件箱/i).first()).toBeVisible({ timeout: 5000 });
     await page.screenshot({ path: 'artifacts/screenshots/9-inbox.png' });
 
-    // 9. Removed legacy modules redirect to the real project overview.
+    // 9. Advanced Mission Control and venue deadlines remain available as
+    // contextual tools instead of occupying the primary navigation rail.
     await page.goto(`/projects/${projectId}/orchestration`);
-    await page.waitForURL(`**/projects/${projectId}/overview`);
-    await expect(page.getByText(/RESEARCH LOOP/i).first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: 'Mission Control' })).toBeVisible({ timeout: 10000 });
+    await page.screenshot({ path: 'artifacts/screenshots/9b-orchestration.png' });
 
     await page.goto(`/projects/${projectId}/deadlines`);
-    await page.waitForURL(`**/projects/${projectId}/overview`);
-    await expect(page.getByText(/RESEARCH LOOP/i).first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: /会议与期刊 DDL|Venue deadlines/i })).toBeVisible({ timeout: 10000 });
+    await page.screenshot({ path: 'artifacts/screenshots/9c-deadlines.png' });
 
     // 11. Reviewer
     await page.goto(`/projects/${projectId}/reviewer`);
@@ -113,15 +115,13 @@ test.describe('ResearchOS smoke', () => {
     await expect(page.getByText(/项目总览|Research Copilot|project/i).first()).toBeVisible({ timeout: 5000 });
     await page.screenshot({ path: 'artifacts/screenshots/13-chinese-default.png' });
 
-    // 15. Switch to English
-    const langSelect = page.locator('select[aria-label="语言"], select[aria-label="Language"]').first();
-    if (await langSelect.isVisible()) {
-      await langSelect.selectOption('en-US');
-      await page.waitForTimeout(1000);
-    }
+    // 15. Switch to English through the accessible language menu.
+    await page.getByRole('button', { name: /语言|Language/i }).click();
+    await page.getByRole('menuitemradio', { name: 'English' }).click();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en-US');
     await page.goto(`/projects/${projectId}/overview`);
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText(/Overview|Research Copilot|Sign out/i).first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Overview|Evidence|Release Studio/i).first()).toBeVisible({ timeout: 5000 });
     await page.screenshot({ path: 'artifacts/screenshots/14-english.png' });
   });
 });

@@ -138,7 +138,7 @@ export function MissionListWorkspace({ projectId }: { projectId: string }) {
       };
 
   return (
-    <div className="-m-6 min-h-[calc(100dvh-3rem)] bg-bg">
+    <div className="-m-5 min-h-[calc(100dvh-4rem)] bg-bg lg:-m-6 xl:-m-8">
       <section className="mission-grid relative overflow-hidden border-b border-border bg-surface px-6 pb-8 pt-10 lg:px-10">
         <div className="relative z-10 max-w-4xl">
           <div className="mb-5 flex items-center gap-2 text-xs font-semibold tracking-[0.16em] text-muted">

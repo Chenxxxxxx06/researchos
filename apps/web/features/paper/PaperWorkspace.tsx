@@ -16,7 +16,8 @@ import type { Monaco, OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { BookOpen, FileText, Newspaper, ScrollText } from 'lucide-react';
+import { BookOpen, FileText, Newspaper, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ScrollText, ShieldCheck } from 'lucide-react';
+import Link from 'next/link';
 
 import { ApiError } from '@/lib/api/client';
 import {
@@ -34,9 +35,8 @@ import {
   type Suggestion,
   type SuggestionOp,
 } from '@/lib/api/documents';
-import { Button } from '@/components/ui/button';
 import { EvidenceStamp } from '@/components/provenance/EvidenceStamp';
-import { ProvenanceTrace } from '@/components/provenance/ProvenanceTrace';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/toast';
@@ -87,6 +87,8 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
   const [savedContent, setSavedContent] = useState('');
   const [version, setVersion] = useState<number | null>(null);
   const [rail, setRail] = useState<RailTab>('preview');
+  const [assistantOpen, setAssistantOpen] = useState(true);
+  const [railOpen, setRailOpen] = useState(true);
   const [merge, setMerge] = useState<MergeDialogState | null>(null);
   const [draftPrompt, setDraftPrompt] = useState<string | null>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -359,10 +361,11 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
       },
     ];
     return (
-      <div className="mx-auto flex min-h-[calc(100vh-7rem)] max-w-5xl flex-col justify-center p-6">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-foreground">{t('paper.empty')}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{t('paper.template.choose')}</p>
+      <div className="mx-auto flex min-h-[calc(100dvh-8rem)] max-w-5xl flex-col justify-center p-6">
+        <div className="mb-8 max-w-2xl">
+          <p className="text-xs font-medium text-accent">{t('paper.title')}</p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-text">{t('paper.empty')}</h1>
+          <p className="mt-3 text-sm leading-6 text-muted">{t('paper.template.choose')}</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {templates.map((template) => {
@@ -371,13 +374,13 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
               <button
                 key={template.id}
                 type="button"
-                className="group rounded-xl border border-border bg-surface p-5 text-left transition hover:border-primary disabled:opacity-50"
+                className="group rounded-lg border border-border bg-surface p-5 text-left shadow-elev1 transition hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-elev2 disabled:opacity-50"
                 disabled={create.isPending}
                 onClick={() => create.mutate(template.id)}
               >
-                <Icon className="mb-4 size-7 text-primary" />
-                <div className="font-medium text-foreground">{template.title}</div>
-                <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                <Icon className="mb-6 size-6 text-accent" />
+                <div className="font-semibold text-text">{template.title}</div>
+                <p className="mt-2 text-xs leading-5 text-muted">
                   {template.description}
                 </p>
               </button>
@@ -389,26 +392,30 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="-m-6 flex h-[calc(100vh-3rem)] min-h-0">
-      <aside className="flex w-72 shrink-0 flex-col border-r border-border bg-surface">
-        <AssistantDock projectId={projectId} latexProjectId={lid as string} onInsert={insertAtCursor} />
-      </aside>
+    <div className="-m-5 flex h-[calc(100dvh-4rem)] min-h-0 lg:-m-6 xl:-m-8">
+      {assistantOpen && (
+        <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface xl:flex">
+          <AssistantDock projectId={projectId} latexProjectId={lid as string} onInsert={insertAtCursor} />
+        </aside>
+      )}
 
       <div className="relative flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-2 border-b border-border bg-surface px-4 py-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">
-            {t('paper.editor')}
-          </span>
-          <span className="text-xs text-faint">{MAIN}</span>
+        <div className="workspace-toolbar flex min-h-12 items-center gap-2 px-3 py-2 sm:px-4">
+          <Button size="icon" variant="ghost" onClick={() => setAssistantOpen((value) => !value)} title={t('paper.assistant')}>
+            {assistantOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+          </Button>
+          <span className="text-xs font-semibold text-text">{t('paper.editor')}</span>
+          <span className="font-mono text-[11px] text-faint">{MAIN}</span>
           {file.data && (
             <EvidenceStamp
               status={dirty ? 'unsaved' : 'saved'}
               tone={dirty ? 'warn' : 'success'}
               id={`v${file.data.version}`}
               date={new Date(file.data.updated_at).toLocaleDateString()}
+              className="hidden lg:inline-flex"
             />
           )}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-1.5">
             <span className="text-[11px] text-muted">
               {dirty
                 ? t('paper.unsaved')
@@ -419,8 +426,14 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
             <Button size="sm" variant="ghost" onClick={doSave} disabled={!dirty} loading={save.isPending}>
               {t('common.save')}
             </Button>
+            <Link href={`/projects/${projectId}/reviewer`} className="hidden h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-muted hover:bg-surface-2 hover:text-text sm:inline-flex">
+              <ShieldCheck className="h-3.5 w-3.5" />{t('nav.reviewer')}
+            </Link>
             <Button size="sm" onClick={() => compile()} loading={isCompiling}>
               {isCompiling ? t('paper.compiling') : t('paper.compile')}
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setRailOpen((value) => !value)} title={t('paper.preview')}>
+              {railOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
             </Button>
           </div>
         </div>
@@ -494,7 +507,8 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
         </div>
       </div>
 
-      <aside className="flex w-96 shrink-0 flex-col border-l border-border bg-surface">
+      {railOpen && (
+      <aside className="hidden w-[22rem] shrink-0 flex-col border-l border-border bg-surface xl:flex 2xl:w-[26rem]">
         <Tabs value={rail} onValueChange={(v) => setRail(v as RailTab)}>
           <TabsList className="px-3">
             {railTabs.map((tab) => (
@@ -517,6 +531,7 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
           </TabsContent>
         </Tabs>
       </aside>
+      )}
 
       <MergeDialog
         state={merge}

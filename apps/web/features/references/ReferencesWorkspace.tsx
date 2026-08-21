@@ -9,7 +9,7 @@ import { ZoteroConnectionPanel } from './ZoteroConnectionPanel';
 
 export function ReferencesWorkspace({ projectId }: { projectId: string }) {
   return (
-    <div className="-m-6 flex h-[calc(100vh-3rem)] min-h-0 flex-col">
+    <div className="-m-5 flex h-[calc(100vh-4rem)] min-h-0 flex-col lg:-m-6 xl:-m-8">
       <header className="border-b border-border bg-surface px-6 py-4">
         <h1 className="flex items-center gap-2 text-lg font-semibold text-text">
           <BookOpen className="h-5 w-5" /> 文献中心

@@ -152,7 +152,7 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
   }
 
   return (
-    <div className="-m-6 min-h-[calc(100vh-3rem)] overflow-x-hidden bg-bg lg:-m-8">
+    <div className="-m-5 min-h-[calc(100vh-4rem)] overflow-x-hidden bg-bg lg:-m-6 xl:-m-8">
       <header className="mission-grid border-b border-border px-5 py-5 sm:px-7 sm:py-6">
         <div className="mx-auto max-w-[112rem]">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -347,7 +347,7 @@ function Inspector({
   const taskNames = new Map(graph.tasks.map((task) => [task.id, task.title]));
   return (
     <aside
-      className="min-w-0 bg-surface xl:sticky xl:top-12 xl:max-h-[calc(100vh-3rem)] xl:min-h-[44rem] xl:self-start xl:overflow-y-auto"
+      className="min-w-0 bg-surface xl:sticky xl:top-16 xl:max-h-[calc(100vh-4rem)] xl:min-h-[44rem] xl:self-start xl:overflow-y-auto"
       aria-label="Mission inspector"
     >
       <Tabs value={tab} onValueChange={onTabChange}>

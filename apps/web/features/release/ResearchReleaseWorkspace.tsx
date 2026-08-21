@@ -100,7 +100,7 @@ export function ResearchReleaseWorkspace({ projectId }: { projectId: string }) {
   });
 
   return (
-    <div className="-m-6 min-h-[calc(100dvh-3rem)] bg-bg lg:-m-8">
+    <div className="-m-5 min-h-[calc(100dvh-4rem)] bg-bg lg:-m-6 xl:-m-8">
       <header className="mission-grid border-b border-border bg-surface px-6 py-8 lg:px-8">
         <Badge variant="neutral" size="sm">RESEARCH RELEASE STUDIO</Badge>
         <div className="mt-4 flex flex-wrap items-end justify-between gap-5">
@@ -113,12 +113,12 @@ export function ResearchReleaseWorkspace({ projectId }: { projectId: string }) {
         <div className="grid gap-3 md:grid-cols-3">
           {RELEASES.map((item) => {
             const Icon = item.icon;
-            return <button key={item.kind} type="button" onClick={() => { setKind(item.kind); setRunId(null); }} className={`group border p-5 text-left ${kind === item.kind ? 'border-accent bg-accent/5' : 'border-border bg-surface hover:border-border-strong'}`}><div className="flex items-start justify-between"><span className="text-[9px] font-semibold tracking-[0.16em] text-faint">{item.eyebrow}</span><Icon className={`h-4 w-4 ${kind === item.kind ? 'text-accent' : 'text-muted'}`} /></div><h2 className="mt-5 text-base font-semibold text-text">{item.title}</h2><p className="mt-2 text-xs leading-5 text-muted">{item.description}</p><p className="mt-4 font-mono text-[9px] text-faint">{item.paths}</p></button>;
+            return <button key={item.kind} type="button" onClick={() => { setKind(item.kind); setRunId(null); }} className={`group border p-5 text-left ${kind === item.kind ? 'border-accent bg-accent/5 shadow-sm' : 'border-border bg-surface hover:border-border-strong'}`}><div className="flex items-start justify-between"><span className="text-[9px] font-semibold tracking-[0.16em] text-faint">{item.eyebrow}</span><Icon className={`h-4 w-4 ${kind === item.kind ? 'text-accent' : 'text-muted'}`} /></div><h2 className="mt-5 text-base font-semibold text-text">{item.title}</h2><p className="mt-2 text-xs leading-5 text-muted">{item.description}</p><p className="mt-4 font-mono text-[9px] text-faint">{item.paths}</p></button>;
           })}
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[30rem_minmax(0,1fr)]">
-          <section className="h-fit border border-border bg-surface">
+          <section className="h-fit border border-border bg-surface shadow-sm">
             <div className="flex items-center justify-between border-b border-border px-5 py-4"><h2 className="flex items-center gap-2 text-sm font-semibold text-text"><PackageCheck className="h-4 w-4 text-accent" />唯一事实包</h2><button type="button" onClick={() => { setStoryEdited(false); setStoryPack(generatedPack); }} className="flex items-center gap-1 text-[10px] font-medium text-muted hover:text-text"><RefreshCw className="h-3 w-3" />从项目重新汇总</button></div>
             <div className="p-5">
               <textarea value={storyPack} onChange={(event) => { setStoryPack(event.target.value); setStoryEdited(true); }} className="min-h-[31rem] w-full resize-y border border-border-strong bg-bg p-3 font-mono text-[11px] leading-5 text-text" />
@@ -129,7 +129,7 @@ export function ResearchReleaseWorkspace({ projectId }: { projectId: string }) {
             </div>
           </section>
 
-          <section className="min-h-[38rem] border border-border bg-surface">
+          <section className="min-h-[38rem] border border-border bg-surface shadow-sm">
             <div className="flex items-center justify-between border-b border-border px-5 py-4"><h2 className="text-sm font-semibold text-text">{selected.title} · 补丁审查</h2>{run.data && <span className="font-mono text-[10px] uppercase text-faint">{run.data.status}</span>}</div>
             <div className="p-5">
               {!runId && <div className="flex min-h-[28rem] flex-col items-center justify-center text-center"><selected.icon className="h-8 w-8 text-accent" /><p className="mt-4 max-w-md text-sm leading-7 text-muted">Agent 会先读取当前工作区，再只针对 <span className="font-mono text-text">{selected.paths}</span> 形成可审查补丁。不会自动覆盖已有文件。</p></div>}

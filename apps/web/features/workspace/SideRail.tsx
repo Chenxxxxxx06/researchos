@@ -1,152 +1,194 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname, useParams } from 'next/navigation';
 import {
   BookOpen,
   Code2,
   FileText,
   FlaskConical,
-  FolderKanban,
   FolderCog,
+  FolderKanban,
+  Inbox,
   LayoutDashboard,
-  MessagesSquare,
   Megaphone,
+  MoreHorizontal,
   Network,
   Route,
   Search,
   ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
+import Link from 'next/link';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 
-import { useI18n, type DictKey } from '@/lib/i18n';
+import { Dropdown, DropdownItem, DropdownLabel, DropdownSeparator } from '@/components/ui/dropdown';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useI18n, type DictKey } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
-interface NavItem {
+interface PrimaryNavItem {
   key: DictKey;
   segment: string;
   icon: LucideIcon;
   shortcut: string;
+  owns: string[];
 }
 
-const ITEMS: NavItem[] = [
-  { key: 'nav.overview', segment: 'overview', icon: LayoutDashboard, shortcut: 'g o' },
-  { key: 'nav.missions', segment: 'missions', icon: Route, shortcut: 'g t' },
-  { key: 'nav.orchestration', segment: 'orchestration', icon: Network, shortcut: 'g a' },
-  { key: 'nav.research', segment: 'research', icon: Search, shortcut: 'g r' },
-  { key: 'nav.references', segment: 'references', icon: BookOpen, shortcut: 'g l' },
-  { key: 'nav.inbox', segment: 'inbox', icon: MessagesSquare, shortcut: 'g m' },
-  { key: 'nav.ide', segment: 'ide', icon: Code2, shortcut: 'g i' },
-  { key: 'nav.experiments', segment: 'experiments', icon: FlaskConical, shortcut: 'g e' },
-  { key: 'nav.paper', segment: 'paper', icon: FileText, shortcut: 'g p' },
-  { key: 'nav.reviewer', segment: 'reviewer', icon: ShieldCheck, shortcut: 'g v' },
-  { key: 'nav.release', segment: 'release', icon: Megaphone, shortcut: 'g u' },
-  { key: 'nav.manage', segment: 'manage', icon: FolderCog, shortcut: 'g n' },
+interface UtilityNavItem {
+  key: DictKey;
+  segment: string;
+  icon: LucideIcon;
+}
+
+const PRIMARY_ITEMS: PrimaryNavItem[] = [
+  { key: 'nav.overview', segment: 'overview', icon: LayoutDashboard, shortcut: 'g o', owns: ['overview'] },
+  { key: 'nav.missions', segment: 'missions', icon: Route, shortcut: 'g t', owns: ['missions', 'orchestration'] },
+  { key: 'nav.research', segment: 'research', icon: Search, shortcut: 'g r', owns: ['research', 'references', 'inbox', 'deadlines'] },
+  { key: 'nav.ide', segment: 'ide', icon: Code2, shortcut: 'g i', owns: ['ide'] },
+  { key: 'nav.experiments', segment: 'experiments', icon: FlaskConical, shortcut: 'g e', owns: ['experiments'] },
+  { key: 'nav.paper', segment: 'paper', icon: FileText, shortcut: 'g p', owns: ['paper', 'reviewer'] },
+  { key: 'nav.release', segment: 'release', icon: Megaphone, shortcut: 'g u', owns: ['release'] },
 ];
 
-const GROUPS: Array<{ key: DictKey; items: string[] }> = [
-  { key: 'nav.groupCore', items: ['overview', 'missions', 'orchestration'] },
-  { key: 'nav.groupResearch', items: ['research', 'references', 'inbox'] },
-  { key: 'nav.groupBuild', items: ['ide', 'experiments'] },
-  { key: 'nav.groupPublish', items: ['paper', 'reviewer', 'release'] },
-  { key: 'nav.groupManage', items: ['manage'] },
+const UTILITY_ITEMS: UtilityNavItem[] = [
+  { key: 'nav.orchestration', segment: 'orchestration', icon: Network },
+  { key: 'nav.references', segment: 'references', icon: BookOpen },
+  { key: 'nav.inbox', segment: 'inbox', icon: Inbox },
+  { key: 'nav.reviewer', segment: 'reviewer', icon: ShieldCheck },
+  { key: 'nav.manage', segment: 'manage', icon: FolderCog },
 ];
 
 export function SideRail() {
   const { t } = useI18n();
   const params = useParams<{ projectId?: string }>();
   const pathname = usePathname();
+  const router = useRouter();
   const projectId = params?.projectId;
+  const currentSegment = projectId
+    ? pathname?.split(`/projects/${projectId}/`)[1]?.split('/')[0] ?? null
+    : null;
 
-  // Path-boundary matching keeps nested routes attached to their parent item.
-  const activeHref = ITEMS.reduce<string | null>((best, item) => {
-    if (!projectId) return best;
-    const href = `/projects/${projectId}/${item.segment}`;
-    const matches = pathname === href || pathname?.startsWith(`${href}/`);
-    if (matches && (!best || href.length > best.length)) return href;
-    return best;
-  }, null);
+  const hrefFor = (segment: string) => projectId ? `/projects/${projectId}/${segment}` : '/projects';
 
   return (
     <>
-    <nav className="sticky top-12 hidden h-[calc(100dvh-3rem)] w-[220px] shrink-0 overflow-y-auto border-r border-border bg-surface/90 py-3 backdrop-blur lg:block">
-      <Link
-        href="/projects"
-        className="mx-3 mb-4 flex items-center gap-2 rounded-md border border-transparent px-3 py-1.5 text-sm font-semibold text-text hover:border-border hover:bg-surface-2"
+      <nav
+        aria-label="Primary workspace navigation"
+        className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-[5.25rem] shrink-0 flex-col border-r border-border bg-surface/94 px-2 py-3 backdrop-blur-xl lg:flex"
       >
-        <FolderKanban className="h-4 w-4" aria-hidden="true" /> {t('nav.projects')}
-      </Link>
-      <div className="space-y-5 px-2">
-        {GROUPS.map((group) => (
-          <section key={group.key} aria-labelledby={`nav-${group.key}`}>
-            <h2 id={`nav-${group.key}`} className="mb-1.5 px-3 text-[10px] font-semibold tracking-[0.16em] text-faint">
-              {t(group.key).toUpperCase()}
-            </h2>
-            <ul className="space-y-0.5">
-              {ITEMS.filter((item) => group.items.includes(item.segment)).map((item) => {
-          const href = projectId ? `/projects/${projectId}/${item.segment}` : null;
-          const active = href !== null && href === activeHref;
-          const Icon = item.icon;
-          return (
-            <li key={item.key}>
-              {href ? (
+        <Tooltip content={t('nav.projects')} side="right">
+          <Link
+            href="/projects"
+            aria-label={t('nav.projects')}
+            className="mb-3 flex h-11 items-center justify-center rounded-md border border-border bg-surface-2 text-text shadow-elev1 hover:border-border-strong"
+          >
+            <FolderKanban className="h-[18px] w-[18px]" aria-hidden="true" />
+          </Link>
+        </Tooltip>
+
+        <ul className="space-y-1">
+          {PRIMARY_ITEMS.map((item) => {
+            const active = item.owns.includes(currentSegment ?? '');
+            const Icon = item.icon;
+            return (
+              <li key={item.key}>
                 <Tooltip content={t(item.key)} shortcut={item.shortcut} side="right" className="w-full">
                   <Link
-                    href={href}
+                    href={hrefFor(item.segment)}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'relative flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                      'relative flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-[10px] font-medium leading-none',
                       active
-                        ? 'bg-surface-2 text-text before:absolute before:-left-2 before:h-4 before:w-0.5 before:bg-accent'
+                        ? 'bg-accent/10 text-accent before:absolute before:-left-2 before:h-6 before:w-0.5 before:rounded-r before:bg-accent'
                         : 'text-muted hover:bg-surface-2 hover:text-text',
                     )}
                   >
-                    <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-accent' : 'text-muted')} aria-hidden="true" /> {t(item.key)}
+                    <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+                    <span className="max-w-full truncate">{t(item.key)}</span>
                   </Link>
                 </Tooltip>
-              ) : (
-                <span
-                  aria-disabled="true"
-                  className="flex cursor-not-allowed select-none items-center gap-2 rounded-lg px-3 py-2 text-sm text-faint"
-                >
-                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> {t(item.key)}
-                </span>
-              )}
-            </li>
-          );
-              })}
-            </ul>
-          </section>
-        ))}
-      </div>
-    </nav>
-    <nav
-      aria-label="Mobile workspace navigation"
-      className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-stretch overflow-x-auto border-t border-border bg-overlay/95 px-1 backdrop-blur lg:hidden"
-    >
-      {ITEMS.map((item) => {
-        const href = projectId ? `/projects/${projectId}/${item.segment}` : null;
-        const active = href !== null && href === activeHref;
-        const Icon = item.icon;
-        return href ? (
-          <Link
-            key={item.key}
-            href={href}
-            aria-current={active ? 'page' : undefined}
-            className={cn(
-              'flex w-[4.5rem] shrink-0 flex-col items-center justify-center gap-1 border-t-2 text-[9px] font-medium transition-colors',
-              active
-                ? 'border-accent text-accent'
-                : 'border-transparent text-muted hover:text-text',
-            )}
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="mt-auto pt-3">
+          <Dropdown
+            align="start"
+            panelClassName="w-56"
+            trigger={
+              <button
+                type="button"
+                className="flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-[10px] font-medium text-muted hover:bg-surface-2 hover:text-text"
+              >
+                <MoreHorizontal className="h-[18px] w-[18px]" aria-hidden="true" />
+                <span>{t('nav.more')}</span>
+              </button>
+            }
           >
-            <Icon className="h-4 w-4" aria-hidden="true" />
-            <span className="max-w-[4.25rem] truncate">{t(item.key)}</span>
-          </Link>
-        ) : null;
-      })}
-    </nav>
+            <DropdownLabel>{t('nav.groupManage')}</DropdownLabel>
+            {UTILITY_ITEMS.map((item) => (
+              <DropdownItem
+                key={item.key}
+                icon={item.icon}
+                onSelect={() => router.push(hrefFor(item.segment))}
+              >
+                {t(item.key)}
+              </DropdownItem>
+            ))}
+            <DropdownSeparator />
+            <DropdownItem icon={FolderKanban} onSelect={() => router.push('/projects')}>
+              {t('nav.allProjects')}
+            </DropdownItem>
+          </Dropdown>
+        </div>
+      </nav>
+
+      <nav
+        aria-label="Mobile workspace navigation"
+        className="fixed inset-x-0 bottom-0 z-40 grid h-[4.25rem] grid-cols-6 border-t border-border bg-overlay/96 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
+      >
+        {PRIMARY_ITEMS.slice(0, 5).map((item) => {
+          const active = item.owns.includes(currentSegment ?? '');
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.key}
+              href={hrefFor(item.segment)}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'flex min-w-0 flex-col items-center justify-center gap-1 border-t-2 px-1 text-[9px] font-medium',
+                active ? 'border-accent text-accent' : 'border-transparent text-muted',
+              )}
+            >
+              <Icon className="h-4 w-4" aria-hidden="true" />
+              <span className="max-w-full truncate">{t(item.key)}</span>
+            </Link>
+          );
+        })}
+        <Dropdown
+          align="end"
+          className="flex min-w-0"
+          panelClassName="w-56"
+          trigger={
+            <button type="button" className="flex w-full flex-col items-center justify-center gap-1 border-t-2 border-transparent px-1 text-[9px] font-medium text-muted">
+              <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+              <span>{t('nav.more')}</span>
+            </button>
+          }
+        >
+          {PRIMARY_ITEMS.slice(5).map((item) => (
+            <DropdownItem key={item.key} icon={item.icon} onSelect={() => router.push(hrefFor(item.segment))}>
+              {t(item.key)}
+            </DropdownItem>
+          ))}
+          <DropdownSeparator />
+          {UTILITY_ITEMS.map((item) => (
+            <DropdownItem key={item.key} icon={item.icon} onSelect={() => router.push(hrefFor(item.segment))}>
+              {t(item.key)}
+            </DropdownItem>
+          ))}
+        </Dropdown>
+      </nav>
     </>
   );
 }

@@ -13,14 +13,13 @@ import {
   Megaphone,
   Route,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { EvidenceStamp } from '@/components/provenance/EvidenceStamp';
 import { ProvenanceTrace } from '@/components/provenance/ProvenanceTrace';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api/client';
 import { listInboxItems } from '@/lib/api/inbox';
@@ -28,6 +27,8 @@ import { getManagementSummary } from '@/lib/api/management';
 import { listMissions } from '@/lib/api/missions';
 import { getProject, type Project } from '@/lib/api/projects';
 import { useI18n } from '@/lib/i18n';
+
+import { MissionComposer } from './MissionComposer';
 
 export function ProjectOverview({ projectId }: { projectId: string }) {
   const { locale } = useI18n();
@@ -109,7 +110,7 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
   ];
 
   return (
-    <div className="-m-6 min-h-[calc(100dvh-3rem)] bg-bg lg:-m-8">
+    <div className="-m-5 min-h-[calc(100dvh-4rem)] bg-bg lg:-m-6 xl:-m-8">
       <section className="mission-grid relative overflow-hidden border-b border-border bg-surface px-6 py-10 lg:px-10 lg:py-12">
         <div className="relative grid items-end gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <div>
@@ -122,31 +123,22 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
               />
               <Badge variant="neutral" size="sm">RESEARCH WORKSPACE</Badge>
             </div>
-            <h1 className="mt-5 max-w-4xl text-3xl font-semibold tracking-[-0.045em] text-text lg:text-4xl">{project.data.name}</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
+            <h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-[-0.055em] text-text lg:text-5xl">{project.data.name}</h1>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-muted">
               {project.data.description ?? (zh ? '把零散研究材料转成可追溯的文献证据、实验设计与论文成果。' : 'Turn scattered research material into traceable evidence, experiment designs, and paper outputs.')}
             </p>
             <ProvenanceTrace
               className="mt-5"
               nodes={[
-                { label: zh ? '来源' : 'Source', state: 'done' },
-                { label: zh ? '任务' : 'Mission', state: 'done' },
+                { label: zh ? '来源' : 'Source', state: inboxCount > 0 ? 'done' : 'active' },
+                { label: zh ? '任务' : 'Mission', state: missionItems.length > 0 ? 'done' : 'todo' },
                 { label: zh ? '实验' : 'Experiment', state: (counts?.experiment_plans ?? 0) > 0 ? 'active' : 'todo' },
-                { label: zh ? '论文' : 'Paper', state: 'todo' },
+                { label: zh ? '论文' : 'Paper', state: (counts?.reading_notes ?? 0) > 0 ? 'active' : 'todo' },
               ]}
             />
-            <div className="mt-6 flex flex-wrap items-center gap-2">
-              <Link href={latestMission ? `/projects/${projectId}/missions/${latestMission.id}` : `/projects/${projectId}/missions`} className="inline-flex h-9 items-center gap-2 bg-accent px-3.5 text-sm font-medium text-accent-fg hover:bg-accent-hover">
-                <Sparkles className="h-4 w-4" />
-                {latestMission ? (zh ? '继续最近任务' : 'Continue latest mission') : (zh ? '创建科研任务' : 'Create a research mission')}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link href={`/projects/${projectId}/inbox`} className="inline-flex h-9 items-center gap-2 border border-border-strong bg-surface px-3.5 text-sm font-medium text-text hover:bg-surface-2">
-                <Inbox className="h-4 w-4" />{zh ? '导入研究材料' : 'Import research material'}
-              </Link>
-            </div>
+            <MissionComposer projectId={projectId} latestMissionId={latestMission?.id} />
           </div>
-          <div className="border border-border bg-overlay/90 p-5 backdrop-blur">
+          <div className="border border-border bg-overlay/90 p-5 shadow-md backdrop-blur">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-faint">{zh ? '项目实况' : 'Live project state'}</p>
             <div className="mt-4 grid grid-cols-2 gap-px bg-border">
               <Stat label={zh ? '文献' : 'Papers'} value={counts?.papers} />
@@ -165,22 +157,24 @@ export function ProjectOverview({ projectId }: { projectId: string }) {
       </section>
 
       <section className="px-6 py-8 lg:px-10 lg:py-10">
-        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-          <div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-success">RESEARCH LOOP</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-text">{zh ? '从输入到发布，一条可追溯链路' : 'One traceable path from input to release'}</h2></div>
-          <p className="max-w-lg text-xs leading-5 text-muted">{zh ? '每一步都链接到真实工作区；状态只由当前数据库对象计算，不使用演示进度。' : 'Every step opens a real workspace. Status is calculated from persisted objects, never demo progress.'}</p>
+        <div className="mb-6 max-w-3xl">
+          <p className="text-xs font-medium text-accent">Research loop</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-text">{zh ? '从输入到发布，一条可追溯链路' : 'One traceable path from input to release'}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">{zh ? '状态只由真实项目对象计算。打开任一步即可继续工作，不使用演示进度。' : 'Every state comes from persisted project objects. Open any step to continue with no demo progress.'}</p>
         </div>
-        <div className="grid gap-3 xl:grid-cols-5">
-          {flow.map((step) => {
+        <div className="workspace-panel overflow-hidden">
+          {flow.map((step, position) => {
             const Icon = step.icon;
             return (
-              <Link key={step.index} href={step.href} className="group relative flex min-h-[14rem] flex-col border border-border bg-surface p-5 hover:-translate-y-0.5 hover:border-accent/50">
-                <div className="flex items-start justify-between">
-                  <span className="font-mono text-[10px] text-faint">{step.index}</span>
-                  <span className={`flex h-8 w-8 items-center justify-center ${step.ready ? 'bg-success-bg text-success' : 'bg-surface-2 text-muted'}`}>{step.ready ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}</span>
-                </div>
-                <h3 className="mt-7 text-base font-semibold tracking-tight text-text">{step.title}</h3>
-                <p className="mt-2 flex-1 text-xs leading-5 text-muted">{step.description}</p>
-                <div className="mt-5 flex items-center justify-between border-t border-border pt-3"><span className="font-mono text-[10px] text-faint">{step.evidence}</span><ChevronRight className="h-4 w-4 text-faint transition-transform group-hover:translate-x-1 group-hover:text-accent" /></div>
+              <Link key={step.index} href={step.href} className="group grid min-h-24 grid-cols-[2.5rem_2.5rem_minmax(0,1fr)_1.5rem] items-center gap-4 border-b border-border px-4 py-4 last:border-b-0 hover:bg-surface-2/65 sm:grid-cols-[2.5rem_2.5rem_minmax(12rem,0.75fr)_minmax(16rem,1.25fr)_1.5rem] lg:grid-cols-[2.5rem_2.5rem_minmax(12rem,0.75fr)_minmax(16rem,1.25fr)_auto_1.5rem] sm:px-5">
+                <span className="font-mono text-[11px] text-faint">{String(position + 1).padStart(2, '0')}</span>
+                <span className={`grid h-9 w-9 place-items-center rounded-md ${step.ready ? 'bg-success-bg text-success' : 'bg-surface-2 text-muted'}`}>
+                  {step.ready ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                </span>
+                <h3 className="text-sm font-semibold tracking-[-0.01em] text-text">{step.title}</h3>
+                <p className="hidden text-xs leading-5 text-muted sm:block">{step.description}</p>
+                <span className="hidden whitespace-nowrap font-mono text-[10px] text-faint lg:block">{step.evidence}</span>
+                <ChevronRight className="h-4 w-4 text-faint transition-transform group-hover:translate-x-1 group-hover:text-accent" />
               </Link>
             );
           })}
