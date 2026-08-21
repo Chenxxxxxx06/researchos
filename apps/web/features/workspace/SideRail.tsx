@@ -19,6 +19,14 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 
 import { Dropdown, DropdownItem, DropdownLabel, DropdownSeparator } from '@/components/ui/dropdown';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -57,6 +65,16 @@ const UTILITY_ITEMS: UtilityNavItem[] = [
   { key: 'nav.manage', segment: 'manage', icon: FolderCog },
 ];
 
+const DEFAULT_RAIL_WIDTH = 84;
+const MIN_RAIL_WIDTH = 76;
+const MAX_RAIL_WIDTH = 240;
+const EXPANDED_RAIL_WIDTH = 148;
+const RAIL_STORAGE_KEY = 'researchos-side-rail-width';
+
+function clampRailWidth(width: number): number {
+  return Math.min(MAX_RAIL_WIDTH, Math.max(MIN_RAIL_WIDTH, Math.round(width)));
+}
+
 export function SideRail() {
   const { t } = useI18n();
   const params = useParams<{ projectId?: string }>();
@@ -66,22 +84,87 @@ export function SideRail() {
   const currentSegment = projectId
     ? pathname?.split(`/projects/${projectId}/`)[1]?.split('/')[0] ?? null
     : null;
+  const railRef = useRef<HTMLElement>(null);
+  const [railWidth, setRailWidth] = useState(DEFAULT_RAIL_WIDTH);
+  const [hasLoadedRailWidth, setHasLoadedRailWidth] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const isExpanded = railWidth >= EXPANDED_RAIL_WIDTH;
+
+  useEffect(() => {
+    const savedWidth = Number.parseInt(window.localStorage.getItem(RAIL_STORAGE_KEY) ?? '', 10);
+    if (Number.isFinite(savedWidth)) setRailWidth(clampRailWidth(savedWidth));
+    setHasLoadedRailWidth(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedRailWidth) return;
+    window.localStorage.setItem(RAIL_STORAGE_KEY, String(railWidth));
+  }, [hasLoadedRailWidth, railWidth]);
+
+  useEffect(() => {
+    if (!isResizing) return;
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onPointerMove = (event: PointerEvent) => {
+      const left = railRef.current?.getBoundingClientRect().left ?? 0;
+      setRailWidth(clampRailWidth(event.clientX - left));
+    };
+    const onPointerUp = () => setIsResizing(false);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp, { once: true });
+    return () => {
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+  }, [isResizing]);
+
+  const beginResize = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const resizeWithKeyboard = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
+    let nextWidth: number | null = null;
+    if (event.key === 'ArrowLeft') nextWidth = railWidth - 16;
+    if (event.key === 'ArrowRight') nextWidth = railWidth + 16;
+    if (event.key === 'Home') nextWidth = MIN_RAIL_WIDTH;
+    if (event.key === 'End') nextWidth = MAX_RAIL_WIDTH;
+    if (event.key === 'Enter') nextWidth = DEFAULT_RAIL_WIDTH;
+    if (nextWidth === null) return;
+    event.preventDefault();
+    setRailWidth(clampRailWidth(nextWidth));
+  }, [railWidth]);
 
   const hrefFor = (segment: string) => projectId ? `/projects/${projectId}/${segment}` : '/projects';
 
   return (
     <>
       <nav
+        ref={railRef}
         aria-label="Primary workspace navigation"
-        className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-[5.25rem] shrink-0 flex-col border-r border-border bg-surface/94 px-2 py-3 backdrop-blur-xl lg:flex"
+        className={cn(
+          'sticky top-16 hidden h-[calc(100dvh-4rem)] shrink-0 flex-col border-r border-border bg-surface/94 px-2 py-3 backdrop-blur-xl lg:flex',
+          isResizing ? 'transition-none' : 'transition-[width] duration-200 ease-out',
+        )}
+        style={{ width: railWidth }}
       >
-        <Tooltip content={t('nav.projects')} side="right">
+        <Tooltip content={t('nav.projects')} side="right" className="w-full">
           <Link
             href="/projects"
             aria-label={t('nav.projects')}
-            className="mb-3 flex h-11 items-center justify-center rounded-md border border-border bg-surface-2 text-text shadow-elev1 hover:border-border-strong"
+            className={cn(
+              'mb-3 flex h-[3.25rem] w-full items-center rounded-md border border-border bg-surface-2 text-text shadow-elev1 hover:border-border-strong',
+              isExpanded ? 'justify-start gap-3 px-3 text-sm font-medium' : 'justify-center',
+            )}
           >
-            <FolderKanban className="h-[18px] w-[18px]" aria-hidden="true" />
+            <FolderKanban className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+            {isExpanded && <span className="truncate">{t('nav.projects')}</span>}
           </Link>
         </Tooltip>
 
@@ -96,14 +179,22 @@ export function SideRail() {
                     href={hrefFor(item.segment)}
                     aria-current={active ? 'page' : undefined}
                     className={cn(
-                      'relative flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-[10px] font-medium leading-none',
+                      'relative flex h-[3.25rem] w-full items-center rounded-md font-medium',
+                      isExpanded
+                        ? 'flex-row justify-start gap-3 px-3 text-sm'
+                        : 'flex-col justify-center gap-1 px-1 text-[10px] leading-none',
                       active
                         ? 'bg-accent/10 text-accent before:absolute before:-left-2 before:h-6 before:w-0.5 before:rounded-r before:bg-accent'
                         : 'text-muted hover:bg-surface-2 hover:text-text',
                     )}
                   >
-                    <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+                    <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
                     <span className="max-w-full truncate">{t(item.key)}</span>
+                    {isExpanded && (
+                      <span className="ml-auto shrink-0 font-mono text-[9px] tracking-wide text-faint">
+                        {item.shortcut}
+                      </span>
+                    )}
                   </Link>
                 </Tooltip>
               </li>
@@ -114,14 +205,20 @@ export function SideRail() {
         <div className="mt-auto pt-3">
           <Dropdown
             align="start"
+            className="w-full"
             panelClassName="w-56"
             trigger={
               <button
                 type="button"
-                className="flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-[10px] font-medium text-muted hover:bg-surface-2 hover:text-text"
+                className={cn(
+                  'flex h-[3.25rem] w-full items-center rounded-md font-medium text-muted hover:bg-surface-2 hover:text-text',
+                  isExpanded
+                    ? 'flex-row justify-start gap-3 px-3 text-sm'
+                    : 'flex-col justify-center gap-1 px-1 text-[10px]',
+                )}
               >
-                <MoreHorizontal className="h-[18px] w-[18px]" aria-hidden="true" />
-                <span>{t('nav.more')}</span>
+                <MoreHorizontal className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                <span className="truncate">{t('nav.more')}</span>
               </button>
             }
           >
@@ -140,6 +237,37 @@ export function SideRail() {
               {t('nav.allProjects')}
             </DropdownItem>
           </Dropdown>
+        </div>
+
+        <div
+          role="separator"
+          aria-label="Resize workspace navigation"
+          aria-orientation="vertical"
+          aria-valuemin={MIN_RAIL_WIDTH}
+          aria-valuemax={MAX_RAIL_WIDTH}
+          aria-valuenow={railWidth}
+          tabIndex={0}
+          title="Drag to resize · double-click or press Enter to reset"
+          onPointerDown={beginResize}
+          onKeyDown={resizeWithKeyboard}
+          onDoubleClick={() => setRailWidth(DEFAULT_RAIL_WIDTH)}
+          className="group absolute inset-y-0 -right-1 z-20 w-2 cursor-col-resize touch-none outline-none"
+        >
+          <span
+            className={cn(
+              'pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border transition-[width,background-color] duration-150',
+              'group-hover:w-0.5 group-hover:bg-accent/60 group-focus-visible:w-0.5 group-focus-visible:bg-accent',
+              isResizing && 'w-0.5 bg-accent',
+            )}
+          />
+          <span
+            aria-hidden="true"
+            className={cn(
+              'pointer-events-none absolute left-1/2 top-1/2 h-10 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-border-strong opacity-40 transition-opacity',
+              'group-hover:opacity-100 group-focus-visible:opacity-100',
+              isResizing && 'bg-accent opacity-100',
+            )}
+          />
         </div>
       </nav>
 

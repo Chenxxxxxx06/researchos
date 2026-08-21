@@ -79,3 +79,50 @@ jobs:
           gh release create "$GITHUB_REF_NAME" dist/* \
             --verify-tag --generate-notes --title "ResearchOS $GITHUB_REF_NAME" \
             $prerelease
+
+  desktop-windows:
+    needs: verify-build-release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: "9.15.0"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate desktop source
+        run: pnpm desktop:validate
+      - name: Build Windows desktop bundles
+        run: pnpm desktop:build
+      - name: Upload Windows applications to the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $releaseRoot = "apps/desktop/src-tauri/target/release"
+          $version = (Get-Content VERSION -Raw).Trim()
+          $portablePath = Join-Path $releaseRoot "ResearchOS_${version}_x64-portable.exe"
+          Copy-Item "$releaseRoot/researchos-desktop.exe" $portablePath -Force
+          $files = @(
+            Get-Item $portablePath -ErrorAction SilentlyContinue
+            Get-ChildItem "$releaseRoot/bundle/msi/*.msi" -ErrorAction SilentlyContinue
+            Get-ChildItem "$releaseRoot/bundle/nsis/*-setup.exe" -ErrorAction SilentlyContinue
+          ) | Where-Object { $_ }
+          if ($files.Count -lt 2) {
+            throw "Expected a portable executable and at least one Windows installer."
+          }
+          $checksumPath = Join-Path $releaseRoot "SHA256SUMS-DESKTOP.txt"
+          $files | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($_.Name)"
+          } | Set-Content $checksumPath
+          $uploadPaths = @($files.FullName) + $checksumPath
+          gh release upload $env:GITHUB_REF_NAME @uploadPaths --clobber

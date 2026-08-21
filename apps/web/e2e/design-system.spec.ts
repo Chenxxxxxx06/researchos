@@ -55,6 +55,37 @@ test.describe('design system', () => {
     expect(theme).toBe('dark');
   });
 
+  test('desktop side rail has balanced controls and a persistent resize handle', async ({ page }) => {
+    await login(page);
+
+    const rail = page.getByRole('navigation', { name: 'Primary workspace navigation' });
+    const separator = page.getByRole('separator', { name: 'Resize workspace navigation' });
+    const projects = page.getByRole('link', { name: 'Projects', exact: true }).first();
+    const more = page.getByRole('button', { name: 'More', exact: true }).first();
+
+    const initialRail = await rail.boundingBox();
+    const initialSeparator = await separator.boundingBox();
+    expect(initialRail?.width).toBe(84);
+    expect(initialSeparator).not.toBeNull();
+
+    await page.mouse.move(initialSeparator!.x + initialSeparator!.width / 2, initialSeparator!.y + 120);
+    await page.mouse.down();
+    await page.mouse.move(208, initialSeparator!.y + 120, { steps: 8 });
+    await page.mouse.up();
+    await expect.poll(async () => (await rail.boundingBox())?.width).toBe(208);
+    expect(await page.evaluate(() => window.localStorage.getItem('researchos-side-rail-width'))).toBe('208');
+
+    const projectBox = await projects.boundingBox();
+    const moreBox = await more.boundingBox();
+    expect(projectBox?.height).toBe(moreBox?.height);
+    expect(Math.abs((projectBox?.width ?? 0) - (moreBox?.width ?? 0))).toBeLessThanOrEqual(1);
+
+    await page.reload();
+    await expect.poll(async () => (await rail.boundingBox())?.width).toBe(208);
+    await separator.dblclick();
+    await expect.poll(async () => (await rail.boundingBox())?.width).toBe(84);
+  });
+
   test('command palette: mod+k, fuzzy search, run navigates', async ({ page }) => {
     const projectId = await login(page);
 
