@@ -3,6 +3,8 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EvidenceStamp } from '@/components/provenance/EvidenceStamp';
+import { ProvenanceTrace } from '@/components/provenance/ProvenanceTrace';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   getRun,
@@ -20,15 +22,15 @@ import { AnalysisPanel } from './AnalysisPanel';
 import { MetricsChart } from './MetricsChart';
 
 const STATUS_STYLES: Record<RunStatus, string> = {
-  completed: 'bg-green-100 text-green-700',
-  running: 'bg-amber-100 text-amber-700',
-  failed: 'bg-red-100 text-red-700',
-  queued: 'bg-neutral-100 text-neutral-600',
-  cancelled: 'bg-neutral-100 text-neutral-600',
+  completed: 'bg-success-bg text-success',
+  running: 'bg-warn-bg text-warn',
+  failed: 'bg-danger-bg text-danger',
+  queued: 'bg-surface-2 text-muted',
+  cancelled: 'bg-surface-2 text-muted',
 };
 
 function StatusBadge({ status }: { status: RunStatus }) {
-  const style = STATUS_STYLES[status] ?? 'bg-neutral-100 text-neutral-600';
+  const style = STATUS_STYLES[status] ?? 'bg-surface-2 text-muted';
   return (
     <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${style}`}>
       {status}
@@ -44,16 +46,16 @@ function LogsPanel({ projectId, runId }: { projectId: string; runId: string }) {
   });
 
   if (isLoading) return <Skeleton className="h-16 w-full" />;
-  if (isError) return <p className="text-xs text-red-600">{t('common.error')}</p>;
+  if (isError) return <p className="text-xs text-danger">{t('common.error')}</p>;
   if (!data || data.length === 0)
-    return <p className="text-xs text-neutral-500">{t('common.empty')}</p>;
+    return <p className="text-xs text-muted">{t('common.empty')}</p>;
 
   return (
     <ul className="max-h-48 space-y-0.5 overflow-y-auto font-mono text-[11px]">
       {data.map((log) => (
         <li key={log.seq} className="flex gap-2">
-          <span className="shrink-0 uppercase text-neutral-400">{log.level}</span>
-          <span className="text-neutral-700">{log.message}</span>
+          <span className="shrink-0 uppercase text-faint">{log.level}</span>
+          <span className="text-muted">{log.message}</span>
         </li>
       ))}
     </ul>
@@ -68,26 +70,26 @@ function ArtifactList({ projectId, runId }: { projectId: string; runId: string }
   });
 
   if (isLoading) return <Skeleton className="h-16 w-full" />;
-  if (isError) return <p className="text-xs text-red-600">{t('common.error')}</p>;
+  if (isError) return <p className="text-xs text-danger">{t('common.error')}</p>;
   if (!data || data.length === 0)
-    return <p className="text-xs text-neutral-500">{t('common.empty')}</p>;
+    return <p className="text-xs text-muted">{t('common.empty')}</p>;
 
   return (
     <ul className="space-y-1">
       {data.map((artifact) => (
         <li
           key={artifact.id}
-          className="flex items-center justify-between rounded border border-neutral-200 p-2"
+          className="flex items-center justify-between rounded border border-border p-2"
         >
           <a
             href={artifact.uri}
             target="_blank"
             rel="noreferrer"
-            className="text-xs font-medium text-neutral-800 underline"
+            className="text-xs font-medium text-text underline"
           >
             {artifact.name}
           </a>
-          <span className="font-mono text-[10px] text-neutral-400">{artifact.artifact_type}</span>
+          <span className="font-mono text-[10px] text-faint">{artifact.artifact_type}</span>
         </li>
       ))}
     </ul>
@@ -95,26 +97,46 @@ function ArtifactList({ projectId, runId }: { projectId: string; runId: string }
 }
 
 export function RunDetail({ projectId, runId }: { projectId: string; runId: string }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const zh = locale === 'zh-CN';
   const { data: run, isLoading, isError } = useQuery<ExperimentRun, ApiError>({
     queryKey: ['run', projectId, runId],
     queryFn: () => getRun(projectId, runId),
   });
 
   if (isLoading) return <Skeleton className="h-64 w-full" />;
-  if (isError) return <p className="text-sm text-red-600">{t('common.error')}</p>;
-  if (!run) return <p className="text-sm text-neutral-500">{t('common.empty')}</p>;
+  if (isError) return <p className="text-sm text-danger">{t('common.error')}</p>;
+  if (!run) return <p className="text-sm text-muted">{t('common.empty')}</p>;
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{run.name}</CardTitle>
+          <div className="min-w-0">
+            <CardTitle>{run.name}</CardTitle>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <EvidenceStamp
+                status={run.status}
+                tone={run.status === 'completed' ? 'success' : run.status === 'failed' ? 'danger' : run.status === 'running' ? 'accent' : 'neutral'}
+                id={run.id.slice(0, 8)}
+                date={new Date(run.created_at).toLocaleDateString()}
+              />
+            </div>
+          </div>
           <StatusBadge status={run.status} />
         </CardHeader>
-        <CardContent className="space-y-1 text-xs text-neutral-500">
-          {run.command && <p className="font-mono text-neutral-700">{run.command}</p>}
+        <CardContent className="space-y-1 text-xs text-muted">
+          {run.command && <p className="font-mono text-muted">{run.command}</p>}
           {run.git_commit && <p className="font-mono">{run.git_commit.slice(0, 12)}</p>}
+          <ProvenanceTrace
+            className="pt-2"
+            nodes={[
+              { label: zh ? '来源' : 'Source', state: 'done' },
+              { label: zh ? '代码' : 'Code', state: run.git_commit ? 'done' : 'todo' },
+              { label: zh ? '实验' : 'Run', state: run.status === 'completed' ? 'done' : 'active' },
+              { label: zh ? '结论' : 'Claim', state: 'todo' },
+            ]}
+          />
         </CardContent>
       </Card>
 

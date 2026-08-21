@@ -26,10 +26,10 @@ export function defineMonacoThemes(monaco: MonacoApi): void {
     colors: {
       // --color-surface / --color-surface-2 (light)
       'editor.background': '#ffffff',
-      'editorGutter.background': '#ffffff',
-      'editor.lineHighlightBackground': '#f5f5f5',
-      'editorLineNumber.foreground': '#a3a3a3',
-      'editorLineNumber.activeForeground': '#737373',
+      'editorGutter.background': '#f7f8fa',
+      'editor.lineHighlightBackground': '#f4f5f7',
+      'editorLineNumber.foreground': '#9ca3af',
+      'editorLineNumber.activeForeground': '#6b7280',
     },
   });
   monaco.editor.defineTheme(MONACO_DARK, {
@@ -38,11 +38,11 @@ export function defineMonacoThemes(monaco: MonacoApi): void {
     rules: [],
     colors: {
       // --color-surface / --color-surface-2 (dark)
-      'editor.background': '#18181b',
-      'editorGutter.background': '#18181b',
-      'editor.lineHighlightBackground': '#27272a',
-      'editorLineNumber.foreground': '#71717a',
-      'editorLineNumber.activeForeground': '#a1a1aa',
+      'editor.background': '#14171b',
+      'editorGutter.background': '#14171b',
+      'editor.lineHighlightBackground': '#1c2025',
+      'editorLineNumber.foreground': '#6e7680',
+      'editorLineNumber.activeForeground': '#9ba3ad',
     },
   });
 }

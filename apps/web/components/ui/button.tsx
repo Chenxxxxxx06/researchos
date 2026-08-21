@@ -6,17 +6,17 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'destructive';
 type Size = 'sm' | 'md' | 'lg' | 'icon';
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-accent text-accent-fg hover:bg-accent-hover',
+  primary: 'bg-accent text-accent-fg shadow-none hover:bg-accent-hover',
   secondary: 'border border-border-strong bg-surface text-text hover:bg-surface-2',
   ghost: 'text-text hover:bg-surface-2',
   outline: 'border border-border bg-transparent text-text hover:bg-surface-2',
-  destructive: 'bg-danger text-danger-bg hover:opacity-90',
+  destructive: 'bg-danger text-danger-bg shadow-none hover:opacity-90',
 };
 
 const SIZES: Record<Size, string> = {
-  sm: 'h-8 px-3 text-sm',
-  md: 'h-10 px-4 text-sm',
-  lg: 'h-11 px-5 text-base',
+  sm: 'h-8 px-2.5 text-[13px]',
+  md: 'h-9 px-3.5 text-sm',
+  lg: 'h-10 px-4 text-sm',
   icon: 'h-8 w-8 p-0',
 };
 

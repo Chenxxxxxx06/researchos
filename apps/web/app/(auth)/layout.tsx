@@ -9,18 +9,18 @@ import { ThemeToggle } from '@/features/workspace/ThemeToggle';
 export default function AuthLayout({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   return (
-    <main className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-bg via-surface to-surface-2 p-6">
-      <div className="absolute right-6 top-6 flex items-center gap-1.5">
+    <main className="relative flex min-h-screen items-center justify-center bg-bg p-6">
+      <div className="absolute right-4 top-4 flex items-center gap-1.5">
         <ThemeToggle />
         <LanguageSwitcher />
       </div>
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-accent">
-            <span className="text-xl font-bold text-accent-fg">R</span>
+          <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface">
+            <span className="text-base font-semibold text-accent">R</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-text">{t('app.name')}</h1>
-          <p className="mt-2 text-sm text-muted">{t('app.tagline')}</p>
+          <h1 className="text-xl font-semibold tracking-tight text-text">{t('app.name')}</h1>
+          <p className="mt-1.5 text-sm text-muted">{t('app.tagline')}</p>
         </div>
         {children}
       </div>

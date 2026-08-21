@@ -12,7 +12,7 @@ const VARIANTS: Record<Variant, string> = {
   danger: 'bg-danger-bg text-danger',
   info: 'bg-info-bg text-info',
   accent: 'bg-accent text-accent-fg',
-  outline: 'border border-border text-muted',
+  outline: 'border border-border bg-surface text-muted',
 };
 
 const SIZES: Record<Size, string> = {
@@ -31,7 +31,7 @@ export function Badge({ variant = 'neutral', size = 'md', dot = false, className
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full font-medium',
+        'inline-flex items-center gap-1 rounded-md font-medium',
         VARIANTS[variant],
         SIZES[size],
         className,

@@ -87,7 +87,7 @@ export function IdeWorkspace({
   }, [buffers]);
 
   return (
-    <div className="relative -m-6 flex h-[calc(100vh-3.5rem)] flex-col lg:-m-8">
+    <div className="relative -m-6 flex h-[calc(100vh-3rem)] flex-col lg:-m-8">
       <RuntimeSwitcher
         projectId={projectId}
         profileId={sshProfileId}

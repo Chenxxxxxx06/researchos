@@ -53,8 +53,8 @@ export function CreateProjectDialog({ organizationId }: { organizationId: string
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-lg border border-neutral-200 bg-white p-6 shadow-lg">
-        <h2 className="mb-4 text-base font-semibold">Create project</h2>
+      <div className="w-full max-w-md rounded-lg border border-border bg-surface p-6 shadow-elev2">
+        <h2 className="mb-4 text-sm font-semibold text-text">Create project</h2>
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           <div>
             <Label htmlFor="project-name">Name</Label>
@@ -65,7 +65,7 @@ export function CreateProjectDialog({ organizationId }: { organizationId: string
             <Input id="project-field" value={field} onChange={(e) => setField(e.target.value)} />
           </div>
           {(fieldError || serverError) && (
-            <p className="text-sm text-red-600">{fieldError ?? serverError}</p>
+            <p className="text-sm text-danger">{fieldError ?? serverError}</p>
           )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
