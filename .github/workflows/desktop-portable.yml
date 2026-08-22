@@ -46,7 +46,12 @@ jobs:
           New-Item -ItemType Directory -Force portable | Out-Null
           Copy-Item apps/desktop/src-tauri/target/release/researchos-desktop.exe portable/ResearchOS.exe
           $hash = (Get-FileHash portable/ResearchOS.exe -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  ResearchOS.exe" | Set-Content portable/ResearchOS.exe.sha256
+          $checksumPath = Join-Path (Resolve-Path portable).Path "ResearchOS.exe.sha256"
+          [IO.File]::WriteAllText(
+            $checksumPath,
+            "$hash  ResearchOS.exe`n",
+            [Text.UTF8Encoding]::new($false)
+          )
       - uses: actions/upload-artifact@v4
         with:
           name: ResearchOS-windows-portable
