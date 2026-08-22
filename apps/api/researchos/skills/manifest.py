@@ -20,6 +20,7 @@ ALLOWED_TOOLS: tuple[str, ...] = (
     "paper.search",
     "library.list",
     "paper.sections",
+    "knowledge.rag_search",
     "workspace.tree",
     "workspace.read",
     "workspace.grep",

@@ -39,12 +39,12 @@ _SYSTEM = (
     "Rules:\n"
     "1. ALWAYS read a file with workspace.read before modifying or deleting it, and take "
     "base_sha VERBATIM from the workspace.read result.\n"
-    "2. Respond with a single JSON object: {\"summary\": string, \"files\": [{\"path\", "
+    '2. Respond with a single JSON object: {"summary": string, "files": [{"path", '
     "\"change_type\" ('create'|'modify'|'delete'), \"base_sha\", \"new_content\"?, "
-    "\"edits\"?}]}.\n"
-    "3. For 'modify' prefer \"edits\": a list of {\"search\", \"replace\"} blocks where "
-    "\"search\" is copied VERBATIM from the file, includes at least 3 lines of surrounding "
-    "context, and is unique within the file. Use \"new_content\" only for a full rewrite.\n"
+    '"edits"?}]}.\n'
+    '3. For \'modify\' prefer "edits": a list of {"search", "replace"} blocks where '
+    '"search" is copied VERBATIM from the file, includes at least 3 lines of surrounding '
+    'context, and is unique within the file. Use "new_content" only for a full rewrite.\n'
     "4. For 'create' provide \"new_content\" (no base_sha, no edits); for 'delete' provide "
     "neither.\n"
     "5. You never write files directly; your patch is reviewed by the user before it is "
@@ -360,11 +360,36 @@ class CodingAgent(Agent):
 
         patch_id = str(proposal.id) if proposal is not None else None
         file_count = len(proposal.files) if proposal is not None else 0
+        auto_apply_requested = bool(actx.context.get("auto_apply_patch"))
+        isolated_confirmed = bool(actx.context.get("isolated_workspace_confirmed"))
+        apply_result = None
+        if proposal is not None and not violations and auto_apply_requested:
+            if not isolated_confirmed:
+                violations.append(
+                    _violation(
+                        "",
+                        "autonomy_policy_denied",
+                        "auto-apply requires isolated_workspace_confirmed=true",
+                    )
+                )
+            else:
+                apply_result = await PatchService(actx.db).apply_patch(
+                    actx.actor,
+                    actx.project_id,
+                    proposal.id,
+                    require_git_commit=True,
+                )
         output_json = {
             "message": summary,
             "patch_id": patch_id,
             "file_count": file_count,
             "rejected_files": violations,
+            "auto_apply_requested": auto_apply_requested,
+            "auto_applied": bool(apply_result and apply_result.status == PatchStatus.APPLIED),
+            "patch_status": apply_result.status.value
+            if apply_result
+            else (proposal.status.value if proposal is not None else None),
+            "applied_commit_sha": apply_result.applied_commit_sha if apply_result else None,
         }
 
         chat_content = summary

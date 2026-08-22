@@ -10,6 +10,7 @@ import {
   Network,
   Play,
   RefreshCw,
+  Rocket,
   ShieldCheck,
   Sparkles,
   X,
@@ -28,6 +29,7 @@ import {
   decideApprovalGate,
   dispatchMissionTask,
   getOrchestrationGraph,
+  startAutopilot,
   tickOrchestration,
   type ApprovalGate,
   type MissionTask,
@@ -35,8 +37,10 @@ import {
 } from '@/lib/api/orchestration';
 import { cn } from '@/lib/utils';
 
+import { AgentCapabilityLedger } from './AgentCapabilityLedger';
 import { MissionGraph, TASK_STATUS } from './MissionGraph';
 import { ResearchLoopWorkbench } from './ResearchLoopWorkbench';
+import { ResearchSynthesisPanel } from './ResearchSynthesisPanel';
 
 type InspectorTab = 'task' | 'gates' | 'artifacts' | 'events';
 
@@ -48,6 +52,9 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
   const [message, setMessage] = useState('');
   const [contextText, setContextText] = useState('{}');
   const [contextError, setContextError] = useState<string | null>(null);
+  const [venue, setVenue] = useState('generic');
+  const [allowLocalPilot, setAllowLocalPilot] = useState(false);
+  const [autopilotMessage, setAutopilotMessage] = useState<string | null>(null);
 
   const missions = useQuery({
     queryKey: ['missions', projectId, 'orchestration'],
@@ -65,15 +72,15 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
       (query.state.data as OrchestrationGraph | undefined)?.tasks.some((task) =>
         ['leased', 'running'].includes(task.status),
       )
-        ? 5000
+        ? 1500
         : false,
   });
 
   const selectedTask = graph.data?.tasks.find((task) => task.id === selectedTaskId) ?? null;
   const selectedMission = missions.data?.items.find((mission) => mission.id === missionId);
-  const completed = graph.data?.counts.completed ?? 0;
-  const taskCount = graph.data?.tasks.length ?? 0;
-  const progress = taskCount ? Math.round((completed / taskCount) * 100) : 0;
+  const completed = graph.data?.progress.completed_tasks ?? graph.data?.counts.completed ?? 0;
+  const taskCount = graph.data?.progress.total_tasks ?? graph.data?.tasks.length ?? 0;
+  const progress = graph.data?.progress.progress_percent ?? (taskCount ? Math.round((completed / taskCount) * 100) : 0);
 
   const invalidate = () =>
     queryClient.invalidateQueries({
@@ -88,6 +95,21 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
     mutationFn: () => tickOrchestration(projectId, missionId as string),
     onSuccess: (data) =>
       queryClient.setQueryData(['orchestration-graph', projectId, missionId], data.graph),
+  });
+  const autopilot = useMutation({
+    mutationFn: () => startAutopilot(projectId, missionId as string, {
+      venue,
+      auto_apply_code: allowLocalPilot,
+      isolated_workspace_confirmed: true,
+      max_directions: 10,
+      pilot_first: true,
+      allow_paid_compute: false,
+      allow_trusted_local_execution: allowLocalPilot,
+    }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['orchestration-graph', projectId, missionId], data.graph);
+      setAutopilotMessage(data.blockers.length ? `${data.next_action} · ${data.blockers.join(' · ')}` : data.next_action);
+    },
   });
   const gateDecision = useMutation({
     mutationFn: ({ gate, decision }: { gate: ApprovalGate; decision: 'approve' | 'reject' }) =>
@@ -185,6 +207,11 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
                   ))}
                 </select>
               </label>
+              <input value={venue} onChange={(event) => setVenue(event.target.value)} aria-label="Target venue" className="h-9 w-28 rounded-md border border-border-strong bg-surface px-2 text-xs text-text" placeholder="venue" />
+              <label className="flex h-9 items-center gap-1.5 border border-border bg-surface px-2 text-[10px] text-muted"><input type="checkbox" checked={allowLocalPilot} onChange={(event) => setAllowLocalPilot(event.target.checked)} />trusted auto-code + pilot</label>
+              <Button size="sm" loading={autopilot.isPending} disabled={!missionId} onClick={() => autopilot.mutate()}>
+                <Rocket className="h-3.5 w-3.5" /> Start / continue autopilot
+              </Button>
               <Button
                 size="sm"
                 variant="secondary"
@@ -197,6 +224,7 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
             </div>
           </div>
 
+          {(autopilotMessage || autopilot.error) && <div className={`mt-4 border-l-2 px-3 py-2 text-xs ${autopilot.error ? 'border-danger bg-danger-bg text-danger' : 'border-info bg-info-bg text-info'}`}>{autopilot.error instanceof Error ? autopilot.error.message : autopilotMessage}</div>}
           {taskCount > 0 && (
             <div className="mt-6 grid grid-cols-2 gap-x-0 gap-y-4 border-t border-border pt-4 sm:grid-cols-4 lg:grid-cols-[minmax(15rem,1fr)_repeat(4,minmax(6rem,8rem))]">
               <div className="col-span-2 min-w-0 pb-1 sm:col-span-4 lg:col-span-1 lg:pb-0">
@@ -224,12 +252,18 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
         </div>
       </header>
 
+      {(graph.data?.progress.active_agents.length ?? 0) > 0 && (
+        <section className="border-b border-border bg-surface px-5 py-3 sm:px-7">
+          <div className="mx-auto max-w-[112rem]"><div className="mb-2 flex items-center justify-between"><h2 className="text-[10px] font-semibold uppercase tracking-wide text-muted">Agents working now</h2><span className="font-mono text-[9px] text-faint">phase {graph.data?.progress.current_phase}</span></div><div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">{graph.data?.progress.active_agents.map((agent) => <article key={agent.task_id} className="border border-accent/25 bg-accent/5 px-3 py-2"><div className="flex items-center justify-between gap-2"><p className="text-xs font-semibold text-text">{agent.role}</p><Badge size="sm" variant="accent" dot>{agent.status}</Badge></div><p className="mt-1 line-clamp-2 text-[10px] text-muted">{agent.current_action}</p><p className="mt-2 font-mono text-[9px] text-faint">{agent.agent_type} · attempt {agent.attempt}</p></article>)}</div></div>
+        </section>
+      )}
+
       {!graph.isLoading && graph.data?.tasks.length === 0 && (
         <section className="border-b border-border bg-info-bg px-6 py-5">
           <div className="mx-auto flex max-w-[112rem] flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-info">该 Mission 尚未创建内部任务图</p>
-              <p className="mt-1 text-xs text-muted">17 个节点 · 16 条依赖 · 6 个强制审批 Gate</p>
+              <p className="mt-1 text-xs text-muted">26 个 typed 节点 · Pilot-first 长程循环 · 凭证/仓库/算力/发布 Gate</p>
             </div>
             <Button loading={bootstrap.isPending} onClick={() => bootstrap.mutate()}>
               <GitFork className="h-4 w-4" /> 初始化 DAG
@@ -242,6 +276,8 @@ export function AgentOrchestrationWorkspace({ projectId }: { projectId: string }
 
       {graph.data && graph.data.tasks.length > 0 && (
         <div className="mx-auto max-w-[112rem]">
+          <AgentCapabilityLedger projectId={projectId} />
+          {missionId && <ResearchSynthesisPanel projectId={projectId} missionId={missionId} />}
           {missionId && (
             <ResearchLoopWorkbench
               projectId={projectId}

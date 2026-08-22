@@ -26,6 +26,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 
@@ -107,15 +108,17 @@ export function SideRail() {
     setPendingSegment(null);
   }, [pathname]);
 
-  // Warm the small route modules after the current page is interactive. This
-  // keeps navigation clicks responsive without competing with first paint.
+  // Visible <Link>s are prefetched by Next.js in production. Only warm the
+  // routes hidden in the More menu, and never force eager compilation in dev:
+  // the old all-route warmup made a cold local click compete with 12 webpack
+  // compilers and was the main source of multi-second navigation stalls.
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId || process.env.NODE_ENV !== 'production') return;
     const timer = window.setTimeout(() => {
-      for (const item of [...PRIMARY_ITEMS, ...UTILITY_ITEMS]) {
+      for (const item of UTILITY_ITEMS) {
         router.prefetch(`/projects/${projectId}/${item.segment}`);
       }
-    }, 300);
+    }, 1_500);
     return () => window.clearTimeout(timer);
   }, [projectId, router]);
 
@@ -160,9 +163,16 @@ export function SideRail() {
   }, [railWidth]);
 
   const hrefFor = (segment: string) => projectId ? `/projects/${projectId}/${segment}` : '/projects';
-  const markNavigation = (segment: string, active: boolean) => {
+  const markNavigation = (
+    event: ReactMouseEvent<HTMLAnchorElement>,
+    segment: string,
+    active: boolean,
+  ) => {
+    // Re-clicking the current route should acknowledge the press but must not
+    // issue another RSC request or remount the workspace.
+    if (active) event.preventDefault();
     setPendingSegment(segment);
-    if (active) window.setTimeout(() => setPendingSegment(null), 280);
+    if (active) window.setTimeout(() => setPendingSegment(null), 180);
   };
 
   return (
@@ -203,9 +213,9 @@ export function SideRail() {
                     aria-current={active ? 'page' : undefined}
                     aria-busy={pendingSegment === item.segment}
                     data-nav-segment={item.segment}
-                    onClick={() => markNavigation(item.segment, active)}
+                    onClick={(event) => markNavigation(event, item.segment, active)}
                     className={cn(
-                      'relative flex h-[3.25rem] w-full items-center rounded-md font-medium',
+                      'relative flex h-[3.25rem] w-full items-center rounded-md font-medium transition-[background-color,color,transform] duration-100 active:scale-[0.98]',
                       isExpanded
                         ? 'flex-row justify-start gap-3 px-3 text-sm'
                         : 'flex-col justify-center gap-1 px-1 text-[10px] leading-none',
@@ -316,9 +326,9 @@ export function SideRail() {
               aria-current={active ? 'page' : undefined}
               aria-busy={pendingSegment === item.segment}
               data-nav-segment={item.segment}
-              onClick={() => markNavigation(item.segment, active)}
+              onClick={(event) => markNavigation(event, item.segment, active)}
               className={cn(
-                'flex min-w-0 flex-col items-center justify-center gap-1 border-t-2 px-1 text-[9px] font-medium',
+                'flex min-w-0 flex-col items-center justify-center gap-1 border-t-2 px-1 text-[9px] font-medium transition-[color,transform] duration-100 active:scale-[0.97]',
                 active ? 'border-accent text-accent' : 'border-transparent text-muted',
               )}
             >

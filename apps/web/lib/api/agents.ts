@@ -6,7 +6,7 @@ import { apiRequest } from './client';
  * consumers (coding chat fallback, research chat) need no casts. There is
  * deliberately no `ideate` member — idea generation is a synchronous REST call.
  */
-export type AgentType = 'research' | 'critic' | 'coding' | 'latex' | 'experiment' | 'reading_card' | 'review_section' | 'experiment_planner' | 'sql_analyst' | 'citation_organizer';
+export type AgentType = 'research' | 'critic' | 'coding' | 'latex' | 'experiment' | 'reading_card' | 'review_section' | 'experiment_planner' | 'sql_analyst' | 'citation_organizer' | 'idea_explorer' | 'benchmark' | 'leader' | 'viewer' | 'writer' | 'drawer' | 'progress';
 export type AgentRunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 export interface AgentRun {
@@ -55,8 +55,15 @@ export interface Page<T> {
 /** Context accepted by the runtime for seeding an agent run (frontend-research CP-2). */
 export interface AgentRunContext {
   idea_id?: string;
+  mission_id?: string;
+  mission_task_id?: string;
+  venue?: string;
+  section?: string;
+  auto_apply_patch?: boolean;
+  isolated_workspace_confirmed?: boolean;
   paper_id?: string;
   section_seqs?: number[];
+  section_kinds?: string[];
   skill_slugs?: string[];
   llm_config_id?: string;
 }
@@ -66,6 +73,23 @@ export function createAgentRun(
   body: { agent_type: AgentType; message: string; context?: AgentRunContext },
 ): Promise<CreateAgentRunResponse> {
   return apiRequest(`/projects/${projectId}/agents/runs`, { method: 'POST', body });
+}
+
+export interface AgentCapability {
+  agent_type: AgentType;
+  role: string;
+  purpose: string;
+  input_contract: string[];
+  output_contract: string;
+  tools: string[];
+  autonomy: string;
+  approval_boundaries: string[];
+  status: string;
+  operational_blockers: string[];
+}
+
+export function listAgentCapabilities(projectId: string): Promise<AgentCapability[]> {
+  return apiRequest(`/projects/${projectId}/agents/capabilities`);
 }
 
 export interface ListAgentRunsOptions {

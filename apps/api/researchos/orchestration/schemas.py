@@ -94,6 +94,35 @@ class TaskEventResponse(BaseModel):
     created_at: datetime
 
 
+class ActiveAgentStatus(BaseModel):
+    task_id: uuid.UUID
+    task_key: str
+    title: str
+    role: str
+    agent_type: str | None
+    status: str
+    agent_run_id: uuid.UUID | None
+    attempt: int
+    started_at: datetime | None
+    progress_percent: float
+    current_action: str
+
+
+class MissionProgressResponse(BaseModel):
+    total_tasks: int
+    completed_tasks: int
+    running_tasks: int
+    blocked_tasks: int
+    failed_tasks: int
+    progress_percent: float
+    active_agents: list[ActiveAgentStatus]
+    current_phase: str
+    next_ready_tasks: list[str]
+    blocker_messages: list[str]
+    eta_seconds: int | None
+    eta_basis: str
+
+
 class OrchestrationGraphResponse(BaseModel):
     mission_id: uuid.UUID
     tasks: list[MissionTaskResponse]
@@ -102,6 +131,35 @@ class OrchestrationGraphResponse(BaseModel):
     gates: list[ApprovalGateResponse]
     events: list[TaskEventResponse]
     counts: dict[str, int]
+    progress: MissionProgressResponse
+
+
+class AutopilotStartRequest(BaseModel):
+    venue: str = Field(default="generic", min_length=1, max_length=80)
+    auto_apply_code: bool = True
+    isolated_workspace_confirmed: bool = False
+    max_directions: int = Field(default=10, ge=1, le=10)
+    pilot_first: bool = True
+    allow_paid_compute: bool = False
+    allow_trusted_local_execution: bool = False
+    pilot_argv: list[str] = Field(
+        default_factory=lambda: ["python", "-m", "compileall", "-q", "."],
+        min_length=1,
+        max_length=32,
+    )
+    full_argv: list[str] = Field(default_factory=list, max_length=32)
+    run_cwd: str = Field(default=".", min_length=1, max_length=512)
+    pilot_timeout_seconds: int = Field(default=180, ge=10, le=1800)
+    full_timeout_seconds: int = Field(default=3600, ge=30, le=86_400)
+
+
+class AutopilotStepResponse(BaseModel):
+    graph: OrchestrationGraphResponse
+    state: Literal["dispatched", "running", "blocked", "completed"]
+    dispatched_task_id: uuid.UUID | None = None
+    agent_run_id: uuid.UUID | None = None
+    blockers: list[str] = Field(default_factory=list)
+    next_action: str
 
 
 class DispatchTaskRequest(BaseModel):

@@ -269,7 +269,7 @@ Patch apply、主指标选择、结论升级、主分支合并、公开发布和
 
 - 已实现 `mission_tasks`、dependency、lease/heartbeat、hashed artifact、gate 和 append-only
   task event，Alembic `0024` 固化数据库约束；
-- 已实现 17 节点标准科研 DAG、无环校验、`FOR UPDATE SKIP LOCKED` Worker 领取、租约
+- 已实现 26 节点 Pilot-first 科研 DAG、无环校验、`FOR UPDATE SKIP LOCKED` Worker 领取、租约
   过期回收、重试上限、项目/任务幂等键和 Mission 暂停保护；
 - AgentRun 通过 `mission_task_id` 与 Task 绑定，成功、失败、取消会在同一事务中自动回写
   Artifact、Task 状态并解锁下游，Coordinator tick 作为恢复路径；

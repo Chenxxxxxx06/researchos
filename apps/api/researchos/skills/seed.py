@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """First-party skill catalog and idempotent seeding.
 
 First-party skills are global (no project). Seeding is idempotent: a skill is
@@ -135,6 +136,83 @@ FIRST_PARTY_SKILLS: list[dict] = [
         ),
         "workflow": ["Detect issues", "Polish prose", "Preserve math"],
         "tool_permissions": [],
+        "config_schema": {},
+    },
+    {
+        "slug": "evidence-ranked-ideas",
+        "name": "Evidence-ranked Ideas",
+        "category": "ideation",
+        "description": "Ranks ten falsifiable directions from paper ideas, benchmarks, code, and ablations.",
+        "modules": ["research"],
+        "prompt_template": (
+            "Rank no more than ten directions. Score source evidence, cross-paper support, benchmark "
+            "credibility, reported ablations, code availability, cost, and novelty risk. Keep inferred "
+            "directions separate from reported paper conclusions. Define a small-batch pilot for each."
+        ),
+        "workflow": [
+            "Aggregate tuple evidence",
+            "Score directions",
+            "Design pilot",
+            "Return Top 10",
+        ],
+        "tool_permissions": ["knowledge.rag_search"],
+        "config_schema": {"top_k": {"type": "integer", "default": 10}},
+    },
+    {
+        "slug": "publication-flowchart",
+        "name": "Publication Flowchart",
+        "category": "figure",
+        "description": "Creates a verified academic Mermaid method flow with correct arrow semantics.",
+        "modules": ["paper"],
+        "prompt_template": (
+            "Generate a left-to-right Mermaid flowchart with semantic node ids, restrained colors, "
+            "print-readable labels, and no arrow crossings. Every node and arrow must correspond to "
+            "the supplied method or experiment artifact. Never add an unverified module. Return raw "
+            "Mermaid without markdown fences and self-check every arrow source and target."
+        ),
+        "workflow": [
+            "Map real modules",
+            "Lay out left to right",
+            "Verify every arrow",
+            "Run safety preflight",
+        ],
+        "tool_permissions": [],
+        "config_schema": {"direction": {"type": "string", "default": "LR"}},
+    },
+    {
+        "slug": "paper-figure-table",
+        "name": "Paper Figure and Table",
+        "category": "figure",
+        "description": "Builds FigureSpecs, LaTeX tables, captions, and provenance from recorded metrics.",
+        "modules": ["paper", "experiments"],
+        "prompt_template": (
+            "Use only recorded ExperimentRun metrics. Prefer direct comparison bars for final benchmark "
+            "scores, lines for trajectories, and explicit ablation tables. Use colorblind-safe styles, "
+            "state direction and units, link every series to a run id, and never transcribe a number by guess."
+        ),
+        "workflow": [
+            "Select evidence",
+            "Choose chart grammar",
+            "Generate FigureSpec",
+            "Audit table values",
+            "Write caption",
+        ],
+        "tool_permissions": ["experiment.read"],
+        "config_schema": {"style": {"type": "string", "default": "clean-serif"}},
+    },
+    {
+        "slug": "long-run-progress-controller",
+        "name": "Long-run Progress Controller",
+        "category": "orchestration",
+        "description": "Monitors leases, runs, blockers, progress, and evidence-based stop conditions.",
+        "modules": ["experiments"],
+        "prompt_template": (
+            "Report deterministic task completion, active leases and runs, failed receipts, current "
+            "blockers, and the smallest next action. Never estimate ETA without completed-task timing. "
+            "Pause on missing credentials, paid compute, integrity failure, repeated crash, or no progress."
+        ),
+        "workflow": ["Fold task events", "Check heartbeats", "Report progress", "Apply stop rules"],
+        "tool_permissions": ["experiment.read"],
         "config_schema": {},
     },
 ]

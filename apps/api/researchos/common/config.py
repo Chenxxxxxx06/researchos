@@ -64,6 +64,10 @@ class Settings(BaseSettings):
     # Use a non-pooling engine. Recommended for the test suite (each test runs
     # in its own event loop) and for some serverless deployments.
     db_use_nullpool: bool = False
+    # Long-lived API processes keep a small warm pool so a first page with
+    # several parallel widgets does not pay repeated TCP/auth handshakes.
+    db_pool_size: int = 10
+    db_max_overflow: int = 10
 
     # --- Redis / Celery ------------------------------------------------------
     redis_url: str = "redis://localhost:6379/0"

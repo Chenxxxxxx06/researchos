@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import math
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import delete, func, or_, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -112,6 +114,33 @@ class PaperRepository:
             .limit(limit)
         )
         return [f"{title} {abstract or ''}".strip() for title, abstract in result.all()]
+
+    async def list_library_interest_profile(
+        self, project_id: uuid.UUID, *, limit: int = 500
+    ) -> tuple[list[str], list[float]]:
+        """Library documents plus recency weights for daily recommendation.
+
+        This independently implements the public algorithmic idea used by
+        Zotero-arXiv-Daily: compare candidate abstracts with the whole library
+        while assigning more weight to recently added research interests.
+        """
+
+        rows = (
+            await self.db.execute(
+                select(Paper.title, Paper.abstract, Paper.created_at)
+                .where(Paper.project_id == project_id)
+                .order_by(Paper.created_at.desc())
+                .limit(limit)
+            )
+        ).all()
+        now = datetime.now(tz=UTC)
+        docs: list[str] = []
+        weights: list[float] = []
+        for title, abstract, created_at in rows:
+            age_days = max(0.0, (now - created_at).total_seconds() / 86_400.0)
+            docs.append(f"{title} {abstract or ''}".strip())
+            weights.append(0.2 + 0.8 * math.exp(-age_days / 180.0))
+        return docs, weights
 
     async def list_ids_for_project(self, project_id: uuid.UUID) -> set[str]:
         """Return the set of citation keys (``source:external_id``) in the library."""

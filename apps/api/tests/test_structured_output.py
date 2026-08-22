@@ -23,6 +23,7 @@ from researchos.agents.llm.base import (
     ToolCall,
     Usage,
 )
+from researchos.agents.llm.structured import StructuredOutputError, _check_required
 from researchos.agents.models import AgentRun
 from researchos.agents.repository import AgentRunEventRepository, AgentRunRepository
 from researchos.agents.runtime import AgentRuntime
@@ -100,6 +101,32 @@ class ForceStructuredOnlyProvider:
         yield ToolCall(id=f"call_{self.stream_calls}", name="library.list", arguments={})
         yield Usage(input_tokens=2, output_tokens=0)
         yield StreamDone(stop_reason="tool_use")
+
+
+def test_nested_structured_output_is_validated_recursively() -> None:
+    schema = {
+        "type": "object",
+        "properties": {
+            "items": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "verdict": {"type": "string", "enum": ["pass", "reject"]},
+                        "score": {"type": "number", "minimum": 0, "maximum": 1},
+                    },
+                    "required": ["verdict", "score"],
+                },
+            }
+        },
+        "required": ["items"],
+    }
+    _check_required({"items": [{"verdict": "pass", "score": 0.8}]}, schema)
+    with pytest.raises(StructuredOutputError, match="enum"):
+        _check_required({"items": [{"verdict": "maybe", "score": 0.8}]}, schema)
+    with pytest.raises(StructuredOutputError, match="missing required key score"):
+        _check_required({"items": [{"verdict": "pass"}]}, schema)
 
 
 async def test_unparseable_structured_output_fails_run(db_session: AsyncSession) -> None:

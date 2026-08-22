@@ -182,8 +182,12 @@ async def _paper_sections(ctx: ToolContext, args: dict) -> dict:
     from researchos.research.service import PaperService
 
     return await PaperService(ctx.db, http_client=ctx.http_client).sections_for_agent(
-        ctx.actor, ctx.project_id, paper_key=str(args.get("paper_key", "")),
-        kind=args.get("kind"), seq=args.get("seq"))
+        ctx.actor,
+        ctx.project_id,
+        paper_key=str(args.get("paper_key", "")),
+        kind=args.get("kind"),
+        seq=args.get("seq"),
+    )
 
 
 async def _knowledge_rag_search(ctx: ToolContext, args: dict) -> dict:
@@ -217,6 +221,7 @@ async def _knowledge_rag_search(ctx: ToolContext, args: dict) -> dict:
         "embedding_model": response.embedding_model,
         "indexed_papers": response.indexed_papers,
         "indexed_chunks": response.indexed_chunks,
+        "indexed_tuples": response.indexed_tuples,
         "results": results,
     }
 
@@ -287,12 +292,21 @@ TOOL_REGISTRY: dict[str, ToolSpec] = {
 
 TOOL_REGISTRY["paper.sections"] = ToolSpec(
     name="paper.sections",
-    description=("Read structured full-text sections of a library paper by "
-                 "'source:external_id' key; optional kind or seq filter."),
-    parameters={"type": "object", "properties": {
-        "paper_key": {"type": "string"}, "kind": {"type": "string"},
-        "seq": {"type": "integer"}}, "required": ["paper_key"]},
-    impl=_paper_sections)
+    description=(
+        "Read structured full-text sections of a library paper by "
+        "'source:external_id' key; optional kind or seq filter."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "paper_key": {"type": "string"},
+            "kind": {"type": "string"},
+            "seq": {"type": "integer"},
+        },
+        "required": ["paper_key"],
+    },
+    impl=_paper_sections,
+)
 
 TOOL_REGISTRY["knowledge.rag_search"] = ToolSpec(
     name="knowledge.rag_search",

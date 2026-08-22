@@ -38,7 +38,9 @@ def validate_document_path(path: str) -> str:
 
 class CreateLatexProjectRequest(BaseModel):
     name: str = Field(min_length=1, max_length=200)
-    template_id: Literal["article", "ieee", "acm", "elsevier"] = "article"
+    template_id: Literal[
+        "article", "ieee", "acm", "elsevier", "neurips", "icml", "iclr", "cvpr", "acl", "aaai"
+    ] = "article"
 
 
 class LatexProjectResponse(BaseModel):

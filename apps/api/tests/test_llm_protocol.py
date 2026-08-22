@@ -209,7 +209,7 @@ def test_extract_json_garbage_raises() -> None:
 def test_check_required_missing_key_raises() -> None:
     schema = {"type": "object", "required": ["novelty_summary"]}
     _check_required({"novelty_summary": "x"}, schema)
-    with pytest.raises(StructuredOutputError, match="missing required keys"):
+    with pytest.raises(StructuredOutputError, match="missing required key novelty_summary"):
         _check_required({"other": 1}, schema)
 
 

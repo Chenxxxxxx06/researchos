@@ -125,9 +125,7 @@ class PatchService:
                     base_content, [EditBlock(search=e.search, replace=e.replace) for e in f.edits]
                 )
             except EditResolutionError as exc:
-                return None, [
-                    _failure(f.path, fl.reason, index=fl.index) for fl in exc.failures
-                ]
+                return None, [_failure(f.path, fl.reason, index=fl.index) for fl in exc.failures]
             edits_json = [{"search": e.search, "replace": e.replace} for e in f.edits]
         else:
             # Whole-file UI path: a stale base_sha is kept as-is — the
@@ -241,6 +239,7 @@ class PatchService:
         patch_id: uuid.UUID,
         *,
         paths: list[str] | None = None,
+        require_git_commit: bool = False,
     ) -> ApplyResultResponse:
         await self.projects.ensure_access(actor, project_id, ProjectRole.RESEARCHER)
         proposal = await self.patches.get(project_id, patch_id)
@@ -325,6 +324,14 @@ class PatchService:
                 skipped_paths=skipped_paths,
             )
 
+        if require_git_commit and any(
+            file.change_type != PatchChangeType.CREATE and file.base_content is None
+            for file in selected
+        ):
+            raise ValidationError(
+                "Autonomous apply requires restorable text snapshots for every changed file."
+            )
+
         # 2) Apply all selected files atomically (staging + journaled renames).
         ops: list[FileOp] = []
         for f in selected:
@@ -352,6 +359,32 @@ class PatchService:
             author_email=actor.email,
             paths=[f.path for f in selected],
         )
+        if require_git_commit and not commit_sha:
+            rollback_ops = [
+                (
+                    FileOp(path=file.path, action="delete")
+                    if file.change_type == PatchChangeType.CREATE
+                    else FileOp(
+                        path=file.path,
+                        action="write",
+                        content=file.base_content or "",
+                    )
+                )
+                for file in selected
+            ]
+            try:
+                fs.apply_files_atomic(project_id, rollback_ops)
+            except WorkspaceApplyError as exc:
+                raise AppError(
+                    "Autonomous apply produced no Git commit and rollback failed.",
+                    code="autonomous_apply_rollback_failed",
+                    http_status=500,
+                ) from exc
+            raise AppError(
+                "Autonomous apply produced no Git commit; filesystem changes were rolled back.",
+                code="git_commit_required",
+                http_status=409,
+            )
 
         proposal.status = PatchStatus.APPLIED
         proposal.applied_at = datetime.now(tz=UTC)

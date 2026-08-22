@@ -234,6 +234,11 @@ export function ReadingStagePanel({ projectId, missionId, lang }: { projectId: s
       strengths: lines(strengths),
       limitations: lines(limitations),
       reproducibility: lines(reproducibility),
+      github_repositories: current?.github_repositories_json ?? [],
+      paper_ideas: current?.paper_ideas_json ?? [],
+      benchmarks: current?.benchmarks_json ?? [],
+      ablation_findings: current?.ablation_findings_json ?? [],
+      knowledge_tuples: current?.knowledge_tuples_json ?? [],
       claims: current?.claims_json ?? [],
       status,
     }),
@@ -330,6 +335,23 @@ export function ReadingStagePanel({ projectId, missionId, lang }: { projectId: s
           <Field label={lang === 'zh' ? '优点' : 'Strengths'} value={strengths} onChange={setStrengths} rows={5} />
           <Field label={lang === 'zh' ? '局限' : 'Limitations'} value={limitations} onChange={setLimitations} rows={5} />
         </div>
+        {current && (
+          <section className="border-y border-border py-4">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <h4 className="text-xs font-semibold text-text">{lang === 'zh' ? '代码、Idea、Benchmark 与消融' : 'Code, ideas, benchmarks, and ablations'}</h4>
+                <p className="mt-1 text-[10px] text-muted">{lang === 'zh' ? '所有结构项都保留原文证据状态，并写入多元组 RAG。' : 'Every structured item retains its evidence status and enters tuple RAG.'}</p>
+              </div>
+              <span className="font-mono text-[10px] text-faint">{current.knowledge_tuples_json.length} tuples</span>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <InsightList title="GitHub / Code" items={current.github_repositories_json} primaryKeys={['name', 'url']} />
+              <InsightList title="Research ideas" items={current.paper_ideas_json} primaryKeys={['title', 'hypothesis']} />
+              <InsightList title="Benchmarks" items={current.benchmarks_json} primaryKeys={['name', 'task', 'metric']} />
+              <InsightList title="Ablation evidence" items={current.ablation_findings_json} primaryKeys={['component', 'comparison', 'effect']} />
+            </div>
+          </section>
+        )}
         {(current?.claims_json.length ?? 0) > 0 && (
           <section className="border-y border-border py-4">
             <div className="mb-3 flex items-center justify-between"><h4 className="text-xs font-semibold text-text">{lang === 'zh' ? '主张与原文证据' : 'Claims and source evidence'}</h4><span className="font-mono text-[10px] text-faint">{current?.claims_json.length}</span></div>
@@ -345,6 +367,22 @@ export function ReadingStagePanel({ projectId, missionId, lang }: { projectId: s
           <Button variant="secondary" onClick={() => save.mutate('draft')} loading={save.isPending && save.variables === 'draft'}><Save className="h-3.5 w-3.5" />{lang === 'zh' ? '保存草稿' : 'Save draft'}</Button>
           <Button onClick={() => save.mutate('reviewed')} loading={save.isPending && save.variables === 'reviewed'}><Check className="h-3.5 w-3.5" />{lang === 'zh' ? '保存并标记已复核' : 'Save as reviewed'}</Button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function InsightList({ title, items, primaryKeys }: { title: string; items: Array<Record<string, unknown>>; primaryKeys: string[] }) {
+  return (
+    <div className="border border-border bg-surface p-3">
+      <div className="flex items-center justify-between"><h5 className="text-[10px] font-semibold uppercase tracking-wide text-muted">{title}</h5><span className="font-mono text-[9px] text-faint">{items.length}</span></div>
+      <div className="mt-2 space-y-2">
+        {items.slice(0, 8).map((item, index) => {
+          const text = primaryKeys.map((key) => String(item[key] ?? '').trim()).filter(Boolean).join(' · ');
+          const grounded = item.evidence_status === 'reported';
+          return <div key={`${title}-${index}`} className="border-l-2 border-border-strong pl-2"><div className="flex items-start justify-between gap-2"><p className="text-[11px] leading-4 text-text">{text || '—'}</p><Badge size="sm" variant={grounded ? 'success' : 'warn'}>{grounded ? 'evidence' : 'inference'}</Badge></div>{item.quote ? <p className="mt-1 line-clamp-2 text-[9px] leading-4 text-muted">“{String(item.quote)}”</p> : null}</div>;
+        })}
+        {items.length === 0 && <p className="text-[10px] text-faint">Not reported in selected sections.</p>}
       </div>
     </div>
   );

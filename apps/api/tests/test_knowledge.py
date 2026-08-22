@@ -88,7 +88,7 @@ async def test_mission_knowledge_end_to_end(
         headers=csrf_headers(client),
     )
     assert search.status_code == 200
-    assert search.json()["mode"] == "hybrid-vector-keyword-v2"
+    assert search.json()["mode"] == "hybrid-vector-keyword-tuples-v3"
     assert search.json()["embedding_model"] == "hashing-1024-v2"
     assert search.json()["hits"][0]["section_id"] == str(section.id)
 
@@ -135,6 +135,29 @@ async def test_mission_knowledge_end_to_end(
     assert cards.json()[0]["key_results_json"]
     assert cards.json()[0]["conclusions_json"]
     assert cards.json()[0]["claims_json"][0]["evidence_status"] == "grounded"
+    assert cards.json()[0]["paper_ideas_json"]
+    assert cards.json()[0]["benchmarks_json"]
+    assert cards.json()[0]["knowledge_tuples_json"]
+
+    tuple_search = await client.post(
+        f"{base}/rag/search",
+        json={"query": "controlled distribution shift robustness", "mission_id": mission["id"]},
+        headers=csrf_headers(client),
+    )
+    assert tuple_search.status_code == 200
+    assert tuple_search.json()["indexed_tuples"] >= 2
+    assert any(hit["tuple_kind"] == "idea" for hit in tuple_search.json()["hits"])
+
+    synthesis = await client.get(f"{base}/missions/{mission['id']}/research-synthesis")
+    assert synthesis.status_code == 200
+    assert synthesis.json()["directions"][0]["rank"] == 1
+    assert synthesis.json()["benchmarks"][0]["credibility_score"] >= 0
+    materialized = await client.post(
+        f"{base}/missions/{mission['id']}/research-synthesis/materialize",
+        headers=csrf_headers(client),
+    )
+    assert materialized.status_code == 200
+
     versions = await client.get(
         f"{base}/papers/{paper.id}/reading-card/versions",
         params={"mission_id": mission["id"]},

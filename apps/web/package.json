@@ -8,7 +8,8 @@
     "start": "next start -p 3000",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:performance": "playwright test e2e/performance.spec.ts --project=chromium --retries=0"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",

@@ -395,6 +395,12 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
         title: 'Elsevier',
         description: t('paper.template.elsevierDescription'),
       },
+      { id: 'neurips', icon: ScrollText, title: 'NeurIPS', description: 'Offline starter with evidence, ablation, and limitation sections.' },
+      { id: 'icml', icon: ScrollText, title: 'ICML', description: 'Offline starter for methods, theory, experiments, and ablations.' },
+      { id: 'iclr', icon: ScrollText, title: 'ICLR', description: 'Offline starter with analysis and reproducibility sections.' },
+      { id: 'cvpr', icon: ScrollText, title: 'CVPR', description: 'Offline vision-paper starter with qualitative and ablation sections.' },
+      { id: 'acl', icon: ScrollText, title: 'ACL', description: 'Offline NLP starter with limitations and ethics sections.' },
+      { id: 'aaai', icon: ScrollText, title: 'AAAI', description: 'Offline AI starter for experiments and discussion.' },
     ];
     return (
       <div className="mx-auto flex min-h-[calc(100dvh-8rem)] max-w-5xl flex-col justify-center p-6">
@@ -403,7 +409,7 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
           <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-text">{t('paper.empty')}</h1>
           <p className="mt-3 text-sm leading-6 text-muted">{t('paper.template.choose')}</p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {templates.map((template) => {
             const Icon = template.icon;
             return (

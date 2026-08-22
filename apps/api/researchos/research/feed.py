@@ -54,9 +54,7 @@ def decode_cursor(cursor: str) -> int:
 
 
 class FeedService:
-    def __init__(
-        self, db: AsyncSession, *, http_client: httpx.AsyncClient | None = None
-    ) -> None:
+    def __init__(self, db: AsyncSession, *, http_client: httpx.AsyncClient | None = None) -> None:
         self.db = db
         self.papers = PaperRepository(db)
         self.prefs = FeedPrefRepository(db)
@@ -82,9 +80,7 @@ class FeedService:
                 break
         return derived, True
 
-    async def get_categories(
-        self, actor: User, project_id: uuid.UUID
-    ) -> FeedCategoriesResponse:
+    async def get_categories(self, actor: User, project_id: uuid.UUID) -> FeedCategoriesResponse:
         await self.projects.ensure_access(actor, project_id, ProjectRole.VIEWER)
         categories, derived = await self._resolve_categories(project_id)
         return FeedCategoriesResponse(categories=categories, derived=derived)
@@ -145,8 +141,16 @@ class FeedService:
 
         # Personalize at response time so a freshly synced Zotero library takes
         # effect immediately even when the provider response came from cache.
-        library_docs = await self.papers.list_library_docs(project_id, limit=500)
-        results = rank_results(list(results), library_docs=library_docs)
+        library_docs, library_weights = await self.papers.list_library_interest_profile(
+            project_id, limit=500
+        )
+        results = rank_results(
+            list(results),
+            library_docs=library_docs,
+            library_weights=library_weights,
+        )
+        for result in results:
+            result.extra["recommendation_algorithm"] = "zotero-library-recency-weighted-rrf-v2"
 
         # In-library markers are computed at response time (never cached).
         library_keys = await self.papers.list_ids_for_project(project_id)

@@ -181,6 +181,11 @@ async def test_feed_page_markers_cursor_and_cache(client, db_session, arxiv_feed
     assert body["categories_used"] == ["cs.LG"]
     assert [i["external_id"] for i in body["items"]] == ["2401.01234", "2312.05678"]
     assert [i["in_library"] for i in body["items"]] == [True, False]
+    assert all(
+        item["extra"]["recommendation_algorithm"]
+        == "zotero-library-recency-weighted-rrf-v2"
+        for item in body["items"]
+    )
     # Full page -> opaque cursor for the next offset.
     assert body["next_cursor"] is not None
     assert decode_cursor(body["next_cursor"]) == 2

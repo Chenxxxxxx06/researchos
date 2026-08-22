@@ -211,7 +211,7 @@ const base = (p: string) => `/projects/${p}/latex-projects`;
 
 export const listLatexProjects = (p: string): Promise<LatexProject[]> => apiRequest(base(p));
 
-export type PaperTemplateId = 'article' | 'ieee' | 'acm' | 'elsevier';
+export type PaperTemplateId = 'article' | 'ieee' | 'acm' | 'elsevier' | 'neurips' | 'icml' | 'iclr' | 'cvpr' | 'acl' | 'aaai';
 
 export const createLatexProject = (
   p: string,

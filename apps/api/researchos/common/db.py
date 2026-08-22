@@ -6,6 +6,7 @@ readiness check; later phases add models and repositories.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 
 from sqlalchemy import text
@@ -33,7 +34,12 @@ def get_engine() -> AsyncEngine:
         if settings.db_use_nullpool:
             kwargs["poolclass"] = NullPool
         else:
-            kwargs["pool_pre_ping"] = True
+            kwargs.update(
+                pool_pre_ping=True,
+                pool_size=settings.db_pool_size,
+                max_overflow=settings.db_max_overflow,
+                pool_recycle=1800,
+            )
         _engine = create_async_engine(settings.postgres_dsn, **kwargs)
     return _engine
 
@@ -61,6 +67,30 @@ async def check_db() -> None:
 
     async with get_engine().connect() as conn:
         await conn.execute(text("SELECT 1"))
+
+
+async def warm_db_pool() -> int:
+    """Open and validate the API's configured pool before serving traffic.
+
+    Connections are held until the target count is reached; otherwise each
+    iteration would just reuse the same returned connection. NullPool callers
+    (tests and Celery workers) intentionally skip this optimization.
+    """
+
+    settings = get_settings()
+    if settings.db_use_nullpool or settings.db_pool_size <= 0:
+        return 0
+
+    connections = []
+    try:
+        for _ in range(settings.db_pool_size):
+            connection = await get_engine().connect()
+            connections.append(connection)
+            await connection.execute(text("SELECT 1"))
+    finally:
+        if connections:
+            await asyncio.gather(*(connection.close() for connection in connections))
+    return len(connections)
 
 
 async def dispose_engine() -> None:

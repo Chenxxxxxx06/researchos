@@ -12,7 +12,7 @@
 |---|---|---|
 | 项目→成员→Agent Run→Artifact 归属树 | ✅ 可用骨架 | 页面读取真实成员和运行记录；下一步增加 `visibility`、`owner_id`、共享审批 |
 | Coordinator + 专项 Agent 协议 | ✅ 可用骨架 | 使用 `researchos.handoff/v1`、租约、心跳、幂等键、人工闸门，见 `AGENT_PROTOCOL_ZH.md` |
-| 持久化科研 Mission DAG | ✅ 可用骨架 | 17 节点任务图、依赖、lease/heartbeat、幂等、重试、Artifact、Gate 和 Event 已落地；常驻 Scheduler、自动派发与真实预算扣减仍待补齐 |
+| 持久化科研 Mission DAG | ✅ 可用骨架 | 26 节点 Pilot-first 任务图、依赖、lease/heartbeat、幂等、重试、Artifact、Gate、自动续派和 Event 已落地；事务 Outbox、独立常驻 Scheduler 与真实费用扣减仍待补齐 |
 | Prompt / Role / Workflow Registry | ⚪ 待实现 | 版本化、评测集、回滚、变更日志、每次运行记录版本 |
 | Agent 评测与自动回归 | ⚪ 待实现 | 任务指标 + LLM judge + 人工抽检，低于阈值禁止晋级 |
 | 多人实时共同编辑 | ⚪ 待实现 | 论文用 CRDT；代码用 worktree/branch；实验配置用显式锁与审批 |

@@ -51,19 +51,29 @@ class ReleaseService:
         await self.projects.ensure_access(actor, project_id, ProjectRole.VIEWER)
         url = self.settings.autodesign_base_url.rstrip("/")
         try:
-            async with self._client(timeout=2.5) as client:
+            # AutoDesign's health payload includes harness diagnostics and can
+            # take a few seconds on Windows even when the server is healthy.
+            async with self._client(timeout=6.0) as client:
                 response = await client.get(f"{url}/api/health")
                 response.raise_for_status()
+                health = response.json()
+            if not isinstance(health, dict) or health.get("status") not in {"ok", "needs_setup"}:
+                raise ValueError("unexpected AutoDesign health payload")
         except (httpx.HTTPError, ValueError) as exc:
             return ReleaseIntegrationStatus(
                 available=False,
                 service_url=self.settings.autodesign_public_url.rstrip("/"),
                 message=f"AutoDesign 未就绪：{type(exc).__name__}",
             )
+        message = (
+            "AutoDesign 已连接 · 凭证由项目按请求注入"
+            if bool(health.get("needs_setup"))
+            else "AutoDesign DesignHarness 已连接"
+        )
         return ReleaseIntegrationStatus(
             available=True,
             service_url=self.settings.autodesign_public_url.rstrip("/"),
-            message="AutoDesign DesignHarness 已连接",
+            message=message,
         )
 
     async def create_job(
@@ -191,6 +201,7 @@ class ReleaseService:
         base = self.settings.autodesign_base_url.rstrip("/")
         model_headers = {
             "x-model-designer": _QWEN_MODEL,
+            "x-model-planner": _QWEN_MODEL,
             "x-model-enhancer": _QWEN_MODEL,
             "x-model-claim-graph": _QWEN_MODEL,
             "x-model-deck-outline": _QWEN_MODEL,
@@ -199,6 +210,7 @@ class ReleaseService:
             "x-model-composer": _QWEN_MODEL,
             "x-model-ingest": _QWEN_MODEL,
             "x-provider-designer": "openai_compat",
+            "x-provider-planner": "openai_compat",
             "x-provider-enhancer": "openai_compat",
             "x-provider-claim-graph": "openai_compat",
             "x-provider-deck-outline": "openai_compat",

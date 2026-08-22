@@ -29,6 +29,10 @@ export interface TopicCluster {
 
 export interface RagHit {
   chunk_id: string | null;
+  tuple_id: string | null;
+  tuple_kind: string | null;
+  is_inference: boolean;
+  evidence_status: string | null;
   paper_id: string;
   section_id: string | null;
   title: string;
@@ -49,6 +53,7 @@ export interface RagSearchResponse {
   embedding_model: string;
   indexed_papers: number;
   indexed_chunks: number;
+  indexed_tuples: number;
   hits: RagHit[];
 }
 
@@ -67,12 +72,53 @@ export interface ReadingCard {
   strengths_json: string[];
   limitations_json: string[];
   reproducibility_json: string[];
+  github_repositories_json: Array<Record<string, unknown>>;
+  paper_ideas_json: Array<Record<string, unknown>>;
+  benchmarks_json: Array<Record<string, unknown>>;
+  ablation_findings_json: Array<Record<string, unknown>>;
+  knowledge_tuples_json: Array<Record<string, unknown>>;
   claims_json: Array<Record<string, unknown>>;
   status: 'draft' | 'needs_review' | 'reviewed';
   version: number;
   reviewed_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface DirectionRecommendation {
+  rank: number;
+  title: string;
+  hypothesis: string;
+  rationale: string;
+  score: number;
+  score_components: Record<string, number>;
+  source_paper_ids: string[];
+  benchmarks: string[];
+  ablation_signals: string[];
+  code_repositories: string[];
+  evidence_status: string;
+}
+
+export interface BenchmarkRecommendation {
+  rank: number;
+  name: string;
+  task: string;
+  metrics: string[];
+  splits: string[];
+  source_paper_ids: string[];
+  paper_count: number;
+  credibility_score: number;
+  reasons: string[];
+}
+
+export interface ResearchSynthesis {
+  mission_id: string;
+  paper_count: number;
+  reviewed_card_count: number;
+  tuple_count: number;
+  directions: DirectionRecommendation[];
+  benchmarks: BenchmarkRecommendation[];
+  generated_at: string;
 }
 
 export interface ReadingNote {
@@ -123,6 +169,14 @@ export function listReadingCards(projectId: string, missionId: string) {
   return apiRequest<ReadingCard[]>(`/projects/${projectId}/missions/${missionId}/reading-cards`);
 }
 
+export function getResearchSynthesis(projectId: string, missionId: string) {
+  return apiRequest<ResearchSynthesis>(`/projects/${projectId}/missions/${missionId}/research-synthesis`);
+}
+
+export function materializeResearchDirections(projectId: string, missionId: string) {
+  return apiRequest<ResearchSynthesis>(`/projects/${projectId}/missions/${missionId}/research-synthesis/materialize`, { method: 'POST' });
+}
+
 export function saveReadingCard(
   projectId: string,
   paperId: string,
@@ -139,6 +193,11 @@ export function saveReadingCard(
     strengths: string[];
     limitations: string[];
     reproducibility: string[];
+    github_repositories: Array<Record<string, unknown>>;
+    paper_ideas: Array<Record<string, unknown>>;
+    benchmarks: Array<Record<string, unknown>>;
+    ablation_findings: Array<Record<string, unknown>>;
+    knowledge_tuples: Array<Record<string, unknown>>;
     claims: Array<Record<string, unknown>>;
     status: ReadingCard['status'];
   },

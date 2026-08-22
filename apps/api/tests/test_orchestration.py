@@ -1,11 +1,18 @@
 """Durable DAG bootstrap, gate, lease, and artifact flow."""
 
+import hashlib
+import json
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 
+from researchos.agents.enums import AgentRunStatus, AgentType
+from researchos.agents.models import AgentRun
+from researchos.identity.models import User
 from researchos.orchestration.enums import MissionTaskStatus
-from researchos.orchestration.models import MissionTask
+from researchos.orchestration.models import MissionTask, TaskArtifact
+from researchos.orchestration.service import OrchestrationService
 
 from .helpers import csrf_headers, register
 
@@ -35,8 +42,10 @@ async def test_bootstrap_gate_lease_submit_and_promote(client) -> None:
     )
     assert bootstrapped.status_code == 201
     graph = bootstrapped.json()
-    assert len(graph["tasks"]) == 17
+    assert len(graph["tasks"]) == 26
     assert graph["counts"]["waiting_approval"] == 1
+    assert graph["progress"]["total_tasks"] == 26
+    assert graph["progress"]["current_phase"] == "scope"
     scope = next(task for task in graph["tasks"] if task["task_key"] == "scope")
     discover = next(task for task in graph["tasks"] if task["task_key"] == "discover")
     assert scope["status"] == "waiting_approval"
@@ -100,7 +109,75 @@ async def test_bootstrap_gate_lease_submit_and_promote(client) -> None:
         f"{base}/missions/{mission_id}/bootstrap", headers=csrf_headers(client)
     )
     assert duplicate.status_code == 201
-    assert len(duplicate.json()["tasks"]) == 17
+    assert len(duplicate.json()["tasks"]) == 26
+
+    capabilities = await client.get(f"/projects/{project_id}/agents/capabilities")
+    assert capabilities.status_code == 200
+    roles = {item["agent_type"] for item in capabilities.json()}
+    assert {
+        "idea_explorer",
+        "benchmark",
+        "leader",
+        "viewer",
+        "writer",
+        "drawer",
+        "progress",
+    } <= roles
+
+    autopilot = await client.post(
+        f"{base}/missions/{mission_id}/autopilot",
+        json={"venue": "neurips", "isolated_workspace_confirmed": True},
+        headers=csrf_headers(client),
+    )
+    assert autopilot.status_code == 200
+    assert autopilot.json()["state"] == "blocked"
+    assert autopilot.json()["blockers"] == ["model_config_required"]
+
+
+async def test_handoff_references_the_exact_canonical_artifact(client, db_session) -> None:
+    project_id, mission_id = await _project_and_mission(client)
+    headers = csrf_headers(client)
+    base = f"/projects/{project_id}/orchestration"
+    await client.post(f"{base}/missions/{mission_id}/bootstrap", headers=headers)
+    task = await db_session.scalar(
+        select(MissionTask).where(
+            MissionTask.mission_id == uuid.UUID(mission_id),
+            MissionTask.task_key == "discover",
+        )
+    )
+    user = await db_session.scalar(select(User).where(User.email == "orchestration@example.com"))
+    assert task is not None and user is not None
+    task.status = MissionTaskStatus.RUNNING
+    task.attempt = 1
+    payload = {"message": "verified discovery", "citations": ["arxiv:2608.1"]}
+    run = AgentRun(
+        project_id=uuid.UUID(project_id),
+        user_id=user.id,
+        agent_type=AgentType.RESEARCH,
+        status=AgentRunStatus.COMPLETED,
+        input_json={"context": {"mission_task_id": str(task.id)}},
+        output_json=payload,
+        finished_at=datetime.now(tz=UTC),
+    )
+    db_session.add(run)
+    await db_session.flush()
+    assert await OrchestrationService(db_session).reconcile_run(run) is True
+    await db_session.commit()
+
+    artifacts = list(
+        (await db_session.execute(select(TaskArtifact).where(TaskArtifact.task_id == task.id)))
+        .scalars()
+        .all()
+    )
+    canonical = next(item for item in artifacts if item.schema_name == "agent-run/research")
+    handoff = next(item for item in artifacts if item.schema_name == "researchos.handoff/v1")
+    expected_hash = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
+    ).hexdigest()
+    assert canonical.content_hash == expected_hash
+    assert handoff.metadata_json["output"]["artifact_id"] == str(canonical.id)
+    assert handoff.metadata_json["output"]["sha256"] == canonical.content_hash
+    assert handoff.input_artifact_versions_json[0]["artifact_id"] == str(canonical.id)
 
 
 async def test_research_loop_keeps_candidate_and_unlocks_downstream(client, db_session) -> None:
@@ -202,9 +279,7 @@ async def test_research_loop_keeps_candidate_and_unlocks_downstream(client, db_s
     assert result["iterations"][0]["status"] == "kept"
 
     graph = (await client.get(f"{base}/missions/{mission_id}")).json()
-    experiment_task = next(
-        item for item in graph["tasks"] if item["task_key"] == "experiment_run"
-    )
+    experiment_task = next(item for item in graph["tasks"] if item["task_key"] == "experiment_run")
     reproduce = next(item for item in graph["tasks"] if item["task_key"] == "reproduce")
     assert experiment_task["status"] == "completed"
-    assert reproduce["status"] == "ready"
+    assert reproduce["status"] == "draft"  # progress-controller receipt is also required

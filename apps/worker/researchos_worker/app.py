@@ -26,6 +26,8 @@ def create_celery() -> Celery:
             "researchos_worker.tasks.agents",
             "researchos_worker.tasks.figures",
             "researchos_worker.tasks.ingestion",
+            "researchos_worker.tasks.experiments",
+            "researchos_worker.tasks.orchestration",
         ],
     )
 

@@ -20,7 +20,14 @@ export function Providers({ children }: { children: ReactNode }) {
         defaultOptions: {
           queries: {
             retry: 1,
-            staleTime: 10_000,
+            // Navigation should paint from the in-memory cache immediately.
+            // Mutations and live-job queries already invalidate/refetch their
+            // own keys, so a one-minute read window removes redundant GETs
+            // without hiding active work.
+            staleTime: 60_000,
+            gcTime: 15 * 60_000,
+            // Keep the default mount/reconnect refresh for explicitly
+            // invalidated data; cached content still paints synchronously.
             refetchOnWindowFocus: false,
           },
         },

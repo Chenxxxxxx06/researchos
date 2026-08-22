@@ -70,6 +70,69 @@ class PaperChunk(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
 
+class PaperKnowledgeTuple(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Evidence-linked semantic tuple extracted from a reviewed reading card.
+
+    Tuples make ideas, benchmarks, ablations, results, and code links directly
+    retrievable without flattening an entire reading card into one opaque blob.
+    """
+
+    __tablename__ = "paper_knowledge_tuples"
+    __table_args__ = (
+        UniqueConstraint("reading_card_id", "tuple_index", name="uq_paper_tuple_card_index"),
+        Index("ix_paper_tuples_project_mission", "project_id", "mission_id"),
+        Index("ix_paper_tuples_project_kind", "project_id", "tuple_kind"),
+        Index("ix_paper_tuples_search_tsv", "search_tsv", postgresql_using="gin"),
+        Index(
+            "ix_paper_tuples_embedding_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
+    )
+
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    mission_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("research_missions.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    paper_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("papers.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    reading_card_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("reading_cards.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    section_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("paper_sections.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    tuple_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    tuple_kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    head: Mapped[str] = mapped_column(String(500), nullable=False)
+    relation: Mapped[str] = mapped_column(String(160), nullable=False)
+    tail: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence_quote: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    is_inference: Mapped[bool] = mapped_column(nullable=False, default=False)
+    evidence_status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="needs_evidence"
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    search_tsv: Mapped[object] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('simple', coalesce(head, '') || ' ' || "
+            "coalesce(relation, '') || ' ' || coalesce(tail, '') || ' ' || "
+            "coalesce(evidence_quote, ''))",
+            persisted=True,
+        ),
+        nullable=False,
+    )
+    embedding: Mapped[list[float]] = mapped_column(Vector(1024), nullable=False)
+    embedding_model: Mapped[str] = mapped_column(
+        String(80), nullable=False, default="hashing-1024-v2"
+    )
+
+
 class MissionTopicCluster(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "mission_topic_clusters"
     __table_args__ = (
@@ -152,6 +215,11 @@ class ReadingCard(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     strengths_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     limitations_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     reproducibility_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    github_repositories_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    paper_ideas_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    benchmarks_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    ablation_findings_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    knowledge_tuples_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     claims_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft")
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)

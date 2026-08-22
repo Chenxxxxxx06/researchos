@@ -93,9 +93,10 @@ Open [http://localhost:3000/login](http://localhost:3000/login) and use:
 | Email | `demo@researchos.dev` |
 | Password | `demo-password-123` |
 
-For a prepared Windows development checkout, the faster local launcher keeps infrastructure in Docker and runs the API, worker, and web app from the current source tree:
+For a prepared Windows development checkout, the faster local launcher keeps infrastructure in Docker and runs the API, worker, and web app from the current source tree. The web app defaults to a cached production build so route clicks never compile code; install the local LaTeX toolchain once:
 
 ```powershell
+pnpm latex:setup
 pnpm site:up
 pnpm site:verify
 pnpm site:status
@@ -117,7 +118,7 @@ The repository root includes the CI-built and checksummed Windows portable app, 
 | Runtime | Restricted local processes and AsyncSSH | Audited code and remote workspace operations |
 | Storage | PostgreSQL, Redis, MinIO | Durable state, coordination, and artifacts |
 
-The multi-agent design is role-based: coordinator, evidence, builder, experiment, reviewer, and writer responsibilities communicate through persisted tasks, explicit schemas, approval gates, artifacts, and events. The implemented 17-node mission DAG, runtime loop, and exact RAG call sites are documented in [Agent Chain and RAG](docs/AGENT_CHAIN_AND_RAG_ZH.md). Design artifacts run through the isolated [AutoDesign integration](docs/AUTODESIGN_INTEGRATION_ZH.md).
+The multi-agent design is role-based: coordinator, evidence, builder, experiment, reviewer, and writer responsibilities communicate through persisted tasks, explicit schemas, approval gates, artifacts, and events. The implemented 26-node mission DAG, runtime loop, and exact RAG call sites are documented in [Agent Chain and RAG](docs/AGENT_CHAIN_AND_RAG_ZH.md). Design artifacts run through the isolated [AutoDesign integration](docs/AUTODESIGN_INTEGRATION_ZH.md).
 
 ## Known boundaries and next priorities
 
@@ -143,6 +144,7 @@ Development fallbacks are explicit: the no-key LLM path uses a deterministic moc
 | `pnpm check:web` | Workspace typecheck and Next.js build |
 | `pnpm smoke:api` | Core API smoke path |
 | `pnpm smoke:e2e` | Playwright workspace flows |
+| `pnpm --filter web test:performance` | Core route-click and API p95 performance gate |
 
 ## Documentation
 
@@ -150,6 +152,7 @@ Development fallbacks are explicit: the no-key LLM path uses a deterministic moc
 |---|---|
 | [Architecture](docs/ARCHITECTURE.md) | System boundaries and services |
 | [Agent Chain and RAG](docs/AGENT_CHAIN_AND_RAG_ZH.md) | Current DAG, runtime, tools, and hybrid retrieval flow |
+| [Autonomous research program](docs/AUTONOMOUS_RESEARCH_PROGRAM_ZH.md) | 26-node DAG, Top-10 slate, pilots, Viewer/Leader, Writer/Drawer, and safety gates |
 | [AutoDesign integration](docs/AUTODESIGN_INTEGRATION_ZH.md) | qwen-plus release generation, service boundary, and outputs |
 | [LaTeX pipeline](docs/LATEX_PIPELINE.md) | Realtime saves, real PDFs, caching, and security boundaries |
 | [Performance](docs/PERFORMANCE_OPTIMIZATION_ZH.md) | Implemented optimizations, metrics, and next priorities |

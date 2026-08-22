@@ -23,6 +23,7 @@ from .schemas import (
     ReadingNoteCreateRequest,
     ReadingNoteResponse,
     ReadingNoteUpdateRequest,
+    ResearchSynthesisResponse,
     TopicClusterResponse,
     UpdateTopicClusterRequest,
 )
@@ -102,6 +103,33 @@ async def update_mission_cluster(
         user, project_id, mission_id, cluster_id, payload
     )
     return TopicClusterResponse.model_validate(cluster)
+
+
+@router.get(
+    "/missions/{mission_id}/research-synthesis",
+    response_model=ResearchSynthesisResponse,
+)
+async def get_research_synthesis(
+    project_id: uuid.UUID,
+    mission_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+) -> ResearchSynthesisResponse:
+    return await KnowledgeService(db).research_synthesis(user, project_id, mission_id)
+
+
+@router.post(
+    "/missions/{mission_id}/research-synthesis/materialize",
+    response_model=ResearchSynthesisResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def materialize_research_directions(
+    project_id: uuid.UUID,
+    mission_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+) -> ResearchSynthesisResponse:
+    return await KnowledgeService(db).materialize_directions(user, project_id, mission_id)
 
 
 @router.post("/rag/search", response_model=RagSearchResponse, dependencies=[Depends(require_csrf)])

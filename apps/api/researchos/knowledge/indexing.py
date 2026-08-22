@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from researchos.research.models import Paper, PaperSection
 
 from .embeddings import embed_texts, embedding_tokens
-from .models import PaperChunk
+from .models import PaperChunk, PaperKnowledgeTuple, ReadingCard
 from .profiles import EmbeddingProfile, get_active_profile
 
 # A sentence ends at terminal punctuation followed by whitespace, right after
@@ -165,6 +165,152 @@ async def index_paper_sections(db: AsyncSession, paper: Paper) -> int:
     db.add_all(rows)
     await db.flush()
     return len(rows)
+
+
+async def index_reading_card_tuples(
+    db: AsyncSession,
+    card: ReadingCard,
+    *,
+    sections: list[PaperSection] | None = None,
+) -> int:
+    """Replace the tuple index for one reading-card version.
+
+    Evidence section ids and quotes are verified against the canonical paper
+    sections before entering retrieval. Ungrounded tuples remain useful as
+    hypotheses, but carry no section id or quote and must not be presented as
+    observed evidence.
+    """
+
+    profile = get_active_profile()
+    if sections is None:
+        sections = list(
+            (
+                await db.execute(
+                    select(PaperSection)
+                    .where(PaperSection.paper_id == card.paper_id)
+                    .order_by(PaperSection.seq.asc())
+                )
+            )
+            .scalars()
+            .all()
+        )
+    section_map = {str(section.id): section for section in sections}
+    normalized: list[dict] = []
+    for raw in list(card.knowledge_tuples_json or [])[:500]:
+        if not isinstance(raw, dict):
+            continue
+        kind = str(raw.get("kind") or "claim").strip().lower()[:32]
+        head = str(raw.get("head") or "").strip()[:500]
+        relation = str(raw.get("relation") or "").strip()[:160]
+        tail = str(raw.get("tail") or "").strip()
+        if not head or not relation or not tail:
+            continue
+        raw_section_id = str(raw.get("section_id") or "")
+        quote = str(raw.get("quote") or "").strip()
+        section = section_map.get(raw_section_id)
+        grounded = section is not None and bool(quote) and quote in section.body
+        inference = bool(raw.get("inference", False))
+        evidence_status = (
+            "context_grounded"
+            if grounded and inference
+            else "reported"
+            if grounded
+            else "needs_evidence"
+        )
+        content = f"{kind}: {head} {relation} {tail}"
+        if grounded:
+            content += f" Evidence: {quote}"
+        normalized.append(
+            {
+                "kind": kind,
+                "head": head,
+                "relation": relation,
+                "tail": tail,
+                "section_id": section.id if grounded and section is not None else None,
+                "quote": quote if grounded else "",
+                "inference": inference,
+                "evidence_status": evidence_status,
+                "content": content,
+            }
+        )
+
+    await db.execute(
+        delete(PaperKnowledgeTuple).where(PaperKnowledgeTuple.reading_card_id == card.id)
+    )
+    vectors = await embed_texts([item["content"] for item in normalized], profile)
+    db.add_all(
+        PaperKnowledgeTuple(
+            project_id=card.project_id,
+            mission_id=card.mission_id,
+            paper_id=card.paper_id,
+            reading_card_id=card.id,
+            section_id=item["section_id"],
+            tuple_index=index,
+            tuple_kind=item["kind"],
+            head=item["head"],
+            relation=item["relation"],
+            tail=item["tail"],
+            evidence_quote=item["quote"],
+            is_inference=item["inference"],
+            evidence_status=item["evidence_status"],
+            content=item["content"],
+            embedding=vector,
+            embedding_model=profile.name,
+        )
+        for index, (item, vector) in enumerate(zip(normalized, vectors, strict=True))
+    )
+    await db.flush()
+    return len(normalized)
+
+
+async def ensure_project_tuples(
+    db: AsyncSession, project_id: uuid.UUID, *, limit: int = 100
+) -> tuple[int, int]:
+    """Rebuild tuple embeddings after profile changes or missing index rows."""
+
+    profile = get_active_profile()
+    cards = list(
+        (
+            await db.execute(
+                select(ReadingCard)
+                .where(ReadingCard.project_id == project_id)
+                .order_by(ReadingCard.updated_at.asc())
+                .limit(limit)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    rebuilt = 0
+    tuple_count = 0
+    for card in cards:
+        expected = len(
+            [
+                item
+                for item in (card.knowledge_tuples_json or [])
+                if isinstance(item, dict)
+                and str(item.get("head") or "").strip()
+                and str(item.get("relation") or "").strip()
+                and str(item.get("tail") or "").strip()
+            ]
+        )
+        stored = list(
+            (
+                await db.execute(
+                    select(PaperKnowledgeTuple).where(
+                        PaperKnowledgeTuple.reading_card_id == card.id
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if expected != len(stored) or any(item.embedding_model != profile.name for item in stored):
+            tuple_count += await index_reading_card_tuples(db, card)
+            rebuilt += 1
+    if rebuilt:
+        await db.commit()
+    return rebuilt, tuple_count
 
 
 async def ensure_project_chunks(

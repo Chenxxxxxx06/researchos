@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, FlaskConical, Plus } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +15,14 @@ import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 import { ExperimentFlowOverview } from './ExperimentFlowOverview';
-import { RunDetail } from './RunDetail';
+
+// Recharts is only needed after a run is selected. Keeping it out of the
+// initial experiments chunk makes the primary navigation substantially lighter
+// while still giving immediate skeleton feedback on selection.
+const RunDetail = dynamic(
+  () => import('./RunDetail').then((module) => module.RunDetail),
+  { loading: () => <Skeleton className="h-64 w-full" />, ssr: false },
+);
 
 const STATUS_VARIANT: Record<string, 'success' | 'warn' | 'danger' | 'neutral' | 'info'> = {
   completed: 'success',

@@ -64,6 +64,11 @@ class ReadingCardUpsertRequest(BaseModel):
     strengths: list[str] = Field(default_factory=list, max_length=100)
     limitations: list[str] = Field(default_factory=list, max_length=100)
     reproducibility: list[str] = Field(default_factory=list, max_length=100)
+    github_repositories: list[dict] = Field(default_factory=list, max_length=50)
+    paper_ideas: list[dict] = Field(default_factory=list, max_length=100)
+    benchmarks: list[dict] = Field(default_factory=list, max_length=100)
+    ablation_findings: list[dict] = Field(default_factory=list, max_length=100)
+    knowledge_tuples: list[dict] = Field(default_factory=list, max_length=500)
     claims: list[dict] = Field(default_factory=list, max_length=200)
     status: str = Field(default="draft", pattern="^(draft|needs_review|reviewed)$")
 
@@ -84,6 +89,11 @@ class ReadingCardResponse(BaseModel):
     strengths_json: list
     limitations_json: list
     reproducibility_json: list
+    github_repositories_json: list
+    paper_ideas_json: list
+    benchmarks_json: list
+    ablation_findings_json: list
+    knowledge_tuples_json: list
     claims_json: list
     status: str
     version: int
@@ -165,6 +175,10 @@ class RagSearchRequest(BaseModel):
 
 class RagHitResponse(BaseModel):
     chunk_id: uuid.UUID | None = None
+    tuple_id: uuid.UUID | None = None
+    tuple_kind: str | None = None
+    is_inference: bool = False
+    evidence_status: str | None = None
     paper_id: uuid.UUID
     section_id: uuid.UUID | None
     title: str
@@ -186,4 +200,41 @@ class RagSearchResponse(BaseModel):
     embedding_model: str
     indexed_papers: int = 0
     indexed_chunks: int = 0
+    indexed_tuples: int = 0
     hits: list[RagHitResponse]
+
+
+class DirectionRecommendation(BaseModel):
+    rank: int
+    title: str
+    hypothesis: str
+    rationale: str
+    score: float
+    score_components: dict[str, float]
+    source_paper_ids: list[uuid.UUID]
+    benchmarks: list[str]
+    ablation_signals: list[str]
+    code_repositories: list[str]
+    evidence_status: str
+
+
+class BenchmarkRecommendation(BaseModel):
+    rank: int
+    name: str
+    task: str
+    metrics: list[str]
+    splits: list[str]
+    source_paper_ids: list[uuid.UUID]
+    paper_count: int
+    credibility_score: float
+    reasons: list[str]
+
+
+class ResearchSynthesisResponse(BaseModel):
+    mission_id: uuid.UUID
+    paper_count: int
+    reviewed_card_count: int
+    tuple_count: int
+    directions: list[DirectionRecommendation]
+    benchmarks: list[BenchmarkRecommendation]
+    generated_at: datetime

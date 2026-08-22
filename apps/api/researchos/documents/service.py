@@ -36,6 +36,7 @@ from .repository import (
     DocumentRevisionRepository,
     LatexProjectRepository,
 )
+from .venue_templates import VENUE_TEMPLATES
 
 logger = structlog.get_logger(__name__)
 
@@ -118,6 +119,7 @@ keyword one \sep keyword two
 \bibliography{references}
 \end{document}
 """,
+    **{key: template.main_tex for key, template in VENUE_TEMPLATES.items()},
 }
 
 # Keep at most this many revisions per file (newest retained).
@@ -381,9 +383,7 @@ class DocumentService:
         preview_model, structural_diagnostics = parse_document(file_map, lp.main_file_path)
         fingerprint = source_fingerprint(file_map, lp.main_file_path)
         structural_errors = [
-            diagnostic
-            for diagnostic in structural_diagnostics
-            if diagnostic["severity"] == "error"
+            diagnostic for diagnostic in structural_diagnostics if diagnostic["severity"] == "error"
         ]
         job_id = uuid.uuid4()
 
@@ -473,9 +473,7 @@ class DocumentService:
                         latex_project_id=latex_project_id,
                         project_id=project_id,
                         status=(
-                            CompileStatus.SUCCEEDED
-                            if compiled.succeeded
-                            else CompileStatus.FAILED
+                            CompileStatus.SUCCEEDED if compiled.succeeded else CompileStatus.FAILED
                         ),
                         engine=compiled.engine,
                         log=compiled.log,

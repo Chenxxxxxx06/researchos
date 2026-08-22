@@ -172,7 +172,7 @@ async def test_match_reasons_and_partial_keyword_scores(
     # Multi-word query with only partial token overlap in the text: the old
     # ts_rank_cd keyword leg scored this 0; ts_rank must give partial credit.
     body = await _search(client, project_id, {"query": "epistemic uncertainty bayesian"})
-    assert body["mode"] == "hybrid-vector-keyword-v2"
+    assert body["mode"] == "hybrid-vector-keyword-tuples-v3"
     by_heading = {hit["heading"]: hit for hit in body["hits"]}
     method = by_heading["Method"]
     assert method["match_reasons"] == ["vector", "keyword"]
@@ -228,7 +228,8 @@ async def test_empty_index_returns_wellformed_response(
     assert body["hits"] == []
     assert body["indexed_papers"] == 0
     assert body["indexed_chunks"] == 0
-    assert body["mode"] == "hybrid-vector-keyword-v2"
+    assert body["indexed_tuples"] == 0
+    assert body["mode"] == "hybrid-vector-keyword-tuples-v3"
 
 
 async def test_limit_boundaries(client: AsyncClient, db_session: AsyncSession) -> None:

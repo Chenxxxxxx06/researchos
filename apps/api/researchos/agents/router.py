@@ -5,11 +5,17 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy import select
 
 from researchos.common.deps import CurrentUser, DbSession, require_csrf
 from researchos.common.pagination import DEFAULT_LIMIT, MAX_LIMIT, Page
+from researchos.common.roles import ProjectRole
+from researchos.llm_config.models import LLMProviderConfig
+from researchos.projects.service import ProjectService
 
+from .capabilities import capability_ledger
 from .schemas import (
+    AgentCapabilityResponse,
     AgentRunEventResponse,
     AgentRunResponse,
     CreateAgentRunRequest,
@@ -18,6 +24,33 @@ from .schemas import (
 from .service import AgentRunService
 
 router = APIRouter(prefix="/projects/{project_id}/agents", tags=["agents"])
+
+
+@router.get("/capabilities", response_model=list[AgentCapabilityResponse])
+async def list_capabilities(
+    project_id: uuid.UUID, user: CurrentUser, db: DbSession
+) -> list[AgentCapabilityResponse]:
+    await ProjectService(db).ensure_access(user, project_id, ProjectRole.VIEWER)
+    model_ready = bool(
+        await db.scalar(
+            select(LLMProviderConfig.id).where(
+                LLMProviderConfig.project_id == project_id,
+                LLMProviderConfig.is_active.is_(True),
+            )
+        )
+    )
+    ledger = capability_ledger()
+    if model_ready:
+        return [item.model_copy(update={"status": "ready"}) for item in ledger]
+    return [
+        item.model_copy(
+            update={
+                "status": "needs_model",
+                "operational_blockers": ["active_model_configuration_required"],
+            }
+        )
+        for item in ledger
+    ]
 
 
 @router.post(

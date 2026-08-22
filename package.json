@@ -13,6 +13,7 @@
     "site:status": "powershell -ExecutionPolicy Bypass -File scripts/site.ps1 status",
     "site:verify": "powershell -ExecutionPolicy Bypass -File scripts/site.ps1 verify",
     "site:logs": "powershell -ExecutionPolicy Bypass -File scripts/site.ps1 logs",
+    "latex:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup_latex_conda.ps1",
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",
     "desktop:validate": "pnpm --filter researchos-desktop validate",

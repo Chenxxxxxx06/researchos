@@ -18,7 +18,7 @@ from researchos.citations.router import router as citations_audit_router
 from researchos.coding_agent.router import router as coding_agent_router
 from researchos.coding_chat.router import router as coding_chat_router
 from researchos.common.config import get_settings
-from researchos.common.db import dispose_engine
+from researchos.common.db import dispose_engine, warm_db_pool
 from researchos.common.errors import register_exception_handlers
 from researchos.common.logging import configure_logging, get_logger
 from researchos.common.middleware import RequestContextMiddleware
@@ -70,6 +70,12 @@ async def lifespan(app: FastAPI):
             logger.info("seeded_first_party_skills", count=created)
     except Exception as exc:  # noqa: BLE001 - never block startup on seeding
         logger.warning("skill_seed_failed", error=str(exc))
+    try:
+        warmed = await warm_db_pool()
+        if warmed:
+            logger.info("db_pool_warmed", connections=warmed)
+    except Exception as exc:  # noqa: BLE001 - readiness reports DB failures
+        logger.warning("db_pool_warm_failed", error=str(exc))
     try:
         yield
     finally:

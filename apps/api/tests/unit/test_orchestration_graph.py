@@ -23,7 +23,7 @@ def test_standard_graph_template_has_unique_valid_references() -> None:
     task_keys = [str(item["key"]) for item in _TASK_TEMPLATE]
     gate_keys = [(task_key, gate_kind) for task_key, gate_kind, _, _ in _GATES]
 
-    assert len(task_keys) == 17
+    assert len(task_keys) == 26
     assert len(task_keys) == len(set(task_keys))
     assert len(_DEPENDENCIES) == len(set(_DEPENDENCIES))
     assert len(gate_keys) == len(set(gate_keys))
@@ -39,7 +39,10 @@ def test_standard_graph_template_has_unique_valid_references() -> None:
         "coding",
         "experiment_runner",
         "writer",
-        "reviewer",
+        "viewer",
+        "leader",
+        "drawer",
+        "progress_controller",
         "release",
     }
     validate_acyclic(set(task_keys), list(_DEPENDENCIES))

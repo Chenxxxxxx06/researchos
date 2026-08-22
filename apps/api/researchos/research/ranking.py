@@ -19,11 +19,55 @@ _TOKEN_RE = re.compile(r"[a-z0-9]{2,}")
 
 _STOPWORDS = frozenset(
     {
-        "a", "an", "and", "are", "as", "at", "be", "been", "but", "by", "can",
-        "for", "from", "has", "have", "in", "into", "is", "it", "its", "more",
-        "most", "no", "not", "of", "on", "or", "our", "over", "such", "than",
-        "that", "the", "their", "these", "this", "those", "to", "under", "use",
-        "used", "using", "via", "was", "we", "were", "which", "with", "within",
+        "a",
+        "an",
+        "and",
+        "are",
+        "as",
+        "at",
+        "be",
+        "been",
+        "but",
+        "by",
+        "can",
+        "for",
+        "from",
+        "has",
+        "have",
+        "in",
+        "into",
+        "is",
+        "it",
+        "its",
+        "more",
+        "most",
+        "no",
+        "not",
+        "of",
+        "on",
+        "or",
+        "our",
+        "over",
+        "such",
+        "than",
+        "that",
+        "the",
+        "their",
+        "these",
+        "this",
+        "those",
+        "to",
+        "under",
+        "use",
+        "used",
+        "using",
+        "via",
+        "was",
+        "we",
+        "were",
+        "which",
+        "with",
+        "within",
     }
 )
 
@@ -65,9 +109,12 @@ class LibraryModel:
     doc_count: int
 
     @classmethod
-    def build(cls, docs: list[str]) -> LibraryModel:
+    def build(cls, docs: list[str], *, weights: list[float] | None = None) -> LibraryModel:
         token_lists = [tokenize(doc) for doc in docs]
         n = len(token_lists)
+        if weights is None or len(weights) != n:
+            weights = [1.0] * n
+        weights = [max(0.0, float(weight)) for weight in weights]
         df: dict[str, int] = {}
         for tokens in token_lists:
             for token in set(tokens):
@@ -75,12 +122,13 @@ class LibraryModel:
         idf = {t: math.log((n + 1) / (count + 1)) + 1.0 for t, count in df.items()}
 
         centroid: dict[str, float] = {}
-        for tokens in token_lists:
+        total_weight = sum(weights)
+        for tokens, document_weight in zip(token_lists, weights, strict=True):
             vector = _vectorize(tokens, idf)
-            for term, weight in vector.items():
-                centroid[term] = centroid.get(term, 0.0) + weight
-        if n:
-            centroid = {t: w / n for t, w in centroid.items()}
+            for term, value in vector.items():
+                centroid[term] = centroid.get(term, 0.0) + value * document_weight
+        if total_weight:
+            centroid = {term: value / total_weight for term, value in centroid.items()}
         return cls(idf=idf, centroid=centroid, doc_count=n)
 
     def vector(self, text: str) -> dict[str, float]:
@@ -105,11 +153,7 @@ def _recency(published_at: datetime | None, now: datetime) -> float:
 def _rrf_raw(result: PaperResult, index: int) -> float:
     sources = result.extra.get("sources")
     if isinstance(sources, list) and sources:
-        return sum(
-            1.0 / (RRF_K + int(s.get("rank", 0)))
-            for s in sources
-            if isinstance(s, dict)
-        )
+        return sum(1.0 / (RRF_K + int(s.get("rank", 0))) for s in sources if isinstance(s, dict))
     # Single-provider search: provenance is the list position itself.
     return 1.0 / (RRF_K + index)
 
@@ -118,6 +162,7 @@ def rank_results(
     results: list[PaperResult],
     *,
     library_docs: list[str],
+    library_weights: list[float] | None = None,
     now: datetime | None = None,
 ) -> list[PaperResult]:
     """Score and reorder results in place-order; annotates ``extra``."""
@@ -128,7 +173,7 @@ def rank_results(
 
     model: LibraryModel | None = None
     if len(library_docs) >= MIN_LIBRARY_DOCS:
-        model = LibraryModel.build(library_docs)
+        model = LibraryModel.build(library_docs, weights=library_weights)
     # Cold start: fold the affinity weight into RRF so ordering tracks
     # provider order.
     w_rrf, w_aff, w_rec = (0.5, 0.3, 0.2) if model is not None else (0.8, 0.0, 0.2)

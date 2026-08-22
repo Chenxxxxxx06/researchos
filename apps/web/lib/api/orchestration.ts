@@ -87,6 +87,35 @@ export interface TaskEvent {
   created_at: string;
 }
 
+export interface ActiveAgentStatus {
+  task_id: string;
+  task_key: string;
+  title: string;
+  role: string;
+  agent_type: string | null;
+  status: string;
+  agent_run_id: string | null;
+  attempt: number;
+  started_at: string | null;
+  progress_percent: number;
+  current_action: string;
+}
+
+export interface MissionProgress {
+  total_tasks: number;
+  completed_tasks: number;
+  running_tasks: number;
+  blocked_tasks: number;
+  failed_tasks: number;
+  progress_percent: number;
+  active_agents: ActiveAgentStatus[];
+  current_phase: string;
+  next_ready_tasks: string[];
+  blocker_messages: string[];
+  eta_seconds: number | null;
+  eta_basis: string;
+}
+
 export interface OrchestrationGraph {
   mission_id: string;
   tasks: MissionTask[];
@@ -95,6 +124,7 @@ export interface OrchestrationGraph {
   gates: ApprovalGate[];
   events: TaskEvent[];
   counts: Record<string, number>;
+  progress: MissionProgress;
 }
 
 export type ResearchLoopStatus = 'active' | 'paused' | 'completed' | 'cancelled';
@@ -183,6 +213,32 @@ export function tickOrchestration(
   reconciled: number;
 }> {
   return apiRequest(`${base(projectId)}/missions/${missionId}/tick`, { method: 'POST' });
+}
+
+export function startAutopilot(
+  projectId: string,
+  missionId: string,
+  body: {
+    venue: string;
+    auto_apply_code: boolean;
+    isolated_workspace_confirmed: boolean;
+    max_directions: number;
+    pilot_first: boolean;
+    allow_paid_compute: boolean;
+    allow_trusted_local_execution: boolean;
+  },
+): Promise<{
+  graph: OrchestrationGraph;
+  state: 'dispatched' | 'running' | 'blocked' | 'completed';
+  dispatched_task_id: string | null;
+  agent_run_id: string | null;
+  blockers: string[];
+  next_action: string;
+}> {
+  return apiRequest(`${base(projectId)}/missions/${missionId}/autopilot`, {
+    method: 'POST',
+    body,
+  });
 }
 
 export function decideApprovalGate(

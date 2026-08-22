@@ -1,5 +1,7 @@
 # ResearchOS fast local site launcher for Windows.
 # Infrastructure runs in Docker; API, worker, and web run directly from this G-drive checkout.
+# The web UI uses a cached production build by default so route clicks never
+# trigger Next.js compilation. Set RESEARCHOS_WEB_MODE=dev when HMR is needed.
 # Usage: powershell -ExecutionPolicy Bypass -File scripts/site.ps1 <up|down|restart|status|verify|logs>
 param(
     [ValidateSet("up", "down", "restart", "status", "verify", "logs", "help")]
@@ -18,6 +20,10 @@ $composeFile = Join-Path $repoRoot "infra\docker\docker-compose.yml"
 $alembicExe = Join-Path $apiDir ".venv\Scripts\alembic.exe"
 $pythonExe = Join-Path $apiDir ".venv\Scripts\python.exe"
 $nextBin = Join-Path $webDir "node_modules\next\dist\bin\next"
+$webBuildId = Join-Path $webDir ".next\BUILD_ID"
+$webBuildConfig = Join-Path $runtimeDir "web-build.config"
+$webModeFile = Join-Path $runtimeDir "web.mode"
+$webMode = if ($env:RESEARCHOS_WEB_MODE -eq "dev") { "dev" } else { "production" }
 
 $apiPort = 8000
 if ($env:RESEARCHOS_API_PORT -match "^\d+$") {
@@ -39,9 +45,32 @@ $env:POSTGRES_DSN = "postgresql+asyncpg://researchos:researchos@localhost:$postg
 $env:REDIS_URL = "redis://localhost:56379/0"
 $env:S3_ENDPOINT_URL = "http://localhost:9000"
 $env:CORS_ORIGINS = "http://localhost:3000"
+# The API runs directly on Windows in this launcher, so Docker's
+# host.docker.internal alias is not the correct path to the sibling service.
+$env:AUTODESIGN_BASE_URL = "http://localhost:8010"
+$env:AUTODESIGN_PUBLIC_URL = "http://localhost:8010"
 $env:NEXT_PUBLIC_API_BASE_URL = $apiBaseUrl
-$env:DB_USE_NULLPOOL = "true"
+# The long-lived API must reuse PostgreSQL connections. The worker is switched
+# back to NullPool only while it is spawned because each Celery task owns a
+# short-lived event loop (see PHASE2_DECISIONS.md).
+$env:DB_USE_NULLPOOL = "false"
 $env:WORKSPACE_ROOT = Join-Path $repoRoot "data\workspaces"
+$env:ARTIFACT_ROOT = Join-Path $repoRoot "data\artifacts"
+
+# The local LaTeX toolchain lives in a dedicated Conda environment. Prepending
+# these directories makes it visible to the API venv without coupling Python
+# dependencies between the two environments.
+$latexPrefix = if ($env:RESEARCHOS_LATEX_PREFIX) {
+    $env:RESEARCHOS_LATEX_PREFIX
+} else {
+    "D:\anaconda\envs\researchos"
+}
+$latexScripts = Join-Path $latexPrefix "Scripts"
+$miktexBin = Join-Path $latexPrefix "Library\MiKTeX\miktex\bin\x64"
+if ((Test-Path -LiteralPath (Join-Path $latexScripts "latexmk.cmd")) -and
+    (Test-Path -LiteralPath (Join-Path $miktexBin "pdflatex.exe"))) {
+    $env:PATH = "$latexScripts;$miktexBin;$env:PATH"
+}
 
 function Write-Step([string]$message) {
     Write-Host "==> $message" -ForegroundColor Cyan
@@ -197,6 +226,55 @@ function Assert-LocalDependencies {
     return $node.Source
 }
 
+function Test-WebBuildRequired {
+    if (-not (Test-Path -LiteralPath $webBuildId)) { return $true }
+    $expectedConfig = "api=$apiBaseUrl"
+    if (-not (Test-Path -LiteralPath $webBuildConfig)) { return $true }
+    if ((Get-Content -LiteralPath $webBuildConfig -Raw).Trim() -ne $expectedConfig) { return $true }
+
+    $buildTime = (Get-Item -LiteralPath $webBuildId).LastWriteTimeUtc
+    $sourceRoots = @(
+        (Join-Path $webDir "app"),
+        (Join-Path $webDir "components"),
+        (Join-Path $webDir "features"),
+        (Join-Path $webDir "lib"),
+        (Join-Path $repoRoot "packages\shared-schemas\src")
+    )
+    $sourceFiles = foreach ($root in $sourceRoots) {
+        if (Test-Path -LiteralPath $root) { Get-ChildItem -LiteralPath $root -Recurse -File }
+    }
+    $configFiles = @(
+        (Join-Path $webDir "package.json"),
+        (Join-Path $webDir "next.config.ts"),
+        (Join-Path $webDir "tailwind.config.ts"),
+        (Join-Path $webDir "tsconfig.json"),
+        (Join-Path $repoRoot "pnpm-lock.yaml")
+    ) | Where-Object { Test-Path -LiteralPath $_ } | ForEach-Object { Get-Item -LiteralPath $_ }
+    $latestInput = @($sourceFiles) + @($configFiles) |
+        Sort-Object LastWriteTimeUtc -Descending |
+        Select-Object -First 1
+    return $null -eq $latestInput -or $latestInput.LastWriteTimeUtc -gt $buildTime
+}
+
+function Build-WebIfNeeded([string]$nodeExe) {
+    if ($webMode -eq "dev") { return }
+    if (-not (Test-WebBuildRequired)) {
+        Write-Host "    cached production web build is current" -ForegroundColor DarkGray
+        return
+    }
+
+    Write-Step "Building optimized web UI once (route clicks will not compile code)"
+    Push-Location $webDir
+    try {
+        $env:NEXT_TELEMETRY_DISABLED = "1"
+        & $nodeExe $nextBin build
+        if ($LASTEXITCODE -ne 0) { throw "Optimized web build failed." }
+        Set-Content -LiteralPath $webBuildConfig -Value "api=$apiBaseUrl" -Encoding ascii
+    } finally {
+        Pop-Location
+    }
+}
+
 function Resolve-ApiPort {
     if (Test-RecordedProcess "api") { return }
 
@@ -228,6 +306,12 @@ function Resolve-ApiPort {
 function Start-Site {
     New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
     New-Item -ItemType Directory -Path $env:WORKSPACE_ROOT -Force | Out-Null
+    if ((Test-RecordedProcess "api") -and
+        (Test-RecordedProcess "worker") -and
+        (Test-RecordedProcess "web")) {
+        Write-Host "ResearchOS is already running. Use pnpm site:restart after source changes." -ForegroundColor Green
+        return
+    }
     $nodeExe = Assert-LocalDependencies
     $dockerExe = Resolve-Docker
     Ensure-DockerEngine $dockerExe
@@ -248,10 +332,20 @@ function Start-Site {
         Pop-Location
     }
 
-    Write-Step "Starting API, background agent worker, and web UI"
-    Start-RecordedProcess "api" $pythonExe @("-m", "uvicorn", "researchos.main:app", "--host", "127.0.0.1", "--port", "$apiPort") $apiDir
+    Build-WebIfNeeded $nodeExe
+
+    Write-Step "Starting pooled API, background agent worker, and $webMode web UI"
+    $env:DB_USE_NULLPOOL = "false"
+    Start-RecordedProcess "api" $pythonExe @("-m", "uvicorn", "researchos.main:app", "--host", "127.0.0.1", "--port", "$apiPort", "--no-access-log") $apiDir
+    $env:DB_USE_NULLPOOL = "true"
     Start-RecordedProcess "worker" $pythonExe @("-m", "celery", "-A", "researchos_worker.app", "worker", "--loglevel=info", "--pool=solo", "--queues=agents,ingestion,runtime,latex,experiments,skills,default") $workerDir
-    Start-RecordedProcess "web" $nodeExe @($nextBin, "dev", "-p", "3000") $webDir
+    $webArguments = if ($webMode -eq "dev") {
+        @($nextBin, "dev", "--turbopack", "-p", "3000")
+    } else {
+        @($nextBin, "start", "-p", "3000")
+    }
+    Start-RecordedProcess "web" $nodeExe $webArguments $webDir
+    Set-Content -LiteralPath $webModeFile -Value $webMode -Encoding ascii
 
     Wait-Http "API" "$apiBaseUrl/healthz"
     Wait-Http "Web" "http://localhost:3000/login"
@@ -259,8 +353,9 @@ function Start-Site {
 
     Write-Host ""
     Write-Host "ResearchOS is ready." -ForegroundColor Green
-    Write-Host "  Web:      http://localhost:3000/login"
+    Write-Host "  Web:      http://localhost:3000/login ($webMode mode)"
     Write-Host "  API docs: $apiBaseUrl/docs"
+    Write-Host ("  AutoDesign: {0}" -f $(if (Test-Http "http://localhost:8010/api/health" 6) { "connected on :8010" } else { "not running (use start-autodesign.cmd)" }))
     Write-Host "  Account:  demo@researchos.dev / demo-password-123"
     Write-Host "  Logs:     artifacts\site-runtime"
 }
@@ -281,6 +376,12 @@ function Stop-Site {
 function Show-Status {
     $dockerExe = Resolve-Docker
     Write-Host "ResearchOS local site status" -ForegroundColor Cyan
+    $recordedWebMode = if (Test-Path -LiteralPath $webModeFile) {
+        (Get-Content -LiteralPath $webModeFile -Raw).Trim()
+    } else {
+        "unknown"
+    }
+    Write-Host ("  web mode {0}" -f $recordedWebMode)
     foreach ($name in @("api", "worker", "web")) {
         $running = Test-RecordedProcess $name
         $pidValue = Get-RecordedPid $name
@@ -290,6 +391,7 @@ function Show-Status {
     }
     Write-Host ("  web      {0}" -f $(if (Test-Http "http://localhost:3000/login") { "HTTP OK" } else { "HTTP DOWN" }))
     Write-Host ("  api      {0} ({1})" -f $(if (Test-Http "$apiBaseUrl/healthz") { "HTTP OK" } else { "HTTP DOWN" }), $apiBaseUrl)
+    Write-Host ("  design   {0} (http://localhost:8010)" -f $(if (Test-Http "http://localhost:8010/api/health" 6) { "HTTP OK" } else { "OPTIONAL/DOWN" }))
     if (Test-DockerEngine $dockerExe) {
         & $dockerExe compose -f $composeFile ps postgres redis minio
     } else {
@@ -326,7 +428,8 @@ switch ($Command) {
     "logs" { Show-Logs }
     default {
         Write-Host "ResearchOS fast local site launcher" -ForegroundColor Cyan
-        Write-Host "  pnpm site:up       Start infrastructure + API + worker + web"
+        Write-Host "  pnpm site:up       Start infrastructure + API + worker + optimized web"
+        Write-Host "  `$env:RESEARCHOS_WEB_MODE='dev'  Opt into Turbopack HMR before starting"
         Write-Host "  pnpm site:status   Show process, HTTP, and container status"
         Write-Host "  pnpm site:verify   Run readiness and authenticated API checks"
         Write-Host "  pnpm site:logs     Show recent service logs"

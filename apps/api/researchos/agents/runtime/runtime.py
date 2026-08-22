@@ -43,6 +43,15 @@ from .events import EventEmitter
 from .experiment_agent import ExperimentAgent
 from .experiment_planner_agent import ExperimentPlannerAgent
 from .latex_agent import LatexAgent
+from .program_agents import (
+    BenchmarkAgent,
+    DrawerAgent,
+    IdeaExplorerAgent,
+    LeaderAgent,
+    ProgressAgent,
+    ViewerAgent,
+    WriterAgent,
+)
 from .reading_card_agent import ReadingCardAgent
 from .research_agent import ResearchAgent
 from .review_section_agent import ReviewSectionAgent
@@ -63,6 +72,13 @@ _AGENTS: dict[AgentType, type[Agent]] = {
     AgentType.LATEX: LatexAgent,
     AgentType.READING_CARD: ReadingCardAgent,
     AgentType.REVIEW_SECTION: ReviewSectionAgent,
+    AgentType.IDEA_EXPLORER: IdeaExplorerAgent,
+    AgentType.BENCHMARK: BenchmarkAgent,
+    AgentType.LEADER: LeaderAgent,
+    AgentType.VIEWER: ViewerAgent,
+    AgentType.WRITER: WriterAgent,
+    AgentType.DRAWER: DrawerAgent,
+    AgentType.PROGRESS: ProgressAgent,
 }
 
 _SYNTHESIS_NUDGE = (
@@ -122,9 +138,7 @@ class AgentRuntime:
             llm = self._llm or await get_llm_provider(
                 run.project_id,
                 config_id=(
-                    uuid.UUID(str(selected_config_id))
-                    if selected_config_id is not None
-                    else None
+                    uuid.UUID(str(selected_config_id)) if selected_config_id is not None else None
                 ),
             )
         except (AppError, ValueError) as exc:
@@ -242,7 +256,32 @@ class AgentRuntime:
 
         summary = output_json.get("message") or output_json.get("novelty_summary") or ""
         await emitter.completed(summary, citations, usage)
+        self._schedule_autopilot_continuation(run)
         return run
+
+    @staticmethod
+    def _schedule_autopilot_continuation(run: AgentRun) -> None:
+        context = dict(run.input_json.get("context") or {})
+        if not bool(context.get("autopilot")):
+            return
+        mission_id = context.get("mission_id")
+        policy = context.get("autopilot_policy")
+        if not mission_id or not isinstance(policy, dict):
+            return
+        try:
+            from researchos.common.celery_app import get_celery_client
+
+            get_celery_client().send_task(
+                "orchestration.advance",
+                args=[str(run.project_id), str(mission_id), str(run.user_id), policy],
+                queue="default",
+            )
+        except Exception as exc:  # noqa: BLE001 - coordinator remains resumable by API
+            logger.warning(
+                "autopilot_continuation_dispatch_failed",
+                run_id=str(run.id),
+                error=str(exc),
+            )
 
     async def _run_loop(
         self,

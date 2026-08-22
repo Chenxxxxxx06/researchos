@@ -17,14 +17,19 @@ from researchos.identity.models import User
 from researchos.missions.models import MissionEvent, ResearchMission
 from researchos.missions.repository import MissionRepository
 from researchos.projects.service import ProjectService
-from researchos.research.models import Paper, PaperSection
+from researchos.research.models import Idea, Paper, PaperSection
 
 from .embeddings import embed_texts, hashing_embedding
-from .indexing import ensure_project_chunks
+from .indexing import (
+    ensure_project_chunks,
+    ensure_project_tuples,
+    index_reading_card_tuples,
+)
 from .models import (
     MissionPaper,
     MissionTopicCluster,
     PaperChunk,
+    PaperKnowledgeTuple,
     ReadingCard,
     ReadingCardVersion,
     ReadingNote,
@@ -32,6 +37,8 @@ from .models import (
 from .profiles import get_active_profile
 from .schemas import (
     AddMissionPapersRequest,
+    BenchmarkRecommendation,
+    DirectionRecommendation,
     MissionPaperResponse,
     RagHitResponse,
     RagSearchRequest,
@@ -39,6 +46,7 @@ from .schemas import (
     ReadingCardUpsertRequest,
     ReadingNoteCreateRequest,
     ReadingNoteUpdateRequest,
+    ResearchSynthesisResponse,
     UpdateTopicClusterRequest,
 )
 
@@ -337,6 +345,11 @@ class KnowledgeService:
         card.strengths_json = payload.strengths
         card.limitations_json = payload.limitations
         card.reproducibility_json = payload.reproducibility
+        card.github_repositories_json = payload.github_repositories
+        card.paper_ideas_json = payload.paper_ideas
+        card.benchmarks_json = payload.benchmarks
+        card.ablation_findings_json = payload.ablation_findings
+        card.knowledge_tuples_json = payload.knowledge_tuples
         card.claims_json = payload.claims
         card.status = payload.status
         card.updated_by = actor.id
@@ -350,6 +363,7 @@ class KnowledgeService:
             source_type="human",
             source_run_id=None,
         )
+        await index_reading_card_tuples(self.db, card)
         await self.db.commit()
         await self.db.refresh(card)
         return card
@@ -514,6 +528,103 @@ class KnowledgeService:
         await self.db.delete(note)
         await self.db.commit()
 
+    async def research_synthesis(
+        self,
+        actor: User,
+        project_id: uuid.UUID,
+        mission_id: uuid.UUID,
+    ) -> ResearchSynthesisResponse:
+        """Rank the top ten directions and strongest benchmarks from cards.
+
+        The score is deterministic and evidence-oriented. It deliberately
+        favors cross-paper support, explicit benchmark protocols, reported
+        ablations, and available code over rhetorical novelty.
+        """
+
+        await self._mission(actor, project_id, mission_id, write=False)
+        rows = (
+            await self.db.execute(
+                select(ReadingCard, Paper)
+                .join(Paper, Paper.id == ReadingCard.paper_id)
+                .where(ReadingCard.mission_id == mission_id)
+                .order_by(Paper.published_at.desc().nullslast(), Paper.title.asc())
+            )
+        ).all()
+        tuple_count = int(
+            await self.db.scalar(
+                select(func.count())
+                .select_from(PaperKnowledgeTuple)
+                .where(PaperKnowledgeTuple.mission_id == mission_id)
+            )
+            or 0
+        )
+        card_rows = [(card, paper) for card, paper in rows]
+        directions = _rank_directions(card_rows)
+        benchmarks = _rank_benchmarks(card_rows)
+        return ResearchSynthesisResponse(
+            mission_id=mission_id,
+            paper_count=len(rows),
+            reviewed_card_count=sum(card.status == "reviewed" for card, _ in rows),
+            tuple_count=tuple_count,
+            directions=directions,
+            benchmarks=benchmarks,
+            generated_at=datetime.now(tz=UTC),
+        )
+
+    async def materialize_directions(
+        self,
+        actor: User,
+        project_id: uuid.UUID,
+        mission_id: uuid.UUID,
+    ) -> ResearchSynthesisResponse:
+        await self._mission(actor, project_id, mission_id, write=True)
+        synthesis = await self.research_synthesis(actor, project_id, mission_id)
+        existing = list(
+            (await self.db.execute(select(Idea).where(Idea.project_id == project_id)))
+            .scalars()
+            .all()
+        )
+        by_key = {
+            str((idea.metadata_json or {}).get("recommendation_key")): idea
+            for idea in existing
+            if (idea.metadata_json or {}).get("mission_id") == str(mission_id)
+        }
+        for item in synthesis.directions:
+            key = _normal_key(item.title)
+            idea = by_key.get(key)
+            metadata = {
+                "source": "paper-insight-ranking-v1",
+                "mission_id": str(mission_id),
+                "recommendation_key": key,
+                "rank": item.rank,
+                "score": item.score,
+                "score_components": item.score_components,
+                "source_paper_ids": [str(value) for value in item.source_paper_ids],
+                "benchmarks": item.benchmarks,
+                "ablation_signals": item.ablation_signals,
+                "code_repositories": item.code_repositories,
+                "evidence_status": item.evidence_status,
+            }
+            if idea is None:
+                self.db.add(
+                    Idea(
+                        project_id=project_id,
+                        title=item.title,
+                        description=item.rationale,
+                        hypothesis=item.hypothesis,
+                        novelty_score=item.score,
+                        metadata_json=metadata,
+                        created_by=actor.id,
+                    )
+                )
+            else:
+                idea.description = item.rationale
+                idea.hypothesis = item.hypothesis
+                idea.novelty_score = item.score
+                idea.metadata_json = metadata
+        await self.db.commit()
+        return synthesis
+
     async def rag_search(
         self, actor: User, project_id: uuid.UUID, payload: RagSearchRequest
     ) -> RagSearchResponse:
@@ -524,6 +635,7 @@ class KnowledgeService:
         if not tokens:
             raise ValidationError("Search query has no searchable terms.")
         indexed_papers, indexed_chunks = await ensure_project_chunks(self.db, project_id)
+        await ensure_project_tuples(self.db, project_id)
         profile = get_active_profile()
         query_vector = (await embed_texts([payload.query], profile))[0]
 
@@ -572,79 +684,164 @@ class KnowledgeService:
             )
         ).all()
 
-        papers_by_chunk: dict[uuid.UUID, tuple[PaperChunk, Paper]] = {}
-        vector_leg: dict[uuid.UUID, float] = {}
-        keyword_leg: dict[uuid.UUID, float] = {}
+        tuple_distance = PaperKnowledgeTuple.embedding.cosine_distance(query_vector)
+        tuple_keyword_rank = func.ts_rank(PaperKnowledgeTuple.search_tsv, ts_query)
+
+        def _filtered_tuples(statement):
+            statement = statement.join(Paper, Paper.id == PaperKnowledgeTuple.paper_id).where(
+                PaperKnowledgeTuple.project_id == project_id,
+                PaperKnowledgeTuple.embedding_model == profile.name,
+            )
+            if payload.mission_id is not None:
+                statement = statement.where(PaperKnowledgeTuple.mission_id == payload.mission_id)
+            if payload.kinds:
+                statement = statement.join(
+                    PaperSection, PaperSection.id == PaperKnowledgeTuple.section_id
+                ).where(PaperSection.kind.in_(payload.kinds))
+            return statement
+
+        tuple_vector_rows = (
+            await self.db.execute(
+                _filtered_tuples(
+                    select(
+                        PaperKnowledgeTuple,
+                        Paper,
+                        tuple_distance.label("vector_distance"),
+                    )
+                )
+                .order_by(tuple_distance.asc(), PaperKnowledgeTuple.id.asc())
+                .limit(_RECALL_PER_LEG)
+            )
+        ).all()
+        tuple_keyword_rows = (
+            await self.db.execute(
+                _filtered_tuples(
+                    select(
+                        PaperKnowledgeTuple,
+                        Paper,
+                        tuple_keyword_rank.label("keyword_rank"),
+                    )
+                )
+                .where(tuple_keyword_rank > 1e-10)
+                .order_by(tuple_keyword_rank.desc(), PaperKnowledgeTuple.id.asc())
+                .limit(_RECALL_PER_LEG)
+            )
+        ).all()
+
+        candidates: dict[str, tuple[PaperChunk | PaperKnowledgeTuple, Paper]] = {}
+        vector_leg: dict[str, float] = {}
+        keyword_leg: dict[str, float] = {}
         for chunk, paper, raw_distance in vector_rows:
-            papers_by_chunk[chunk.id] = (chunk, paper)
-            vector_leg[chunk.id] = max(-1.0, min(1.0, 1.0 - float(raw_distance or 0.0)))
+            key = f"chunk:{chunk.id}"
+            candidates[key] = (chunk, paper)
+            vector_leg[key] = max(-1.0, min(1.0, 1.0 - float(raw_distance or 0.0)))
         for chunk, paper, raw_rank in keyword_rows:
-            papers_by_chunk[chunk.id] = (chunk, paper)
-            keyword_leg[chunk.id] = max(0.0, min(1.0, float(raw_rank or 0.0)))
+            key = f"chunk:{chunk.id}"
+            candidates[key] = (chunk, paper)
+            keyword_leg[key] = max(0.0, min(1.0, float(raw_rank or 0.0)))
+        for item, paper, raw_distance in tuple_vector_rows:
+            key = f"tuple:{item.id}"
+            candidates[key] = (item, paper)
+            vector_leg[key] = max(-1.0, min(1.0, 1.0 - float(raw_distance or 0.0)))
+        for item, paper, raw_rank in tuple_keyword_rows:
+            key = f"tuple:{item.id}"
+            candidates[key] = (item, paper)
+            keyword_leg[key] = max(0.0, min(1.0, float(raw_rank or 0.0)))
 
         rrf_scores = _rrf_fuse(list(vector_leg), list(keyword_leg))
-        ordered = sorted(rrf_scores, key=lambda cid: (-rrf_scores[cid], str(cid)))
+        ordered = sorted(rrf_scores, key=lambda key: (-rrf_scores[key], key))
 
-        # Diversity: at most MAX_HITS_PER_PAPER hits per paper; if that cannot
-        # fill the requested limit, top up from the remaining candidates.
-        selected: list[uuid.UUID] = []
+        # Diversity: at most MAX_HITS_PER_PAPER snippets/tuples per paper; if
+        # that cannot fill the requested limit, top up from the remainder.
+        selected: list[str] = []
         per_paper: Counter[uuid.UUID] = Counter()
-        for chunk_id in ordered:
-            paper_id = papers_by_chunk[chunk_id][0].paper_id
+        for key in ordered:
+            paper_id = candidates[key][0].paper_id
             if per_paper[paper_id] < MAX_HITS_PER_PAPER:
                 per_paper[paper_id] += 1
-                selected.append(chunk_id)
+                selected.append(key)
                 if len(selected) >= payload.limit:
                     break
         if len(selected) < payload.limit:
-            for chunk_id in ordered:
-                if chunk_id not in selected:
-                    selected.append(chunk_id)
+            for key in ordered:
+                if key not in selected:
+                    selected.append(key)
                     if len(selected) >= payload.limit:
                         break
 
         hits: list[RagHitResponse] = []
-        for chunk_id in selected:
-            chunk, paper = papers_by_chunk[chunk_id]
+        for key in selected:
+            candidate, paper = candidates[key]
             reasons: list[str] = []
-            if chunk_id in vector_leg:
+            if key in vector_leg:
                 reasons.append("vector")
-            if chunk_id in keyword_leg:
+            if key in keyword_leg:
                 reasons.append("keyword")
-            hits.append(
-                RagHitResponse(
-                    chunk_id=chunk.id,
-                    paper_id=paper.id,
-                    section_id=chunk.section_id,
-                    title=paper.title,
-                    heading=chunk.heading,
-                    kind=chunk.section_kind,
-                    snippet=_snippet(chunk.content, tokens),
-                    score=round(rrf_scores[chunk_id], 4),
-                    vector_score=round(vector_leg.get(chunk_id, 0.0), 4),
-                    keyword_score=round(keyword_leg.get(chunk_id, 0.0), 4),
-                    match_reasons=reasons,
-                    char_start=chunk.char_start,
-                    char_end=chunk.char_end,
-                    citation_key=f"{paper.source}:{paper.external_id}",
+            if isinstance(candidate, PaperKnowledgeTuple):
+                reasons.append("knowledge_tuple")
+                hits.append(
+                    RagHitResponse(
+                        tuple_id=candidate.id,
+                        tuple_kind=candidate.tuple_kind,
+                        is_inference=candidate.is_inference,
+                        evidence_status=candidate.evidence_status,
+                        paper_id=paper.id,
+                        section_id=candidate.section_id,
+                        title=paper.title,
+                        heading=f"Tuple · {candidate.tuple_kind}",
+                        kind=None,
+                        snippet=_snippet(candidate.content, tokens),
+                        score=round(rrf_scores[key], 4),
+                        vector_score=round(vector_leg.get(key, 0.0), 4),
+                        keyword_score=round(keyword_leg.get(key, 0.0), 4),
+                        match_reasons=reasons,
+                        citation_key=f"{paper.source}:{paper.external_id}",
+                    )
                 )
+            else:
+                hits.append(
+                    RagHitResponse(
+                        chunk_id=candidate.id,
+                        paper_id=paper.id,
+                        section_id=candidate.section_id,
+                        title=paper.title,
+                        heading=candidate.heading,
+                        kind=candidate.section_kind,
+                        snippet=_snippet(candidate.content, tokens),
+                        score=round(rrf_scores[key], 4),
+                        vector_score=round(vector_leg.get(key, 0.0), 4),
+                        keyword_score=round(keyword_leg.get(key, 0.0), 4),
+                        match_reasons=reasons,
+                        char_start=candidate.char_start,
+                        char_end=candidate.char_end,
+                        citation_key=f"{paper.source}:{paper.external_id}",
+                    )
+                )
+        indexed_tuples = int(
+            await self.db.scalar(
+                select(func.count())
+                .select_from(PaperKnowledgeTuple)
+                .where(PaperKnowledgeTuple.project_id == project_id)
             )
+            or 0
+        )
         return RagSearchResponse(
             query=payload.query,
-            mode="hybrid-vector-keyword-v2",
+            mode="hybrid-vector-keyword-tuples-v3",
             embedding_model=profile.name,
             indexed_papers=indexed_papers,
             indexed_chunks=indexed_chunks,
+            indexed_tuples=indexed_tuples,
             hits=hits,
         )
 
 
 def _rrf_fuse(
-    vector_ids: list[uuid.UUID], keyword_ids: list[uuid.UUID], *, k: int = _RRF_K
-) -> dict[uuid.UUID, float]:
+    vector_ids: list[str], keyword_ids: list[str], *, k: int = _RRF_K
+) -> dict[str, float]:
     """Reciprocal Rank Fusion: ``score = Σ 1/(k + rank)`` over both legs."""
 
-    scores: dict[uuid.UUID, float] = {}
+    scores: dict[str, float] = {}
     for ids in (vector_ids, keyword_ids):
         for rank, chunk_id in enumerate(ids, start=1):
             scores[chunk_id] = scores.get(chunk_id, 0.0) + 1.0 / (k + rank)
@@ -709,6 +906,216 @@ def _cluster_name(papers: list[Paper]) -> tuple[str, list[str]]:
     return fallback, [fallback]
 
 
+def _normal_key(value: str) -> str:
+    return " ".join(_tokens(value))[:240]
+
+
+def _item_text(item: dict, *keys: str) -> str:
+    for key in keys:
+        value = str(item.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _rank_directions(rows: list[tuple[ReadingCard, Paper]]) -> list[DirectionRecommendation]:
+    grouped: dict[str, dict] = {}
+    for card, paper in rows:
+        ideas = [item for item in (card.paper_ideas_json or []) if isinstance(item, dict)]
+        if not ideas:
+            ideas = [
+                {
+                    "title": f"Address limitation: {str(limit)[:180]}",
+                    "hypothesis": "Resolving this reported limitation improves robustness.",
+                    "motivation": str(limit),
+                    "inference": True,
+                    "evidence_status": "needs_evidence",
+                }
+                for limit in (card.limitations_json or [])[:5]
+                if str(limit).strip()
+            ]
+        benchmark_names = [
+            _item_text(item, "name", "dataset", "task")
+            for item in (card.benchmarks_json or [])
+            if isinstance(item, dict)
+        ]
+        ablations = [
+            _item_text(item, "component", "comparison", "effect")
+            for item in (card.ablation_findings_json or [])
+            if isinstance(item, dict)
+        ]
+        repositories = [
+            _item_text(item, "url")
+            for item in (card.github_repositories_json or [])
+            if isinstance(item, dict)
+        ]
+        for raw in ideas:
+            title = _item_text(raw, "title", "idea", "head")[:300]
+            if not title:
+                continue
+            key = _normal_key(title)
+            if not key:
+                continue
+            entry = grouped.setdefault(
+                key,
+                {
+                    "title": title,
+                    "hypothesis": _item_text(raw, "hypothesis", "tail"),
+                    "rationales": [],
+                    "papers": set(),
+                    "grounded": 0,
+                    "reported_unreviewed": 0,
+                    "reviewed": 0,
+                    "benchmarks": set(),
+                    "ablations": set(),
+                    "repositories": set(),
+                },
+            )
+            entry["papers"].add(paper.id)
+            is_reported = raw.get("evidence_status") == "reported"
+            entry["grounded"] += int(is_reported and card.status == "reviewed")
+            entry["reported_unreviewed"] += int(is_reported and card.status != "reviewed")
+            entry["reviewed"] += int(card.status == "reviewed")
+            rationale = _item_text(raw, "motivation", "rationale", "description")
+            if rationale:
+                entry["rationales"].append(rationale)
+            entry["benchmarks"].update(value for value in benchmark_names if value)
+            entry["ablations"].update(value for value in ablations if value)
+            entry["repositories"].update(value for value in repositories if value)
+
+    scored: list[tuple[float, str, dict, dict[str, float]]] = []
+    for key, entry in grouped.items():
+        paper_count = len(entry["papers"])
+        components = {
+            "evidence": min(1.0, entry["grounded"] / max(1, paper_count)),
+            "cross_paper": min(1.0, paper_count / 3),
+            "benchmark_coverage": min(1.0, len(entry["benchmarks"]) / 3),
+            "ablation_support": min(1.0, len(entry["ablations"]) / 2),
+            "code_availability": 1.0 if entry["repositories"] else 0.0,
+            "human_review": min(1.0, entry["reviewed"] / max(1, paper_count)),
+        }
+        score = (
+            0.30 * components["evidence"]
+            + 0.20 * components["cross_paper"]
+            + 0.20 * components["benchmark_coverage"]
+            + 0.15 * components["ablation_support"]
+            + 0.10 * components["code_availability"]
+            + 0.05 * components["human_review"]
+        )
+        scored.append((score, key, entry, components))
+    scored.sort(key=lambda row: (-row[0], row[1]))
+
+    result: list[DirectionRecommendation] = []
+    for rank, (score, _key, entry, components) in enumerate(scored[:10], start=1):
+        rationales = list(dict.fromkeys(entry["rationales"]))
+        rationale = " ".join(rationales[:3]).strip() or (
+            "Derived from structured limitations and experiment evidence; validate before use."
+        )
+        result.append(
+            DirectionRecommendation(
+                rank=rank,
+                title=entry["title"],
+                hypothesis=entry["hypothesis"] or "A falsifiable hypothesis is not yet reported.",
+                rationale=rationale[:2000],
+                score=round(score, 4),
+                score_components={key: round(value, 4) for key, value in components.items()},
+                source_paper_ids=sorted(entry["papers"], key=str),
+                benchmarks=sorted(entry["benchmarks"])[:20],
+                ablation_signals=sorted(entry["ablations"])[:20],
+                code_repositories=sorted(entry["repositories"])[:20],
+                evidence_status=(
+                    "reported"
+                    if entry["grounded"]
+                    else "provisional"
+                    if entry["reported_unreviewed"]
+                    else "inferred"
+                ),
+            )
+        )
+    return result
+
+
+def _rank_benchmarks(rows: list[tuple[ReadingCard, Paper]]) -> list[BenchmarkRecommendation]:
+    grouped: dict[str, dict] = {}
+    for card, paper in rows:
+        has_code = any(
+            isinstance(item, dict) and bool(_item_text(item, "url"))
+            for item in (card.github_repositories_json or [])
+        )
+        has_ablation = bool(card.ablation_findings_json)
+        for raw in card.benchmarks_json or []:
+            if not isinstance(raw, dict):
+                continue
+            name = _item_text(raw, "name", "dataset", "task")[:300]
+            if not name:
+                continue
+            key = _normal_key(name)
+            entry = grouped.setdefault(
+                key,
+                {
+                    "name": name,
+                    "task": _item_text(raw, "task"),
+                    "papers": set(),
+                    "metrics": set(),
+                    "splits": set(),
+                    "grounded": 0,
+                    "code": False,
+                    "ablation": False,
+                },
+            )
+            entry["papers"].add(paper.id)
+            metric = _item_text(raw, "metric", "metrics")
+            split = _item_text(raw, "split", "data_split", "protocol")
+            if metric:
+                entry["metrics"].add(metric)
+            if split:
+                entry["splits"].add(split)
+            entry["grounded"] += int(
+                raw.get("evidence_status") == "reported" and card.status == "reviewed"
+            )
+            entry["code"] = entry["code"] or has_code
+            entry["ablation"] = entry["ablation"] or has_ablation
+
+    scored: list[tuple[float, str, dict, list[str]]] = []
+    for key, entry in grouped.items():
+        paper_count = len(entry["papers"])
+        support = min(1.0, paper_count / 4)
+        grounded = min(1.0, entry["grounded"] / max(1, paper_count))
+        protocol = 0.5 * bool(entry["metrics"]) + 0.5 * bool(entry["splits"])
+        score = (
+            0.35 * support
+            + 0.30 * grounded
+            + 0.20 * protocol
+            + 0.075 * bool(entry["code"])
+            + 0.075 * bool(entry["ablation"])
+        )
+        reasons = [f"reported by {paper_count} paper(s)"]
+        if entry["metrics"]:
+            reasons.append("explicit evaluation metric")
+        if entry["splits"]:
+            reasons.append("explicit split or protocol")
+        if entry["code"]:
+            reasons.append("code link available")
+        if entry["ablation"]:
+            reasons.append("supports ablation analysis")
+        scored.append((score, key, entry, reasons))
+    scored.sort(key=lambda row: (-row[0], row[1]))
+    return [
+        BenchmarkRecommendation(
+            rank=rank,
+            name=entry["name"],
+            task=entry["task"] or "Task not explicitly reported",
+            metrics=sorted(entry["metrics"])[:20],
+            splits=sorted(entry["splits"])[:20],
+            source_paper_ids=sorted(entry["papers"], key=str),
+            paper_count=len(entry["papers"]),
+            credibility_score=round(score, 4),
+            reasons=reasons,
+        )
+        for rank, (score, _key, entry, reasons) in enumerate(scored[:8], start=1)
+    ]
+
+
 async def record_card_version(
     db: AsyncSession,
     card: ReadingCard,
@@ -735,6 +1142,11 @@ async def record_card_version(
             "strengths": card.strengths_json,
             "limitations": card.limitations_json,
             "reproducibility": card.reproducibility_json,
+            "github_repositories": card.github_repositories_json,
+            "paper_ideas": card.paper_ideas_json,
+            "benchmarks": card.benchmarks_json,
+            "ablation_findings": card.ablation_findings_json,
+            "knowledge_tuples": card.knowledge_tuples_json,
             "claims": card.claims_json,
             "status": card.status,
         },

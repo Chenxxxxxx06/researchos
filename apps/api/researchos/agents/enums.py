@@ -16,6 +16,13 @@ class AgentType(StrEnum):
     EXPERIMENT_PLANNER = "experiment_planner"
     SQL_ANALYST = "sql_analyst"
     CITATION_ORGANIZER = "citation_organizer"
+    IDEA_EXPLORER = "idea_explorer"
+    BENCHMARK = "benchmark"
+    LEADER = "leader"
+    VIEWER = "viewer"
+    WRITER = "writer"
+    DRAWER = "drawer"
+    PROGRESS = "progress"
 
 
 class AgentRunStatus(StrEnum):

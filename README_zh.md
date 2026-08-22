@@ -93,9 +93,10 @@ pnpm stack:full
 | 邮箱 | `demo@researchos.dev` |
 | 密码 | `demo-password-123` |
 
-对于已经准备好本地 Python 与前端依赖的 Windows 开发环境，可以让基础设施运行在 Docker 中，而 API、Worker 和 Web 直接使用当前源代码：
+对于已经准备好本地 Python 与前端依赖的 Windows 开发环境，可以让基础设施运行在 Docker 中，而 API、Worker 和 Web 直接使用当前源代码。默认 Web 使用缓存的 production build，避免点击路由时现场编译；LaTeX 工具链只需安装一次：
 
 ```powershell
+pnpm latex:setup
 pnpm site:up
 pnpm site:verify
 pnpm site:status
@@ -117,7 +118,7 @@ pnpm site:down
 | Runtime | 受限本地进程、AsyncSSH | 可审计的代码与远程工作区操作 |
 | Storage | PostgreSQL、Redis、MinIO | 持久化状态、协调与产物 |
 
-多 Agent 架构按照 Coordinator、Evidence、Builder、Experiment、Reviewer、Writer 等角色划分职责，通过持久化任务、明确 Schema、审批门禁、产物和事件通信。当前 17 节点 Mission DAG、单次 Runtime 和 RAG 的实际调用位置见 [Agent 链路与 RAG](docs/AGENT_CHAIN_AND_RAG_ZH.md)。成果设计通过独立的 [AutoDesign 集成](docs/AUTODESIGN_INTEGRATION_ZH.md) 运行。
+多 Agent 架构按照 Coordinator、Evidence、Builder、Experiment、Reviewer、Writer 等角色划分职责，通过持久化任务、明确 Schema、审批门禁、产物和事件通信。当前 26 节点 Mission DAG、单次 Runtime 和 RAG 的实际调用位置见 [Agent 链路与 RAG](docs/AGENT_CHAIN_AND_RAG_ZH.md)。成果设计通过独立的 [AutoDesign 集成](docs/AUTODESIGN_INTEGRATION_ZH.md) 运行。
 
 ## 当前问题与优化优先级
 
@@ -143,6 +144,7 @@ pnpm site:down
 | `pnpm check:web` | Workspace 类型检查与 Next.js 构建 |
 | `pnpm smoke:api` | 核心 API 冒烟链路 |
 | `pnpm smoke:e2e` | Playwright 核心工作台链路 |
+| `pnpm --filter web test:performance` | 核心路由点击与 API p95 性能门禁 |
 
 ## 文档导航
 
@@ -150,6 +152,7 @@ pnpm site:down
 |---|---|
 | [系统架构](docs/ARCHITECTURE.md) | 服务边界与组件关系 |
 | [Agent 链路与 RAG](docs/AGENT_CHAIN_AND_RAG_ZH.md) | 当前 DAG、Runtime、工具与混合检索数据流 |
+| [长程多 Agent 科研闭环](docs/AUTONOMOUS_RESEARCH_PROGRAM_ZH.md) | 26 节点 DAG、Top 10、Pilot、Viewer/Leader、Writer/Drawer 与安全边界 |
 | [AutoDesign 集成](docs/AUTODESIGN_INTEGRATION_ZH.md) | qwen-plus 成果生成、服务边界与输出位置 |
 | [LaTeX Pipeline](docs/LATEX_PIPELINE.md) | 实时保存、真实 PDF、缓存与安全边界 |
 | [性能优化](docs/PERFORMANCE_OPTIMIZATION_ZH.md) | 已落地优化、指标和后续优先级 |

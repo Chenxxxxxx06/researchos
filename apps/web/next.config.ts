@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   // The shared-schemas workspace package ships TypeScript source, so Next must
   // transpile it.
   transpilePackages: ['@researchos/shared-schemas'],
+  poweredByHeader: false,
+  experimental: {
+    // Avoid loading large barrel modules on routes that only need a handful of
+    // icons or chart primitives. This reduces both build work and route chunks.
+    optimizePackageImports: ['lucide-react', 'recharts'],
+  },
 };
 
 export default nextConfig;

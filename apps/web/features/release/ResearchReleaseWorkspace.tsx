@@ -135,7 +135,8 @@ export function ResearchReleaseWorkspace({ projectId }: { projectId: string }) {
   const integration = useQuery({
     queryKey: ['release-integration', projectId],
     queryFn: () => getReleaseIntegration(projectId),
-    enabled: Boolean(qwenConfig),
+    // Service health and model readiness are independent. Always show whether
+    // AutoDesign itself is reachable, even before qwen-plus is configured.
     staleTime: 10_000,
     retry: 0,
   });

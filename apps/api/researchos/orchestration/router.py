@@ -10,6 +10,8 @@ from researchos.common.deps import CurrentUser, DbSession, require_csrf
 
 from .research_loop_service import ResearchLoopService
 from .schemas import (
+    AutopilotStartRequest,
+    AutopilotStepResponse,
     CoordinatorTickResponse,
     DispatchTaskRequest,
     DispatchTaskResponse,
@@ -60,6 +62,21 @@ async def coordinator_tick(
     project_id: uuid.UUID, mission_id: uuid.UUID, user: CurrentUser, db: DbSession
 ) -> CoordinatorTickResponse:
     return await OrchestrationService(db).tick(user, project_id, mission_id)
+
+
+@router.post(
+    "/missions/{mission_id}/autopilot",
+    response_model=AutopilotStepResponse,
+    dependencies=[Depends(require_csrf)],
+)
+async def start_or_continue_autopilot(
+    project_id: uuid.UUID,
+    mission_id: uuid.UUID,
+    payload: AutopilotStartRequest,
+    user: CurrentUser,
+    db: DbSession,
+) -> AutopilotStepResponse:
+    return await OrchestrationService(db).autopilot_step(user, project_id, mission_id, payload)
 
 
 @router.post(
@@ -227,9 +244,7 @@ async def evaluate_research_iteration(
     user: CurrentUser,
     db: DbSession,
 ) -> ResearchLoopResponse:
-    return await ResearchLoopService(db).evaluate_iteration(
-        user, project_id, iteration_id, payload
-    )
+    return await ResearchLoopService(db).evaluate_iteration(user, project_id, iteration_id, payload)
 
 
 @router.post(

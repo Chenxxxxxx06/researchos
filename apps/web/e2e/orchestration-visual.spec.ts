@@ -54,9 +54,9 @@ const tasks = TASK_KEYS.map((key, index) => ({
   role: index < 7 ? 'evidence_agent' : index < 11 ? 'builder_agent' : 'review_agent',
   agent_type: 'research_worker',
   status:
-    index < 4
+    index < 3
       ? 'completed'
-      : index === 4
+      : index === 3
         ? 'running'
         : index === 5
           ? 'waiting_approval'
@@ -75,10 +75,10 @@ const tasks = TASK_KEYS.map((key, index) => ({
   ],
   permissions_json: ['read:papers', 'write:artifacts'],
   budget_json: { max_tokens: 12000 },
-  agent_run_id: index === 4 ? 'run-live-0001' : null,
+  agent_run_id: index === 3 ? 'run-live-0001' : null,
   available_at: NOW,
-  started_at: index < 5 ? NOW : null,
-  finished_at: index < 4 ? NOW : null,
+  started_at: index < 4 ? NOW : null,
+  finished_at: index < 3 ? NOW : null,
   last_error_json: null,
   created_at: NOW,
   updated_at: NOW,
@@ -131,7 +131,35 @@ const graph = {
     message: `${task.title} state reconciled`,
     created_at: NOW,
   })),
-  counts: { completed: 4, running: 1, waiting_approval: 1, ready: 1, draft: 10 },
+  counts: { completed: 3, running: 1, waiting_approval: 1, ready: 1, draft: 11 },
+  progress: {
+    total_tasks: 17,
+    completed_tasks: 3,
+    running_tasks: 1,
+    blocked_tasks: 11,
+    failed_tasks: 0,
+    progress_percent: 23.53,
+    active_agents: [
+      {
+        task_id: 'task-4',
+        task_key: 'synthesize',
+        title: TITLES.synthesize,
+        role: 'evidence_agent',
+        agent_type: 'research',
+        status: 'running',
+        agent_run_id: 'run-live-0001',
+        attempt: 1,
+        started_at: NOW,
+        progress_percent: 50,
+        current_action: 'Synthesize claims and methods',
+      },
+    ],
+    current_phase: 'review',
+    next_ready_tasks: ['direction'],
+    blocker_messages: [],
+    eta_seconds: null,
+    eta_basis: 'insufficient completed-task history',
+  },
 };
 
 async function mockMissionControl(page: Page) {
@@ -185,6 +213,18 @@ async function mockMissionControl(page: Page) {
       };
     } else if (path === `/projects/${PROJECT_ID}/orchestration/missions/${MISSION_ID}`) {
       body = graph;
+    } else if (path === `/projects/${PROJECT_ID}/agents/capabilities`) {
+      body = [];
+    } else if (path === `/projects/${PROJECT_ID}/missions/${MISSION_ID}/research-synthesis`) {
+      body = {
+        mission_id: MISSION_ID,
+        paper_count: 0,
+        reviewed_card_count: 0,
+        tuple_count: 0,
+        directions: [],
+        benchmarks: [],
+        generated_at: NOW,
+      };
     } else if (path.endsWith('/research-loops')) {
       body = [];
     } else if (path === `/projects/${PROJECT_ID}/experiment-runs`) {

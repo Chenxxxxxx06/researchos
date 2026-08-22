@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 """Deterministic mock LLM provider.
 
 Drives the full agent loop with no external calls or API keys, and *validates*
@@ -41,6 +42,10 @@ _REVIEW_EVIDENCE_RE = re.compile(
     re.DOTALL,
 )
 _SELECTION_OP_PREFIX = "SELECTION_OP_INPUT: "
+_UUID_RE = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE
+)
+_CITATION_KEY_RE = re.compile(r'"citation_key"\s*:\s*"([^"]+)"')
 
 
 def _last_user_text(messages: list[LLMMessage]) -> str:
@@ -351,6 +356,93 @@ class MockLLMProvider:
                         }
                     ]
                 }
+            elif "directions" in props:
+                source = _last_user_text(messages)
+                paper_ids = list(dict.fromkeys(_UUID_RE.findall(source)))
+                obj = {
+                    "directions": [
+                        {
+                            "title": "Evidence-ranked controlled pilot",
+                            "hypothesis": "A single-component intervention improves the primary metric under fixed budget.",
+                            "rationale": "Prioritize a small falsifiable change before full-scale evaluation.",
+                            "source_paper_ids": paper_ids[:2],
+                            "benchmark_plan": ["Use the highest-credibility reported benchmark"],
+                            "ablation_plan": ["Remove only the proposed component"],
+                            "pilot_scope": "one benchmark, one seed, ten percent of the training budget",
+                            "score": 0.82,
+                        }
+                    ]
+                }
+            elif "primary_benchmark" in props and "pilot_matrix" in props:
+                obj = {
+                    "benchmarks": [
+                        {"name": "Reported evaluation setting", "evidence_status": "grounded"}
+                    ],
+                    "primary_benchmark": "Reported evaluation setting",
+                    "primary_metric": "primary_score",
+                    "pilot_matrix": [{"arm": "baseline"}, {"arm": "candidate"}],
+                    "full_matrix": [
+                        {"arm": "baseline", "seeds": [1, 2, 3]},
+                        {"arm": "candidate", "seeds": [1, 2, 3]},
+                    ],
+                    "ablations": [{"component": "proposed_component", "setting": "removed"}],
+                    "decision_rules": [
+                        "Scale only after the candidate beats baseline under the fixed pilot budget."
+                    ],
+                    "stop_conditions": [
+                        "Stop on invalid metrics, leakage, timeout, or no improvement."
+                    ],
+                }
+            elif "verdict" in props and "blocking_findings" in props:
+                obj = {
+                    "verdict": "pass",
+                    "confidence": 0.8,
+                    "blocking_findings": [],
+                    "non_blocking_findings": [
+                        "Run the declared full seed matrix before a paper claim."
+                    ],
+                    "evidence_checked": ["task artifacts", "recorded run metrics", "git commit"],
+                    "next_action": "Advance to the next bounded task.",
+                }
+            elif "decision" in props and "required_approvals" in props:
+                obj = {
+                    "decision": "continue_pilot",
+                    "direction_rank": 1,
+                    "rationale": "The bounded pilot is the cheapest next information-gain step.",
+                    "next_task": "Complete and review the small-batch pilot.",
+                    "required_approvals": [],
+                    "budget_note": "Do not scale until a Viewer pass is recorded.",
+                }
+            elif "latex" in props and "claim_links" in props:
+                keys = list(dict.fromkeys(_CITATION_KEY_RE.findall(_last_user_text(messages))))
+                obj = {
+                    "venue": "generic",
+                    "section": "methods",
+                    "latex": "\\section{Methods}\\nWe evaluate the proposed method using the recorded protocol.",
+                    "citation_keys": keys[:2],
+                    "claim_links": [],
+                    "unresolved_evidence": ["Add verified result values after full experiments."],
+                }
+            elif "mermaid" in props and "figures" in props:
+                obj = {
+                    "mermaid": "flowchart LR\n    evidence[Paper evidence] --> idea[Ranked idea]\n    idea --> code[Implementation]\n    code --> pilot[Small-batch pilot]\n    pilot --> review[Viewer review]\n    review --> full[Full experiment]",
+                    "figures": [],
+                    "tables": [],
+                    "captions": ["Evidence-bound research and evaluation workflow."],
+                    "source_run_ids": [],
+                }
+            elif "progress_percent" in props and "active_agents" in props:
+                source = _last_user_text(messages)
+                match = re.search(r'"deterministic_progress_percent"\s*:\s*([0-9.]+)', source)
+                progress = float(match.group(1)) if match else 0.0
+                obj = {
+                    "progress_percent": progress,
+                    "active_agents": [],
+                    "completed": [],
+                    "blockers": [],
+                    "next_actions": ["Dispatch the next ready task."],
+                    "eta_basis": "deterministic task graph only",
+                }
             elif "research_question" in props:
                 source = _last_user_text(messages)
                 section = _READING_SECTION_RE.search(source)
@@ -371,6 +463,47 @@ class MockLLMProvider:
                     "strengths": ["The method is described in the supplied sections"],
                     "limitations": ["Only supplied sections were available for this card"],
                     "reproducibility": ["Verify data splits, hyperparameters, and random seeds"],
+                    "github_repositories": [],
+                    "paper_ideas": [
+                        {
+                            "title": "Test the supplied method under a controlled shift",
+                            "hypothesis": "The method retains its reported advantage under shift.",
+                            "motivation": "Derived from the supplied limitation.",
+                            "section_id": section_id,
+                            "quote": quote,
+                            "inference": True,
+                        }
+                    ],
+                    "benchmarks": [
+                        {
+                            "name": "Reported evaluation setting",
+                            "task": "paper-specific task",
+                            "metric": "not fully reported in the supplied excerpt",
+                            "section_id": section_id,
+                            "quote": quote,
+                        }
+                    ],
+                    "ablation_findings": [],
+                    "knowledge_tuples": [
+                        {
+                            "kind": "summary",
+                            "head": "paper",
+                            "relation": "addresses",
+                            "tail": "the supplied research question",
+                            "section_id": section_id,
+                            "quote": quote,
+                            "inference": False,
+                        },
+                        {
+                            "kind": "idea",
+                            "head": "controlled distribution shift",
+                            "relation": "tests",
+                            "tail": "method robustness",
+                            "section_id": section_id,
+                            "quote": quote,
+                            "inference": True,
+                        },
+                    ],
                     "claims": [
                         {
                             "text": "The card is grounded in a supplied paper section.",

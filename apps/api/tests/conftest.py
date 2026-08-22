@@ -68,6 +68,7 @@ _TABLES = [
     "review_documents",
     "paper_chunks",
     "reading_notes",
+    "paper_knowledge_tuples",
     "reading_card_versions",
     "reading_cards",
     "mission_papers",

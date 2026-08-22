@@ -25,6 +25,13 @@ _MODULE_BY_AGENT: dict[AgentType, SkillModule] = {
     AgentType.CODING: SkillModule.IDE,
     AgentType.EXPERIMENT: SkillModule.EXPERIMENTS,
     AgentType.LATEX: SkillModule.PAPER,
+    AgentType.IDEA_EXPLORER: SkillModule.RESEARCH,
+    AgentType.BENCHMARK: SkillModule.EXPERIMENTS,
+    AgentType.LEADER: SkillModule.RESEARCH,
+    AgentType.VIEWER: SkillModule.RESEARCH,
+    AgentType.WRITER: SkillModule.PAPER,
+    AgentType.DRAWER: SkillModule.PAPER,
+    AgentType.PROGRESS: SkillModule.EXPERIMENTS,
 }
 
 
@@ -73,9 +80,7 @@ def render_skill_block(skills: list[RuntimeSkill], *, char_budget: int = 8000) -
         if template:
             lines.append(template)
         if skill.workflow:
-            steps = "; ".join(
-                f"{i}) {step}" for i, step in enumerate(skill.workflow, start=1)
-            )
+            steps = "; ".join(f"{i}) {step}" for i, step in enumerate(skill.workflow, start=1))
             lines.append(f"Suggested workflow: {steps}")
         fragment = "\n" + "\n".join(lines)
         if len(block) + len(fragment) > char_budget:

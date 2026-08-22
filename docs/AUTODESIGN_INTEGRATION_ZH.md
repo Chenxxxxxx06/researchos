@@ -46,6 +46,7 @@ ResearchOS 持久化 `release_generation_jobs`，包括类型、固定模型、�
 ResearchOS 为 AutoDesign 的以下文字角色显式传递 `qwen-plus`：
 
 - Designer
+- Planner
 - Prompt Enhancer
 - Claim Graph
 - Deck Outline
@@ -89,7 +90,9 @@ AUTODESIGN_START_TIMEOUT_SECONDS=30
 - `BASE_URL`：ResearchOS API 能访问的内部地址。
 - `PUBLIC_URL`：浏览器打开预览和下载时使用的地址。
 
-Docker Compose 已配置 `host.docker.internal:host-gateway`。
+Docker Compose 已配置 `host.docker.internal:host-gateway`；Windows 快速启动器中的 API 直接运行在宿主机，因此 `scripts/site.ps1` 会把两者显式设为 `http://localhost:8010`，避免宿主机反向访问 `host.docker.internal` 时出现空响应。
+
+服务健康与模型就绪是两个独立状态：成果发布页始终检查 AutoDesign 是否可达；即使服务自身没有全局凭证，只要项目稍后配置了 `qwen-plus`，ResearchOS 也会在单次生成请求中安全注入凭证。
 
 ## 故障定位
 

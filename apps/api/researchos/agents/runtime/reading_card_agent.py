@@ -10,6 +10,7 @@ from sqlalchemy import select
 from researchos.agents.enums import AgentType
 from researchos.agents.llm import LLMMessage
 from researchos.common.errors import NotFoundError, ValidationError
+from researchos.knowledge.indexing import index_reading_card_tuples
 from researchos.knowledge.models import MissionPaper, ReadingCard
 from researchos.knowledge.service import record_card_version
 from researchos.missions.models import MissionEvent, ResearchMission
@@ -29,6 +30,26 @@ _SCHEMA = {
         "strengths": {"type": "array", "items": {"type": "string"}},
         "limitations": {"type": "array", "items": {"type": "string"}},
         "reproducibility": {"type": "array", "items": {"type": "string"}},
+        "github_repositories": {"type": "array", "items": {"type": "object"}},
+        "paper_ideas": {"type": "array", "items": {"type": "object"}},
+        "benchmarks": {"type": "array", "items": {"type": "object"}},
+        "ablation_findings": {"type": "array", "items": {"type": "object"}},
+        "knowledge_tuples": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "kind": {"type": "string"},
+                    "head": {"type": "string"},
+                    "relation": {"type": "string"},
+                    "tail": {"type": "string"},
+                    "section_id": {"type": ["string", "null"]},
+                    "quote": {"type": "string"},
+                    "inference": {"type": "boolean"},
+                },
+                "required": ["kind", "head", "relation", "tail"],
+            },
+        },
         "claims": {
             "type": "array",
             "items": {
@@ -53,6 +74,11 @@ _SCHEMA = {
         "strengths",
         "limitations",
         "reproducibility",
+        "github_repositories",
+        "paper_ideas",
+        "benchmarks",
+        "ablation_findings",
+        "knowledge_tuples",
         "claims",
     ],
 }
@@ -60,8 +86,13 @@ _SCHEMA = {
 _SYSTEM = """You create a structured reading card from user-selected paper sections.
 Use only the supplied text. Do not add external facts. Every claim must carry the exact section UUID
 and a short verbatim quote copied from that section. Mark interpretations with inference=true.
-Extract experimental setup, key results, and conclusions separately. Preserve reported metric values
-and qualifiers exactly. If a detail is absent from the selected sections, say it is not reported.
+Extract experimental setup, key results, conclusions, reported GitHub/code URLs,
+reusable paper ideas, benchmarks, and ablation findings separately. For every repository,
+idea, benchmark, ablation, and knowledge tuple, include section_id and an exact supporting
+quote when it is reported; mark derived ideas with inference=true. Never guess a repository
+URL, benchmark split, score, or ablation effect. Build compact tuples with kind in
+{summary,result,code,idea,benchmark,ablation,limitation}, plus head, relation, and tail.
+If a detail is absent from the selected sections, say it is not reported.
 Return only the requested JSON object."""
 
 
@@ -208,6 +239,13 @@ class ReadingCardAgent(Agent):
         card.strengths_json = _strings(parsed.get("strengths"))
         card.limitations_json = _strings(parsed.get("limitations"))
         card.reproducibility_json = _strings(parsed.get("reproducibility"))
+        card.github_repositories_json = _grounded_items(
+            parsed.get("github_repositories"), section_map, blank_fields=("url",)
+        )
+        card.paper_ideas_json = _grounded_items(parsed.get("paper_ideas"), section_map)
+        card.benchmarks_json = _grounded_items(parsed.get("benchmarks"), section_map)
+        card.ablation_findings_json = _grounded_items(parsed.get("ablation_findings"), section_map)
+        card.knowledge_tuples_json = _grounded_items(parsed.get("knowledge_tuples"), section_map)
         card.claims_json = claims
         card.status = "needs_review"
         card.generated_by_run_id = actx.run.id
@@ -220,6 +258,7 @@ class ReadingCardAgent(Agent):
             source_type="agent",
             source_run_id=actx.run.id,
         )
+        tuple_count = await index_reading_card_tuples(actx.db, card, sections=sections)
         actx.db.add(
             MissionEvent(
                 project_id=actx.project_id,
@@ -246,6 +285,9 @@ class ReadingCardAgent(Agent):
                 "reading_card_version": card.version,
                 "grounded_claims": grounded,
                 "claim_count": len(claims),
+                "tuple_count": tuple_count,
+                "benchmark_count": len(card.benchmarks_json),
+                "idea_count": len(card.paper_ideas_json),
                 "citations": [key],
             },
             citations,
@@ -256,3 +298,39 @@ def _strings(value: object) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item).strip() for item in value[:100] if str(item).strip()]
+
+
+def _grounded_items(
+    value: object,
+    section_map: dict[str, PaperSection],
+    *,
+    blank_fields: tuple[str, ...] = (),
+) -> list[dict]:
+    if not isinstance(value, list):
+        return []
+    items: list[dict] = []
+    for raw in value[:500]:
+        if not isinstance(raw, dict):
+            continue
+        item = {str(key): val for key, val in raw.items()}
+        section_id = str(item.get("section_id") or "")
+        quote = str(item.get("quote") or "").strip()
+        section = section_map.get(section_id)
+        grounded = section is not None and bool(quote) and quote in section.body
+        item["section_id"] = section_id if grounded else None
+        item["section_seq"] = section.seq if grounded and section is not None else None
+        item["quote"] = quote if grounded else ""
+        inference = bool(item.get("inference", False))
+        item["inference"] = inference
+        item["evidence_status"] = (
+            "context_grounded"
+            if grounded and inference
+            else "reported"
+            if grounded
+            else "needs_evidence"
+        )
+        if not grounded and not inference:
+            for field in blank_fields:
+                item[field] = ""
+        items.append(item)
+    return items

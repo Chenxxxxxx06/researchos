@@ -98,7 +98,19 @@ All writes go through `write_file_versioned`:
 - The LaTeX Agent can propose selected-text changes, but user acceptance performs the actual versioned mutation.
 - Claims and citations must remain traceable to project papers, experiment records, or explicit user assumptions.
 
-## 8. Production hardening path
+## 8. Windows local Conda toolchain
+
+The fast Windows launcher runs the API from `apps/api/.venv`, while the TeX distribution is isolated in the `researchos` Conda environment. Install or repair it with:
+
+```powershell
+pnpm latex:setup
+```
+
+This installs `latexmk 4.88` from conda-forge, installs MiKTeX under `D:\anaconda\envs\researchos\Library\MiKTeX`, creates the Windows `latexmk.cmd` shim required for conda-forge's extensionless Perl script, and performs a real `%PDF-` smoke compilation. `scripts/site.ps1` prepends that toolchain to the API process PATH automatically. Override its location with `RESEARCHOS_LATEX_PREFIX` when the Conda prefix differs.
+
+A successful API-level verification must report an engine beginning with `latexmk`, a non-null `pdf_url`, and downloaded bytes beginning with `%PDF-`; checking `latexmk -v` alone is insufficient because it does not prove a TeX engine is present.
+
+## 9. Production hardening path
 
 The current compiler is bounded and shell escape is disabled, but a public multi-tenant deployment should move TeX into a dedicated worker sandbox with:
 

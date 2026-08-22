@@ -32,27 +32,18 @@ flowchart TD
 
 定义位置：`apps/api/researchos/orchestration/service.py`
 
-当前固定任务链为：
+当前标准任务链升级为 26 个有效节点，核心路径为：
 
 ```text
-scope（人工审批）
-  → discover（Research Agent）
-  → read（Reading Card Agent）
-  → synthesize（Research Agent）
-  → gap（Research Agent）
-  → critic（Critic Agent）
-  → direction（人工审批）
-  → repository（仓库快照审批）
-  → baseline（Experiment Planner Agent）
-  → coding（Coding Agent）
-  → experiment_plan（Experiment Planner Agent）
-  → experiment_run（Experiment Agent）
-  → reproduce（Experiment Agent）
-  → analyze（Research Agent）
-  → write（LaTeX Agent）
-  → review（Research Agent）
-  → release（Coding Agent + 发布审批）
+scope → discover → read/tuple-RAG → synthesize
+→ idea_rank + benchmark → critic → direction
+→ repository → baseline + coding → code_check
+→ pilot → pilot_review → leader
+→ experiment_plan → experiment_run → progress → reproduce → analyze
+→ writer_outline → writer_results → drawer + citation → review → release
 ```
+
+Leader 根据 Viewer Artifact 在 `revise_code / continue_pilot / try_direction / scale_experiments / write / stop` 之间路由；Writer outline 在方向确定后即可与代码/实验并行。完整协议见 [长程多 Agent 科研闭环](AUTONOMOUS_RESEARCH_PROGRAM_ZH.md)。
 
 其中 `baseline` 与 `coding` 都完成后，`experiment_plan` 才会解锁。DAG 会拒绝环路；任务状态、依赖、事件、成果和审批门均持久化在 PostgreSQL。
 
@@ -138,7 +129,8 @@ flowchart LR
 
 当前检索策略：
 
-- 每个向量/关键词分支最多召回 40 个 chunk。
+- Paper chunk 与 ReadingCard 多元组共同进入 `hybrid-vector-keyword-tuples-v3`。
+- 每个向量/关键词分支最多召回 40 个候选。
 - 向量分支使用 pgvector cosine distance。
 - 关键词分支使用 PostgreSQL `ts_rank` 与 OR tsquery。
 - 两路用 Reciprocal Rank Fusion，`k=60`。
@@ -217,6 +209,6 @@ ResearchOS 仅把解密后的 API key 放入 AutoDesign 启动请求头，不将
 1. Mission DAG 是固定模板，不是由 Planner 动态生成；若要动态编排，应先增加可验证的 DAG schema 和预算策略。
 2. `gap`、`analyze`、`review` 当前复用 Research Agent；如果需要不同评审标准，应拆成独立 Agent 类。
 3. AutoDesign 是独立服务与子模块，不与 ResearchOS Worker 进程混装，避免把 Playwright、视频和视觉依赖塞入核心 API。
-4. RAG 当前只索引论文 chunks；代码、实验日志、用户笔记尚未进入统一向量索引。
+4. RAG 已索引论文 chunks 和 ReadingCard 的 idea/benchmark/ablation/code/result tuples；代码正文、实验日志和用户笔记尚未进入统一向量索引。
 5. RAG 引用 URL 在当前工具转换中可能为空，但 canonical citation key、论文 ID 和 section ID 均保留；后续可通过 Paper 表补全 URL。
 6. 模型级长耗时任务继续使用 Celery/AutoDesign 后台运行；HTTP 请求只负责创建 durable handle，不应等待整个生成流程。

@@ -30,4 +30,5 @@ TASK_ROUTES: dict[str, dict[str, str]] = {
     "latex.*": {"queue": Queue.LATEX},
     "experiments.*": {"queue": Queue.EXPERIMENTS},
     "skills.*": {"queue": Queue.SKILLS},
+    "orchestration.*": {"queue": Queue.DEFAULT},
 }

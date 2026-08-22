@@ -15,6 +15,13 @@ export const AGENT_TYPES = [
   'experiment_planner',
   'sql_analyst',
   'citation_organizer',
+  'idea_explorer',
+  'benchmark',
+  'leader',
+  'viewer',
+  'writer',
+  'drawer',
+  'progress',
 ] as const;
 export type AgentType = (typeof AGENT_TYPES)[number];
 
