@@ -105,6 +105,8 @@ pnpm site:down
 
 环境要求与故障排查见 [本地站点部署说明](docs/SITE_DEPLOYMENT_ZH.md)。
 
+仓库根目录提供 CI 构建并校验的 Windows 便携版 `ResearchOS.exe`。它是 Connected Desktop：先启动本地站点或准备可访问的部署地址，再打开 EXE 连接工作区；校验值见 `ResearchOS.exe.sha256`。
+
 ## 系统架构
 
 | 层级 | 技术 | 责任 |

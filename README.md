@@ -105,6 +105,8 @@ pnpm site:down
 
 See [Site deployment](docs/SITE_DEPLOYMENT_ZH.md) for prerequisites and troubleshooting.
 
+The repository root includes the CI-built and checksummed Windows portable app, `ResearchOS.exe`. It is a connected desktop shell: start the local site or provide a reachable deployment URL, then open the executable and connect. Verify it with `ResearchOS.exe.sha256`.
+
 ## Architecture
 
 | Layer | Technology | Responsibility |
