@@ -9,9 +9,17 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
-# git powers the per-project workspace repos (patch commits, log, revert).
+# git powers workspace repos. latexmk + the publisher collections provide
+# real-time PDF rendering for article, IEEE, ACM, Elsevier and poster sources.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git \
+    && apt-get install -y --no-install-recommends \
+        git \
+        latexmk \
+        texlive-fonts-recommended \
+        texlive-latex-base \
+        texlive-latex-extra \
+        texlive-latex-recommended \
+        texlive-publishers \
     && rm -rf /var/lib/apt/lists/*
 
 # uv for fast, reproducible installs.

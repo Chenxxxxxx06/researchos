@@ -43,6 +43,7 @@ from researchos.patches.router import router as patches_router
 from researchos.preferences.router import me_router as preferences_me_router
 from researchos.preferences.router import project_router as preferences_project_router
 from researchos.projects.router import router as projects_router
+from researchos.releases.router import router as releases_router
 from researchos.research.router import router as research_router
 from researchos.reviews.router import router as reviews_router
 from researchos.runtime.ssh.router import router as ssh_router
@@ -119,6 +120,7 @@ def create_app() -> FastAPI:
     app.include_router(citations_audit_router)
     app.include_router(experiment_plans_router)
     app.include_router(research_router)
+    app.include_router(releases_router)
     app.include_router(agents_router)
     app.include_router(workspace_router)
     app.include_router(patches_router)

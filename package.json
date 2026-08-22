@@ -18,6 +18,7 @@
     "desktop:validate": "pnpm --filter researchos-desktop validate",
     "desktop:dev": "pnpm --filter researchos-desktop dev",
     "desktop:build": "pnpm --filter researchos-desktop build",
+    "desktop:portable": "pnpm --filter researchos-desktop build:portable",
     "typecheck": "pnpm -r typecheck",
     "lint:web": "pnpm --filter web lint",
     "test":        "docker compose -f infra/docker/docker-compose.yml -f infra/docker/docker-compose.test.yml run --rm test",

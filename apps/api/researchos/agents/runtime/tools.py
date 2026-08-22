@@ -186,6 +186,41 @@ async def _paper_sections(ctx: ToolContext, args: dict) -> dict:
         kind=args.get("kind"), seq=args.get("seq"))
 
 
+async def _knowledge_rag_search(ctx: ToolContext, args: dict) -> dict:
+    """Hybrid vector + keyword retrieval over parsed project paper chunks."""
+
+    from researchos.knowledge.schemas import RagSearchRequest
+    from researchos.knowledge.service import KnowledgeService
+
+    payload = RagSearchRequest.model_validate(
+        {
+            "query": str(args.get("query", "")),
+            "mission_id": args.get("mission_id"),
+            "limit": min(_opt_int(args.get("limit")) or 12, 20),
+            "kinds": args.get("kinds") or [],
+        }
+    )
+    response = await KnowledgeService(ctx.db).rag_search(ctx.actor, ctx.project_id, payload)
+    results: list[dict] = []
+    for hit in response.hits:
+        source, separator, external_id = hit.citation_key.partition(":")
+        results.append(
+            {
+                **hit.model_dump(mode="json"),
+                "source": source if separator else "library",
+                "external_id": external_id if separator else hit.citation_key,
+                "url": "",
+            }
+        )
+    return {
+        "mode": response.mode,
+        "embedding_model": response.embedding_model,
+        "indexed_papers": response.indexed_papers,
+        "indexed_chunks": response.indexed_chunks,
+        "results": results,
+    }
+
+
 TOOL_REGISTRY: dict[str, ToolSpec] = {
     "paper.search": ToolSpec(
         name="paper.search",
@@ -258,6 +293,25 @@ TOOL_REGISTRY["paper.sections"] = ToolSpec(
         "paper_key": {"type": "string"}, "kind": {"type": "string"},
         "seq": {"type": "integer"}}, "required": ["paper_key"]},
     impl=_paper_sections)
+
+TOOL_REGISTRY["knowledge.rag_search"] = ToolSpec(
+    name="knowledge.rag_search",
+    description=(
+        "Search parsed project papers with hybrid vector and keyword retrieval. "
+        "Returns source-addressable snippets, section ids, scores, and citation keys."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "query": {"type": "string"},
+            "mission_id": {"type": "string"},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 20},
+            "kinds": {"type": "array", "items": {"type": "string"}},
+        },
+        "required": ["query"],
+    },
+    impl=_knowledge_rag_search,
+)
 
 
 def _result_summary(result: dict) -> str:

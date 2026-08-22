@@ -1,0 +1,55 @@
+name: Build Windows portable app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "apps/desktop/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "VERSION"
+      - ".github/workflows/desktop-portable.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-portable-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-portable:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: "9.15.0"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate desktop source
+        run: pnpm desktop:validate
+      - name: Build portable executable
+        run: pnpm desktop:portable
+      - name: Stage artifact and checksum
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force portable | Out-Null
+          Copy-Item apps/desktop/src-tauri/target/release/researchos-desktop.exe portable/ResearchOS.exe
+          $hash = (Get-FileHash portable/ResearchOS.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  ResearchOS.exe" | Set-Content portable/ResearchOS.exe.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ResearchOS-windows-portable
+          path: portable/*
+          if-no-files-found: error
+          retention-days: 14

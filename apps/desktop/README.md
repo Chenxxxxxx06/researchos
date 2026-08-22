@@ -15,11 +15,19 @@ pnpm --filter researchos-desktop validate
 - WebView2 Runtime
 - Node.js and pnpm
 
-Then run:
+Then run a portable-only build:
 
 ```bash
-pnpm --filter researchos-desktop build
+pnpm desktop:portable
 ```
+
+Or generate the portable executable plus MSI and NSIS installers:
+
+```bash
+pnpm desktop:build
+```
+
+GitHub Actions workflow `desktop-portable.yml` can build the Windows executable when the local machine does not have Rust and MSVC installed.
 
 The current machine must have the Rust toolchain before Tauri can generate MSI or NSIS installers. Product architecture and local-standalone migration are documented in `docs/DESKTOP_ARCHITECTURE.md`.
 

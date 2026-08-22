@@ -29,13 +29,20 @@ async def test_latex_project_save_and_compile(client) -> None:
     # Save edited content.
     saved = await client.put(
         f"/projects/{p}/latex-projects/{lp['id']}/files",
-        json={"path": "main.tex", "content": "\\section{Intro}\nHello world."},
+        json={
+            "path": "main.tex",
+            "content": (
+                "\\documentclass{article}\n\\begin{document}\n"
+                "\\section{Intro}\nHello world.\n\\end{document}\n"
+            ),
+        },
         headers=h,
     )
     assert saved.status_code == 200
     assert saved.json()["version"] == 2
 
-    # Mock compile produces a preview (no shell).
+    # The LaTeX-enabled container produces a PDF; environments without
+    # latexmk retain the same structural preview contract.
     job = await client.post(f"/projects/{p}/latex-projects/{lp['id']}/compile", headers=h)
     assert job.status_code == 201
     body = job.json()

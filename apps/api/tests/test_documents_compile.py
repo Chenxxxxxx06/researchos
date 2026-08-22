@@ -1,4 +1,4 @@
-"""Mock compile: diagnostics, preview model, reachable FAILED, WS event (DB, CI)."""
+"""LaTeX compile: PDF/fallback, diagnostics, FAILED state, and WS events."""
 
 from __future__ import annotations
 
@@ -32,13 +32,21 @@ async def test_default_template_compiles_clean(client) -> None:
     assert resp.status_code == 201
     body = resp.json()
     assert body["status"] == "succeeded"
-    assert body["engine"] == "mock"
+    assert body["engine"] in {"mock", "latexmk"}
     assert body["diagnostics"] == []
     assert body["error_summary"] is None
     model = body["preview_model"]
     assert model["title"] == "Untitled Paper"
     assert [s["title"] for s in model["sections"]] == ["Introduction", "Method", "Results"]
     assert "Write your introduction here." in (body["preview"] or "")
+    if body["engine"] == "latexmk":
+        assert body["pdf_url"]
+        pdf = await client.get(body["pdf_url"])
+        assert pdf.status_code == 200
+        assert pdf.headers["content-type"].startswith("application/pdf")
+        assert pdf.content.startswith(b"%PDF")
+    else:
+        assert body["pdf_url"] is None
 
     # GET returns the same enriched shape.
     job = (await client.get(f"{_base(p, lp)}/compile-jobs/{body['id']}")).json()
@@ -113,7 +121,7 @@ async def test_compile_publishes_ws_event(client, monkeypatch) -> None:
     assert envelope["payload"] == {
         "job_id": body["id"],
         "status": "succeeded",
-        "engine": "mock",
+        "engine": body["engine"],
         "diagnostics_count": 0,
         "error_summary": None,
     }

@@ -91,9 +91,18 @@ test.describe('ResearchOS smoke', () => {
     await expect(page.getByText(/模拟审稿|Simulated review/i).first()).toBeVisible({ timeout: 5000 });
     await page.screenshot({ path: 'artifacts/screenshots/10-reviewer.png' });
 
-    // 12. Release Studio
-    await page.goto(`/projects/${projectId}/release`);
+    // 12. Release Studio — exercise the exact side-rail button reported as
+    // unresponsive instead of bypassing it with page.goto.
+    const releaseNav = page.locator('[data-nav-segment="release"]').first();
+    await expect(releaseNav).toBeVisible();
+    await releaseNav.click();
+    await page.waitForURL(`**/projects/${projectId}/release`);
     await expect(page.getByText(/Research Release Studio/i).first()).toBeVisible({ timeout: 5000 });
+    for (const releaseKind of ['website', 'readme', 'poster', 'slides']) {
+      const card = page.getByTestId(`release-kind-${releaseKind}`);
+      await card.click();
+      await expect(card).toHaveAttribute('aria-pressed', 'true');
+    }
     await page.screenshot({ path: 'artifacts/screenshots/11-release.png' });
 
     // 13. Settings

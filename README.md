@@ -36,7 +36,8 @@ Read literature, choose a direction, reproduce code, run bounded experiments, an
 | Research Copilot | Project-scoped chat, source-backed context, innovation extraction, ideas, reviews, and Agent Run events | Available |
 | AI IDE and runtimes | Workspace tree, Monaco editing, reviewable patches, repository import, restricted local argv execution, host-key-verified SSH/SFTP, and audit records | Bounded |
 | Experiments | Experiment plans, run records, NDJSON logs and metrics, comparisons, figures, and bounded loop evaluation | Scaffold |
-| Paper and review | LaTeX workspace, suggestions, evidence-aware review flows, reviewer rubrics, and release checks | Scaffold |
+| Paper and review | LaTeX workspace, 900ms debounced saves, bounded latexmk PDF rendering, compile cache, writing suggestions, and structured review | Bounded |
+| Research release | qwen-plus README patches plus AutoDesign webpage, poster, and slide generation with history, previews, and downloads | Bounded |
 | Realtime UX | Shared WebSocket connection, heartbeat, reconnect backoff, event deduplication, and REST replay reconciliation | Available |
 
 <details>
@@ -114,7 +115,7 @@ See [Site deployment](docs/SITE_DEPLOYMENT_ZH.md) for prerequisites and troubles
 | Runtime | Restricted local processes and AsyncSSH | Audited code and remote workspace operations |
 | Storage | PostgreSQL, Redis, MinIO | Durable state, coordination, and artifacts |
 
-The multi-agent design is role-based: coordinator, evidence, builder, experiment, reviewer, and writer responsibilities communicate through persisted tasks, explicit schemas, approval gates, artifacts, and events. See [Agent Army Architecture](docs/AGENT_ARMY_ARCHITECTURE_ZH.md) and [Agent Protocol](docs/AGENT_PROTOCOL_ZH.md).
+The multi-agent design is role-based: coordinator, evidence, builder, experiment, reviewer, and writer responsibilities communicate through persisted tasks, explicit schemas, approval gates, artifacts, and events. The implemented 17-node mission DAG, runtime loop, and exact RAG call sites are documented in [Agent Chain and RAG](docs/AGENT_CHAIN_AND_RAG_ZH.md). Design artifacts run through the isolated [AutoDesign integration](docs/AUTODESIGN_INTEGRATION_ZH.md).
 
 ## Known boundaries and next priorities
 
@@ -129,7 +130,7 @@ The multi-agent design is role-based: coordinator, evidence, builder, experiment
 | P2 | Scientific document fidelity | PDF OCR, page/coordinate anchors, figures, tables, equations, and citation graphs remain incomplete |
 | P2 | Durable model health | Active configuration should be distinct from last verified connection status |
 
-Development fallbacks are explicit: the no-key LLM path uses a deterministic mock provider; LaTeX compilation is not yet an isolated `latexmk` service; uploaded audio transcription requires an active ASR-compatible model configuration, while diarization and object-storage integration remain incomplete.
+Development fallbacks are explicit: the no-key LLM path uses a deterministic mock provider; environments without `latexmk` show a structural preview while the Docker stack produces a real PDF; an unavailable AutoDesign service locks design generation and shows its start command; uploaded audio transcription still requires an active ASR-compatible model configuration.
 
 ## Verification
 
@@ -146,6 +147,10 @@ Development fallbacks are explicit: the no-key LLM path uses a deterministic moc
 | Document | Purpose |
 |---|---|
 | [Architecture](docs/ARCHITECTURE.md) | System boundaries and services |
+| [Agent Chain and RAG](docs/AGENT_CHAIN_AND_RAG_ZH.md) | Current DAG, runtime, tools, and hybrid retrieval flow |
+| [AutoDesign integration](docs/AUTODESIGN_INTEGRATION_ZH.md) | qwen-plus release generation, service boundary, and outputs |
+| [LaTeX pipeline](docs/LATEX_PIPELINE.md) | Realtime saves, real PDFs, caching, and security boundaries |
+| [Performance](docs/PERFORMANCE_OPTIMIZATION_ZH.md) | Implemented optimizations, metrics, and next priorities |
 | [Experiment system](docs/EXPERIMENT_SYSTEM.md) | Experiment records, metrics, and lifecycle |
 | [SSH runtime](docs/SSH_RUNTIME.md) | Remote execution policy and audit model |
 | [Skills system](docs/SKILLS_SYSTEM.md) | Skill manifests, activation, and runtime injection |

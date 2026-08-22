@@ -313,9 +313,14 @@ class MockLLMProvider:
             elif len(called) < 2:
                 remaining = [name for name in tool_names if name not in called]
                 if remaining:
-                    name = remaining[0]
+                    if "knowledge.rag_search" in remaining:
+                        name = "knowledge.rag_search"
+                    elif "paper.search" in remaining:
+                        name = "paper.search"
+                    else:
+                        name = remaining[0]
                     args: dict = {}
-                    if name == "paper.search":
+                    if name in {"paper.search", "knowledge.rag_search"}:
                         args = {"query": _last_user_text(messages), "limit": 5}
                     call = ToolCall(id=f"call_{len(called) + 1}", name=name, arguments=args)
             if call is not None:

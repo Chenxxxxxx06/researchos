@@ -16,7 +16,7 @@ import type { Monaco, OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { BookOpen, FileText, Newspaper, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ScrollText, ShieldCheck } from 'lucide-react';
+import { BookOpen, FileText, Newspaper, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ScrollText, ShieldCheck, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 import { ApiError } from '@/lib/api/client';
@@ -89,10 +89,14 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
   const [rail, setRail] = useState<RailTab>('preview');
   const [assistantOpen, setAssistantOpen] = useState(true);
   const [railOpen, setRailOpen] = useState(true);
+  const [autoCompile, setAutoCompile] = useState(true);
   const [merge, setMerge] = useState<MergeDialogState | null>(null);
   const [draftPrompt, setDraftPrompt] = useState<string | null>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const loadedLidRef = useRef<string | null>(null);
+  const initialCompileLidRef = useRef<string | null>(null);
+  const compileAfterSaveRef = useRef(false);
+  const contentRef = useRef('');
   const [ed, setEd] = useState<editor.IStandaloneCodeEditor | null>(null);
   const [monaco, setMonaco] = useState<Monaco | null>(null);
 
@@ -104,6 +108,10 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
   const { job, isCompiling, compile } = useCompileJob(projectId, lid);
   const { runs, trackRun } = useProjectAgentEvents(projectId);
   const [opRunId, setOpRunId] = useState<string | null>(null);
+
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
 
   // Initialize the buffer only on the FIRST load of a document. Subsequent
   // refetches (our own save invalidates the query) must NOT overwrite the live
@@ -160,11 +168,14 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
   >({
     mutationFn: ({ text, expected }) =>
       saveFile(projectId, lid as string, { path: MAIN, content: text, expected_version: expected }),
-    onSuccess: (doc) => {
+    onSuccess: (doc, variables) => {
       setSavedContent(doc.content);
       setVersion(doc.version);
       if (lid) clearDraft(lid, MAIN);
       qc.invalidateQueries({ queryKey: ['doc', projectId, lid, MAIN] });
+      const shouldCompile = compileAfterSaveRef.current || autoCompile;
+      compileAfterSaveRef.current = false;
+      if (shouldCompile && variables.text === contentRef.current) void compile();
     },
     onError: async (err) => {
       if (isVersionConflict(err) && lid) {
@@ -189,6 +200,31 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
     if (!lid || save.isPending) return;
     save.mutate({ text: content, expected: version });
   }, [lid, content, version, save]);
+
+  const requestCompile = useCallback(() => {
+    if (dirty) {
+      compileAfterSaveRef.current = true;
+      doSave();
+      return;
+    }
+    void compile();
+  }, [compile, dirty, doSave]);
+
+  // Debounced server autosave keeps the compiled PDF aligned with the editor
+  // without issuing a request for every keystroke.
+  useEffect(() => {
+    if (!autoCompile || !dirty || save.isPending || version === null) return;
+    const timer = window.setTimeout(doSave, 900);
+    return () => window.clearTimeout(timer);
+  }, [autoCompile, dirty, doSave, save.isPending, version]);
+
+  // Compile once when a paper is opened so the preview is never an unexplained
+  // blank panel. Identical source snapshots reuse the backend PDF cache.
+  useEffect(() => {
+    if (!autoCompile || !lid || !file.data || initialCompileLidRef.current === lid) return;
+    initialCompileLidRef.current = lid;
+    void compile();
+  }, [autoCompile, compile, file.data, lid]);
 
   // Ctrl/Cmd+S to save.
   useEffect(() => {
@@ -423,13 +459,31 @@ export function PaperWorkspace({ projectId }: { projectId: string }) {
                   ? t('paper.savedVersion', { version })
                   : ''}
             </span>
+            <button
+              type="button"
+              aria-pressed={autoCompile}
+              onClick={() => setAutoCompile((value) => !value)}
+              className={`hidden h-8 items-center gap-1.5 rounded-md border px-2.5 text-[11px] font-medium lg:inline-flex ${
+                autoCompile
+                  ? 'border-success/30 bg-success-bg text-success'
+                  : 'border-border text-muted hover:bg-surface-2'
+              }`}
+              title="编辑停止 0.9 秒后自动保存并编译 PDF"
+            >
+              <Zap className="h-3.5 w-3.5" />实时 PDF
+            </button>
             <Button size="sm" variant="ghost" onClick={doSave} disabled={!dirty} loading={save.isPending}>
               {t('common.save')}
             </Button>
             <Link href={`/projects/${projectId}/reviewer`} className="hidden h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-muted hover:bg-surface-2 hover:text-text sm:inline-flex">
               <ShieldCheck className="h-3.5 w-3.5" />{t('nav.reviewer')}
             </Link>
-            <Button size="sm" onClick={() => compile()} loading={isCompiling}>
+            <Button
+              size="sm"
+              onClick={requestCompile}
+              loading={isCompiling || (save.isPending && compileAfterSaveRef.current)}
+              disabled={save.isPending && dirty}
+            >
               {isCompiling ? t('paper.compiling') : t('paper.compile')}
             </Button>
             <Button size="icon" variant="ghost" onClick={() => setRailOpen((value) => !value)} title={t('paper.preview')}>

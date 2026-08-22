@@ -40,3 +40,4 @@ jobs:
       - run: pnpm install
       - run: pnpm -r typecheck
       - run: pnpm --filter web build
+      - run: pnpm desktop:validate

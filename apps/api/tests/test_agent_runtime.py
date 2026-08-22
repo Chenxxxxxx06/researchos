@@ -89,11 +89,14 @@ async def test_research_run_full_lifecycle(db_session: AsyncSession) -> None:
     # Citations are exactly the papers actually retrieved (no fabrication).
     assert set(run.output_json["citations"]) == {"arxiv:2401.01234", "arxiv:2312.05678"}
 
-    # The mock now scripts a genuine multi-turn conversation: two tool
-    # iterations (name-sorted: library.list then paper.search), seqs 0..N-1.
+    # The mock scripts the production retrieval order: project hybrid RAG
+    # first, then external discovery when local evidence is insufficient.
     tool_calls = await ToolCallRepository(db_session).list_by_run(run.id)
     assert len(tool_calls) >= 2
-    assert [t.tool_name for t in tool_calls[:2]] == ["library.list", "paper.search"]
+    assert [t.tool_name for t in tool_calls[:2]] == [
+        "knowledge.rag_search",
+        "paper.search",
+    ]
     assert all(t.status == ToolCallStatus.SUCCEEDED for t in tool_calls)
     assert [t.seq for t in tool_calls] == list(range(len(tool_calls)))
 

@@ -1,97 +1,111 @@
 # ResearchOS LaTeX Pipeline
 
-## 1. Purpose
+## 1. Current user experience
 
-The LaTeX pipeline supports real-time paper writing with AI assistance, multi-file LaTeX projects, BibTeX, compile logs, PDF preview, and experiment-to-paper asset insertion.
+The Paper workspace stores a real multi-file LaTeX project (`main.tex`, bibliography files, and generated anchor files), edits the main file in Monaco, and shows either a compiled PDF or a structural preview in the right rail.
 
-## 2. Components
+When **实时 PDF** is enabled:
 
-- LaTeX project manager
-- Monaco LaTeX editor
-- Citation and BibTeX manager
-- Compile worker
-- PDF artifact store
-- Compile log parser
-- Latex Agent
-- Paper asset inserter
+1. The editor waits 900 ms after the latest edit.
+2. The current buffer is saved with compare-and-swap version protection.
+3. The saved snapshot is compiled.
+4. A successful PDF replaces the previous preview automatically.
+5. Diagnostics remain clickable and jump to the source line.
 
-## 3. Compile Flow
+The manual Compile button saves a dirty buffer before compiling, so it never knowingly compiles an older server version.
 
-1. User edits a LaTeX file.
-2. Frontend saves document version.
-3. User or autosave triggers compile.
-4. Backend creates compile job.
-5. Worker copies project files into isolated container workspace.
-6. Worker runs configured engine, such as `latexmk`.
-7. Worker uploads PDF and logs to object storage.
-8. Backend updates compile job.
-9. WebSocket emits status and PDF URL.
+## 2. Compile flow
 
-## 4. Isolation
+```mermaid
+flowchart LR
+  Editor[Monaco buffer] --> Debounce[900ms debounce]
+  Debounce --> CAS[Versioned save]
+  CAS --> Parse[Structural parser]
+  Parse --> Hash[Source fingerprint]
+  Hash --> Cache{Cached PDF?}
+  Cache -->|yes| PDF[Authenticated PDF endpoint]
+  Cache -->|no| Latexmk[latexmk, no shell escape]
+  Latexmk --> PDF
+  Latexmk --> Diagnostics[Compiler diagnostics]
+  Parse --> Diagnostics
+```
 
-LaTeX compilation must be sandboxed because projects can contain unsafe commands.
+Backend implementation:
 
-Controls:
+- API routes: `apps/api/researchos/documents/router.py`
+- Versioned document service: `apps/api/researchos/documents/service.py`
+- Bounded compiler: `apps/api/researchos/documents/latex_compiler.py`
+- Structural parser: `apps/api/researchos/documents/latex_parse.py`
+- PDF UI: `apps/web/features/paper/PreviewPanel.tsx`
 
-- Disable shell escape by default.
-- Run compile in container with CPU/memory/time limits.
-- No network access during compile by default.
-- Clean workspace after compile.
-- Store only expected artifacts.
+## 3. Real compiler and fallback
 
-## 5. File Model
+The LaTeX-enabled Docker image installs `latexmk` and TeX Live packages for article, IEEE, ACM, Elsevier, and common poster sources.
 
-Each LaTeX project has:
+Compilation uses an argv list rather than a shell and passes:
 
-- Main file path
-- Supporting `.tex` files
-- `.bib` files
-- Figure assets
-- Style/class files
-- Compile settings
-- Version history
+```text
+-pdf
+-interaction=nonstopmode
+-halt-on-error
+-file-line-error
+-no-shell-escape
+```
 
-## 6. Citation Flow
+Additional controls:
 
-1. User imports papers into project library.
-2. System generates or imports BibTeX entries.
-3. Latex Agent suggests citations from actual library records.
-4. User inserts citation.
-5. BibTeX file updates.
-6. Compile validates reference.
+- relative project paths only
+- new temporary workspace for each compile
+- 30-second default timeout
+- bounded compiler log
+- restricted TeX input/output settings
+- final PDF copied only to the configured artifact root
+- authenticated PDF download route
+- project authorization checked before every PDF response
 
-The system must not invent citations.
+If `latexmk` is not installed, ResearchOS keeps the structural preview and diagnostics. The response engine remains `mock` for backward compatibility; no PDF URL is claimed.
 
-## 7. AI Writing Flow
+## 4. Cache behavior
 
-Latex Agent can:
+A SHA-256 fingerprint covers the main-file path and every stored LaTeX file path/content pair. A successful identical fingerprint reuses the existing PDF and records a new compile job with an engine suffix of `-cache`.
 
-- Draft sections from outline and source papers.
-- Rewrite selected text.
-- Fix compile errors.
-- Insert experiment result summaries.
-- Generate captions from artifacts.
-- Draft reviewer responses.
+This makes reopen and repeated Compile clicks inexpensive while retaining an auditable job history.
 
-All generated claims should be traceable to cited papers, experiment runs, or user-provided assumptions.
+## 5. Storage
 
-## 8. Experiment-to-Paper Sync
+PDF files are stored under:
 
-Experiment runs can produce paper asset candidates:
+```text
+${ARTIFACT_ROOT}/latex/<project_id>/<compile_job_id>.pdf
+```
 
-- Table rows
-- Figure files
-- Captions
-- Result section snippets
-- Ablation summaries
+Docker Compose mounts `/data/artifacts` as the `artifactdata` volume. The database stores the internal path, byte size, source fingerprint, engine, duration, diagnostics, and compile log. The browser receives only an authenticated API URL.
 
-The user reviews candidates before insertion. The inserted content stores links back to experiment runs and artifacts.
+## 6. Version safety
 
-## 9. Future Extensions
+All writes go through `write_file_versioned`:
 
-- Collaborative editing with CRDTs.
-- PDF source sync.
-- Commenting and review mode.
-- Venue template marketplace.
-- Overleaf import/export.
-- Git-backed paper projects.
+- `expected_version` is compared with the current file version.
+- Each accepted write creates an immutable `DocumentFileRevision`.
+- Conflicts return `document_version_conflict`.
+- The frontend opens a merge dialog instead of silently replacing user text.
+- Local drafts protect unsaved text from a browser refresh.
+
+## 7. Citations and experiment assets
+
+- Citation insertion uses canonical project papers and updates the bibliography through the same versioned write path.
+- Result anchors materialize verified experiment values into versioned LaTeX files.
+- The LaTeX Agent can propose selected-text changes, but user acceptance performs the actual versioned mutation.
+- Claims and citations must remain traceable to project papers, experiment records, or explicit user assumptions.
+
+## 8. Production hardening path
+
+The current compiler is bounded and shell escape is disabled, but a public multi-tenant deployment should move TeX into a dedicated worker sandbox with:
+
+- separate unprivileged user or microVM/container
+- no network namespace
+- CPU, memory, process, and file-size limits
+- cancellation of superseded snapshots
+- artifact retention policy and malware scanning
+
+The API contract and PDF endpoint do not need to change when this execution step moves to a dedicated worker.

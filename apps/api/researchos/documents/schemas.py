@@ -259,5 +259,9 @@ class CompileJobResponse(BaseModel):
         default_factory=list, validation_alias=AliasChoices("diagnostics_json", "diagnostics")
     )
     error_summary: str | None
+    pdf_url: str | None = None
+    pdf_size: int | None = None
+    source_fingerprint: str | None = None
+    duration_ms: int | None = None
     created_at: datetime
     finished_at: datetime | None

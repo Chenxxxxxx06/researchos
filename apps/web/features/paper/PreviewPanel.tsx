@@ -10,12 +10,13 @@
  */
 
 import { useState } from 'react';
-import { AlertCircle, AlertTriangle } from 'lucide-react';
+import { AlertCircle, AlertTriangle, ExternalLink } from 'lucide-react';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import type { CompileJob, PreviewBlock, PreviewSection } from '@/lib/api/documents';
+import { API_BASE_URL } from '@/lib/api/client';
 import { useI18n } from '@/lib/i18n';
 
 function BlockView({ block, onJump }: { block: PreviewBlock; onJump: (line: number) => void }) {
@@ -121,8 +122,36 @@ export function PreviewPanel({
             <Skeleton className="h-40 w-full" />
           ) : !job ? (
             <p className="pt-6 text-center text-xs text-faint">{t('paper.preview.empty')}</p>
+          ) : job.pdf_url ? (
+            <div className="flex h-full min-h-[32rem] flex-col gap-2">
+              <div className="flex items-center justify-between rounded-md border border-success/25 bg-success-bg px-2.5 py-2 text-[10px] text-success">
+                <span>
+                  PDF · {job.engine}
+                  {job.duration_ms !== null ? ` · ${job.duration_ms}ms` : ''}
+                </span>
+                <a
+                  href={`${API_BASE_URL}${job.pdf_url}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 font-medium hover:underline"
+                >
+                  打开 <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+              <iframe
+                key={job.id}
+                title="Compiled paper PDF"
+                src={`${API_BASE_URL}${job.pdf_url}#toolbar=0&navpanes=0&view=FitH`}
+                className="min-h-0 flex-1 rounded-md border border-border bg-white"
+              />
+            </div>
           ) : sections ? (
             <div className="space-y-3">
+              <div className="rounded-md border border-warn/25 bg-warn-bg px-2.5 py-2 text-[10px] leading-4 text-warn">
+                {job.engine === 'structural' || job.engine === 'mock'
+                  ? '当前环境未安装 latexmk，正在显示结构预览。LaTeX 容器启动后会在这里显示实时 PDF。'
+                  : '本次编译没有生成 PDF，正在显示结构预览。'}
+              </div>
               {job.preview_model?.title && (
                 <h1 className="text-base font-bold text-text">{job.preview_model.title}</h1>
               )}

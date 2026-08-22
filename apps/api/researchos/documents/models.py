@@ -122,6 +122,9 @@ class DocumentSuggestion(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 class LatexCompileJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "latex_compile_jobs"
+    __table_args__ = (
+        Index("ix_latex_compile_jobs_source_fingerprint", "latex_project_id", "source_fingerprint"),
+    )
 
     latex_project_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("latex_projects.id", ondelete="CASCADE"), nullable=False, index=True
@@ -141,6 +144,10 @@ class LatexCompileJob(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     preview_model_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     diagnostics_json: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     error_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    pdf_path: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    pdf_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_fingerprint: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_by: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True
     )

@@ -9,6 +9,7 @@ import {
   FolderKanban,
   Inbox,
   LayoutDashboard,
+  Loader2,
   Megaphone,
   MoreHorizontal,
   Network,
@@ -88,6 +89,7 @@ export function SideRail() {
   const [railWidth, setRailWidth] = useState(DEFAULT_RAIL_WIDTH);
   const [hasLoadedRailWidth, setHasLoadedRailWidth] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  const [pendingSegment, setPendingSegment] = useState<string | null>(null);
   const isExpanded = railWidth >= EXPANDED_RAIL_WIDTH;
 
   useEffect(() => {
@@ -100,6 +102,22 @@ export function SideRail() {
     if (!hasLoadedRailWidth) return;
     window.localStorage.setItem(RAIL_STORAGE_KEY, String(railWidth));
   }, [hasLoadedRailWidth, railWidth]);
+
+  useEffect(() => {
+    setPendingSegment(null);
+  }, [pathname]);
+
+  // Warm the small route modules after the current page is interactive. This
+  // keeps navigation clicks responsive without competing with first paint.
+  useEffect(() => {
+    if (!projectId) return;
+    const timer = window.setTimeout(() => {
+      for (const item of [...PRIMARY_ITEMS, ...UTILITY_ITEMS]) {
+        router.prefetch(`/projects/${projectId}/${item.segment}`);
+      }
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [projectId, router]);
 
   useEffect(() => {
     if (!isResizing) return;
@@ -142,6 +160,10 @@ export function SideRail() {
   }, [railWidth]);
 
   const hrefFor = (segment: string) => projectId ? `/projects/${projectId}/${segment}` : '/projects';
+  const markNavigation = (segment: string, active: boolean) => {
+    setPendingSegment(segment);
+    if (active) window.setTimeout(() => setPendingSegment(null), 280);
+  };
 
   return (
     <>
@@ -177,7 +199,11 @@ export function SideRail() {
                 <Tooltip content={t(item.key)} shortcut={item.shortcut} side="right" className="w-full">
                   <Link
                     href={hrefFor(item.segment)}
+                    prefetch
                     aria-current={active ? 'page' : undefined}
+                    aria-busy={pendingSegment === item.segment}
+                    data-nav-segment={item.segment}
+                    onClick={() => markNavigation(item.segment, active)}
                     className={cn(
                       'relative flex h-[3.25rem] w-full items-center rounded-md font-medium',
                       isExpanded
@@ -188,7 +214,11 @@ export function SideRail() {
                         : 'text-muted hover:bg-surface-2 hover:text-text',
                     )}
                   >
-                    <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                    {pendingSegment === item.segment ? (
+                      <Loader2 className="h-[18px] w-[18px] shrink-0 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                    )}
                     <span className="max-w-full truncate">{t(item.key)}</span>
                     {isExpanded && (
                       <span className="ml-auto shrink-0 font-mono text-[9px] tracking-wide text-faint">
@@ -282,13 +312,21 @@ export function SideRail() {
             <Link
               key={item.key}
               href={hrefFor(item.segment)}
+              prefetch
               aria-current={active ? 'page' : undefined}
+              aria-busy={pendingSegment === item.segment}
+              data-nav-segment={item.segment}
+              onClick={() => markNavigation(item.segment, active)}
               className={cn(
                 'flex min-w-0 flex-col items-center justify-center gap-1 border-t-2 px-1 text-[9px] font-medium',
                 active ? 'border-accent text-accent' : 'border-transparent text-muted',
               )}
             >
-              <Icon className="h-4 w-4" aria-hidden="true" />
+              {pendingSegment === item.segment ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Icon className="h-4 w-4" aria-hidden="true" />
+              )}
               <span className="max-w-full truncate">{t(item.key)}</span>
             </Link>
           );

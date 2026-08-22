@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import FileResponse
 
+from researchos.common.config import get_settings
 from researchos.common.deps import CurrentUser, DbSession, require_csrf
+from researchos.common.errors import NotFoundError
 from researchos.common.pagination import DEFAULT_LIMIT, MAX_LIMIT, Page
 
 from .anchors import AnchorInsertService
@@ -36,6 +40,16 @@ from .service import DocumentService
 from .suggestions import SuggestionService, suggestion_range
 
 router = APIRouter(prefix="/projects/{project_id}/latex-projects", tags=["paper"])
+
+
+def _compile_response(job) -> CompileJobResponse:
+    response = CompileJobResponse.model_validate(job)
+    if job.pdf_path:
+        response.pdf_url = (
+            f"/projects/{job.project_id}/latex-projects/{job.latex_project_id}"
+            f"/compile-jobs/{job.id}/pdf"
+        )
+    return response
 
 
 def _suggestion_response(suggestion: DocumentSuggestion, path: str) -> SuggestionResponse:
@@ -353,7 +367,7 @@ async def compile_latex(
     project_id: uuid.UUID, latex_project_id: uuid.UUID, user: CurrentUser, db: DbSession
 ) -> CompileJobResponse:
     job = await DocumentService(db).compile(user, project_id, latex_project_id)
-    return CompileJobResponse.model_validate(job)
+    return _compile_response(job)
 
 
 @router.get("/{latex_project_id}/compile-jobs/{job_id}", response_model=CompileJobResponse)
@@ -365,4 +379,27 @@ async def get_compile_job(
     db: DbSession,
 ) -> CompileJobResponse:
     job = await DocumentService(db).get_compile_job(user, project_id, latex_project_id, job_id)
-    return CompileJobResponse.model_validate(job)
+    return _compile_response(job)
+
+
+@router.get("/{latex_project_id}/compile-jobs/{job_id}/pdf", response_class=FileResponse)
+async def get_compile_pdf(
+    project_id: uuid.UUID,
+    latex_project_id: uuid.UUID,
+    job_id: uuid.UUID,
+    user: CurrentUser,
+    db: DbSession,
+) -> FileResponse:
+    job = await DocumentService(db).get_compile_job(user, project_id, latex_project_id, job_id)
+    if not job.pdf_path:
+        raise NotFoundError("Compiled PDF is not available.")
+    root = Path(get_settings().artifact_root).resolve()
+    path = Path(job.pdf_path).resolve()
+    if not path.is_relative_to(root) or not path.is_file():
+        raise NotFoundError("Compiled PDF is not available.")
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        filename=f"{latex_project_id}-{job.id}.pdf",
+        headers={"Cache-Control": "private, max-age=31536000, immutable"},
+    )

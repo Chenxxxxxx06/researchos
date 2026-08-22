@@ -36,7 +36,8 @@
 | Research Copilot | 项目级对话、基于来源的上下文、创新点提取、Idea、评审与 Agent Run 事件 | 可用 |
 | AI IDE 与运行时 | 工作区文件树、Monaco 编辑、可审查 Patch、仓库导入、受限本地 argv、校验 host key 的 SSH/SFTP 与审计记录 | 受限可用 |
 | 实验系统 | 实验方案、Run 记录、NDJSON 日志和指标、对比、图表与受控迭代评估 | 可用骨架 |
-| 论文与评审 | LaTeX 工作台、写作建议、证据感知评审、结构化 rubric 与发布检查 | 可用骨架 |
+| 论文与评审 | LaTeX 工作台、900ms 防抖保存、受限 latexmk 实时 PDF、编译缓存、写作建议与结构化评审 | 受限可用 |
+| 成果发布 | qwen-plus README 补丁；AutoDesign 网页、Poster、Slides 的后台生成、历史、预览与下载 | 受限可用 |
 | 实时体验 | WebSocket 共享连接、心跳、指数重连、事件去重与 REST replay 对账 | 可用 |
 
 <details>
@@ -114,7 +115,7 @@ pnpm site:down
 | Runtime | 受限本地进程、AsyncSSH | 可审计的代码与远程工作区操作 |
 | Storage | PostgreSQL、Redis、MinIO | 持久化状态、协调与产物 |
 
-多 Agent 架构按照 Coordinator、Evidence、Builder、Experiment、Reviewer、Writer 等角色划分职责，通过持久化任务、明确 Schema、审批门禁、产物和事件通信。详细设计见 [Agent 集群架构](docs/AGENT_ARMY_ARCHITECTURE_ZH.md) 与 [Agent 协议](docs/AGENT_PROTOCOL_ZH.md)。
+多 Agent 架构按照 Coordinator、Evidence、Builder、Experiment、Reviewer、Writer 等角色划分职责，通过持久化任务、明确 Schema、审批门禁、产物和事件通信。当前 17 节点 Mission DAG、单次 Runtime 和 RAG 的实际调用位置见 [Agent 链路与 RAG](docs/AGENT_CHAIN_AND_RAG_ZH.md)。成果设计通过独立的 [AutoDesign 集成](docs/AUTODESIGN_INTEGRATION_ZH.md) 运行。
 
 ## 当前问题与优化优先级
 
@@ -129,7 +130,7 @@ pnpm site:down
 | P2 | 科学文档保真度 | PDF OCR、页码/坐标锚点、图表、公式、表格和引用图谱仍需补齐 |
 | P2 | 持久化模型健康状态 | `active` 配置与“最近一次连接验证成功”应该是两个不同状态 |
 
-开发期降级行为会明确标注：没有 API Key 时使用确定性 Mock LLM；LaTeX 尚未接入隔离 `latexmk` 服务；上传音频转写需要可用的 ASR 兼容模型配置，说话人分离与对象存储集成仍未完整。
+开发期降级行为会明确标注：没有 API Key 时使用确定性 Mock LLM；没有 `latexmk` 时只显示结构预览，Docker 模式会生成真实 PDF；AutoDesign 未启动时发布按钮会锁定并显示启动命令；上传音频转写仍需要可用的 ASR 兼容模型配置。
 
 ## 验证命令
 
@@ -146,6 +147,10 @@ pnpm site:down
 | 文档 | 用途 |
 |---|---|
 | [系统架构](docs/ARCHITECTURE.md) | 服务边界与组件关系 |
+| [Agent 链路与 RAG](docs/AGENT_CHAIN_AND_RAG_ZH.md) | 当前 DAG、Runtime、工具与混合检索数据流 |
+| [AutoDesign 集成](docs/AUTODESIGN_INTEGRATION_ZH.md) | qwen-plus 成果生成、服务边界与输出位置 |
+| [LaTeX Pipeline](docs/LATEX_PIPELINE.md) | 实时保存、真实 PDF、缓存与安全边界 |
+| [性能优化](docs/PERFORMANCE_OPTIMIZATION_ZH.md) | 已落地优化、指标和后续优先级 |
 | [实验系统](docs/EXPERIMENT_SYSTEM.md) | 实验记录、指标与生命周期 |
 | [SSH Runtime](docs/SSH_RUNTIME.md) | 远程运行策略与审计模型 |
 | [Skills 系统](docs/SKILLS_SYSTEM.md) | Skill Manifest、启用与运行时注入 |

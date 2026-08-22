@@ -22,15 +22,24 @@ apps/desktop/src-tauri/gen/
 .env.local
 *.local
 
-# --- Editors / OS ------------------------------------------------------------
+# --- Editors / local agent harnesses / OS ------------------------------------
 .DS_Store
 .idea/
 *.log
 .worktrees/
+.agents/
+.claude/
+.codebuddy/
+.qoder/
+.qwen/
+.trae/
 
 # --- Docker / data volumes ---------------------------------------------------
 infra/docker/.data/
 data/workspaces/
+data/artifacts/
+data/autodesign/
+rubbish/local/
 
 # --- Local CLI demo state ----------------------------------------------------
 .researchos-cli-demo/

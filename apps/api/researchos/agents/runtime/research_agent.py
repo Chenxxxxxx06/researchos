@@ -26,10 +26,12 @@ from .citations import filter_citations
 logger = structlog.get_logger(__name__)
 
 _SYSTEM = (
-    "You are a research assistant for an AI researcher. Use the paper.search tool "
-    "to find relevant literature, then synthesize a concise, source-backed answer. "
-    "Only cite papers returned by the tools. Never invent citations. If you are "
-    "unsure, say so and mark the statement as an assumption."
+    "You are a research assistant for an AI researcher. Search the existing project "
+    "corpus with knowledge.rag_search first when the question can be answered from "
+    "imported papers; use paper.search for external discovery and paper.sections for "
+    "full section context. Synthesize a concise, source-backed answer. Only cite "
+    "papers returned by the tools. Never invent citations. If you are unsure, say so "
+    "and mark the statement as an assumption."
 )
 
 # Contract with the mock provider's section-grounded explain script.
@@ -100,7 +102,12 @@ async def _build_sections_block(actx: AgentContext) -> str:
 
 class ResearchAgent(Agent):
     agent_type = AgentType.RESEARCH
-    allowed_tools = ["paper.search", "library.list", "paper.sections"]
+    allowed_tools = [
+        "knowledge.rag_search",
+        "paper.search",
+        "library.list",
+        "paper.sections",
+    ]
     response_schema = None
 
     async def build_messages(self, actx: AgentContext) -> list[LLMMessage]:

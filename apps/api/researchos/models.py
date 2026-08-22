@@ -56,6 +56,7 @@ from researchos.organizations.models import Organization, OrganizationMembership
 from researchos.patches.models import PatchFile, PatchHunk, PatchProposal
 from researchos.preferences.models import UserPreference
 from researchos.projects.models import Project, ProjectMembership
+from researchos.releases.models import ReleaseGenerationJob
 from researchos.research.models import Idea, Paper, PaperSection, ResearchCritique, ResearchFeedPref
 from researchos.reviews.models import ReviewDocument, ReviewSection, ReviewVersion
 from researchos.runtime.ssh.models import SSHExecution, SSHProfile
@@ -91,6 +92,7 @@ __all__ = [
     "ResearchFeedPref",
     "Idea",
     "ResearchCritique",
+    "ReleaseGenerationJob",
     "ReviewDocument",
     "ReviewSection",
     "ReviewVersion",

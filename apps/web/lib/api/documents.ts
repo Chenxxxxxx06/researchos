@@ -149,6 +149,10 @@ export interface CompileJob {
   preview_model: PreviewModel | null;
   diagnostics: CompileDiagnostic[];
   error_summary: string | null;
+  pdf_url: string | null;
+  pdf_size: number | null;
+  source_fingerprint: string | null;
+  duration_ms: number | null;
   created_at: string;
   finished_at: string | null;
 }

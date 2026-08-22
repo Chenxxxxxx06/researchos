@@ -89,6 +89,19 @@ class Settings(BaseSettings):
     llm_max_output_tokens: int = 8192
     llm_request_timeout_seconds: float = 120.0
 
+    # --- AutoDesign release service -----------------------------------------
+    # The internal URL is used by the API container; the public URL is written
+    # into artifact metadata rendered by the browser.
+    autodesign_base_url: str = "http://host.docker.internal:8010"
+    autodesign_public_url: str = "http://localhost:8010"
+    autodesign_start_timeout_seconds: float = 30.0
+
+    # --- LaTeX compiler ------------------------------------------------------
+    artifact_root: str = "/data/artifacts"
+    latex_engine: str = "latexmk"
+    latex_compile_timeout_seconds: int = 30
+    latex_compile_log_max_chars: int = 200_000
+
     # --- Paper search provider ----------------------------------------------
     # Comma-separated provider list, e.g. "arxiv,s2,openalex".
     paper_provider: str = "arxiv"

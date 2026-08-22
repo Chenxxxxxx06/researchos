@@ -1,0 +1,4 @@
+[submodule "integrations/AutoDesign"]
+	path = integrations/AutoDesign
+	url = https://github.com/Yaxin9Luo/AutoDesign.git
+	shallow = true

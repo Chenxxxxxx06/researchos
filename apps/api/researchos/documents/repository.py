@@ -7,7 +7,7 @@ import uuid
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .enums import SuggestionStatus
+from .enums import CompileStatus, SuggestionStatus
 from .models import (
     DocumentFile,
     DocumentFileRevision,
@@ -183,3 +183,19 @@ class CompileJobRepository:
     async def get(self, latex_project_id: uuid.UUID, job_id: uuid.UUID) -> LatexCompileJob | None:
         job = await self.db.get(LatexCompileJob, job_id)
         return job if job and job.latex_project_id == latex_project_id else None
+
+    async def find_cached(
+        self, latex_project_id: uuid.UUID, source_fingerprint: str
+    ) -> LatexCompileJob | None:
+        result = await self.db.execute(
+            select(LatexCompileJob)
+            .where(
+                LatexCompileJob.latex_project_id == latex_project_id,
+                LatexCompileJob.source_fingerprint == source_fingerprint,
+                LatexCompileJob.status == CompileStatus.SUCCEEDED,
+                LatexCompileJob.pdf_path.is_not(None),
+            )
+            .order_by(LatexCompileJob.created_at.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()

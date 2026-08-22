@@ -1,19 +1,18 @@
-"""LaTeX document business logic, authorization, and a safe mock compiler.
-
-The compiler is a pure-Python structural pass (see ``latex_parse``). There is
-NO shell, NO subprocess, and NO shell-escape (PHASE3/5 security): real isolated
-LaTeX compilation is a later phase.
+"""LaTeX document business logic, versioning, and bounded PDF compilation.
 
 Every content mutation (saves, suggestion accepts, anchor includes, citation
 inserts) goes through ``write_file_versioned`` so each write is compare-and-
 swapped on the per-file version counter and snapshotted into
-``document_file_revisions``.
+``document_file_revisions``. Compilation always runs the structural parser and,
+when ``latexmk`` is installed, also produces a real PDF with shell escape off.
 """
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 
 import structlog
 from sqlalchemy.exc import IntegrityError
@@ -27,6 +26,7 @@ from researchos.projects.service import ProjectService
 from researchos.websocket.envelopes import EventEnvelope
 
 from .enums import CompileStatus
+from .latex_compiler import compile_latex_project, source_fingerprint
 from .latex_parse import parse_document, render_plain_preview
 from .merge import three_way_merge
 from .models import DocumentFile, DocumentFileRevision, LatexCompileJob, LatexProject
@@ -377,28 +377,120 @@ class DocumentService:
             actor, project_id, latex_project_id, ProjectRole.RESEARCHER
         )
         files = await self.files.list(latex_project_id)
-        file_map = {f.path: f.content for f in files}
-        preview_model, diagnostics = parse_document(file_map, lp.main_file_path)
-        errors = [d for d in diagnostics if d["severity"] == "error"]
-        status = CompileStatus.FAILED if errors else CompileStatus.SUCCEEDED
-        job = await self.jobs.add(
-            LatexCompileJob(
-                latex_project_id=latex_project_id,
-                project_id=project_id,
-                status=status,
-                engine="mock",
-                log=(
-                    "Mock compile (no shell, no shell-escape): "
-                    f"{len(diagnostics)} diagnostic(s)."
-                ),
-                preview=render_plain_preview(preview_model),
-                preview_model_json=preview_model,
-                diagnostics_json=diagnostics,
-                error_summary=errors[0]["message"] if errors else None,
-                created_by=actor.id,
-                finished_at=datetime.now(tz=UTC),
+        file_map = {file.path: file.content for file in files}
+        preview_model, structural_diagnostics = parse_document(file_map, lp.main_file_path)
+        fingerprint = source_fingerprint(file_map, lp.main_file_path)
+        structural_errors = [
+            diagnostic
+            for diagnostic in structural_diagnostics
+            if diagnostic["severity"] == "error"
+        ]
+        job_id = uuid.uuid4()
+
+        cached = await self.jobs.find_cached(latex_project_id, fingerprint)
+        if (
+            not structural_errors
+            and cached is not None
+            and cached.pdf_path is not None
+            and Path(cached.pdf_path).is_file()
+        ):
+            job = await self.jobs.add(
+                LatexCompileJob(
+                    id=job_id,
+                    latex_project_id=latex_project_id,
+                    project_id=project_id,
+                    status=CompileStatus.SUCCEEDED,
+                    engine=f"{cached.engine}-cache",
+                    log="Reused an identical compiled PDF.",
+                    preview=render_plain_preview(preview_model),
+                    preview_model_json=preview_model,
+                    diagnostics_json=structural_diagnostics,
+                    pdf_path=cached.pdf_path,
+                    pdf_size=cached.pdf_size,
+                    source_fingerprint=fingerprint,
+                    duration_ms=0,
+                    created_by=actor.id,
+                    finished_at=datetime.now(tz=UTC),
+                )
             )
-        )
+        elif structural_errors:
+            job = await self.jobs.add(
+                LatexCompileJob(
+                    id=job_id,
+                    latex_project_id=latex_project_id,
+                    project_id=project_id,
+                    status=CompileStatus.FAILED,
+                    engine="mock",
+                    log=f"Structural validation found {len(structural_errors)} error(s).",
+                    preview=render_plain_preview(preview_model),
+                    preview_model_json=preview_model,
+                    diagnostics_json=structural_diagnostics,
+                    error_summary=structural_errors[0]["message"],
+                    source_fingerprint=fingerprint,
+                    duration_ms=0,
+                    created_by=actor.id,
+                    finished_at=datetime.now(tz=UTC),
+                )
+            )
+        else:
+            from researchos.common.config import get_settings
+
+            compiled = await asyncio.to_thread(
+                compile_latex_project,
+                files=file_map,
+                main_file_path=lp.main_file_path,
+                project_id=str(project_id),
+                job_id=str(job_id),
+                settings=get_settings(),
+            )
+            if compiled is None:
+                job = await self.jobs.add(
+                    LatexCompileJob(
+                        id=job_id,
+                        latex_project_id=latex_project_id,
+                        project_id=project_id,
+                        status=CompileStatus.SUCCEEDED,
+                        engine="mock",
+                        log=(
+                            "latexmk is unavailable; structural preview succeeded. "
+                            "Install the LaTeX-enabled container to render PDF."
+                        ),
+                        preview=render_plain_preview(preview_model),
+                        preview_model_json=preview_model,
+                        diagnostics_json=structural_diagnostics,
+                        source_fingerprint=fingerprint,
+                        duration_ms=0,
+                        created_by=actor.id,
+                        finished_at=datetime.now(tz=UTC),
+                    )
+                )
+            else:
+                diagnostics = [*structural_diagnostics, *compiled.diagnostics]
+                errors = [d for d in diagnostics if d["severity"] == "error"]
+                job = await self.jobs.add(
+                    LatexCompileJob(
+                        id=job_id,
+                        latex_project_id=latex_project_id,
+                        project_id=project_id,
+                        status=(
+                            CompileStatus.SUCCEEDED
+                            if compiled.succeeded
+                            else CompileStatus.FAILED
+                        ),
+                        engine=compiled.engine,
+                        log=compiled.log,
+                        preview=render_plain_preview(preview_model),
+                        preview_model_json=preview_model,
+                        diagnostics_json=diagnostics,
+                        error_summary=errors[0]["message"] if errors else None,
+                        pdf_path=compiled.pdf_path,
+                        pdf_size=compiled.pdf_size,
+                        source_fingerprint=compiled.source_fingerprint,
+                        duration_ms=compiled.duration_ms,
+                        created_by=actor.id,
+                        finished_at=datetime.now(tz=UTC),
+                    )
+                )
         await self.db.commit()
         await self.db.refresh(job)
         await self._publish_compile_event(job)
